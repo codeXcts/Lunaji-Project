@@ -190,7 +190,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 
 <!-- ───────────── LEXICON ───────────── -->
 <section id="lexicon" hidden>
-  <p class="hint">Every word the Forge knows. Kept words land here automatically, and the collision check reads from this list — so it sharpens as the language grows.</p>
+  <p class="hint">One store, shared with the Composer. A word kept here appears in the Composer palette and Frames tab on the next refresh, and the collision check reads from the same list.</p>
   <div class="panel">
     <div id="lexCount" class="hint"></div>
     <div id="lexList"></div>
@@ -203,9 +203,9 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
     </div>
     <div class="row" style="margin-top:8px">
       <select id="lxClass">
-        <option value="pnoun">primary noun</option><option value="dnoun">deverbal noun</option>
-        <option value="verb">verb</option><option value="irreg">irregular verb</option>
-        <option value="func">function word</option><option value="suffix">suffix</option>
+        <option value="noun">noun</option><option value="verb">verb</option>
+        <option value="pron">pronoun</option><option value="case">particle</option>
+        <option value="aux">auxiliary</option><option value="num">numeral</option>
       </select>
       <button class="btn" id="lxAdd">Add</button>
     </div>
@@ -482,16 +482,26 @@ const RETIRED = ["vwetsu","vweta","sen","lomen","loman","ga","wi","gawi","gata",
   "tsunoman","helimon","ivelan","sonurema","peduran","imon","solan","weseru","lebru",
   "nyobru","soblu","moturon","tapra","hira","mira","nemu","isha","kwanshi","numu","kyiso"];
 
-const LEXKEY = "lunaji.lexicon.v1";
-let LEX = {};
+const LEXKEY = "lunaji-lex";   // shared with the Composer
+let LEX = {}, SUFFIX = null;
+// the Composer's class vocabulary is canonical, since both tools now read one store
+const CMAP = {pnoun:"noun", dnoun:"noun", verb:"verb", irreg:"verb",
+              func:"case", pron:"pron", suffix:"case", any:"noun"};
+function seedObj(){
+  const o = {};
+  for(const w in LEX_SEED) o[w] = {g:LEX_SEED[w][0], c:CMAP[LEX_SEED[w][1]] || "noun", real:true};
+  return o;
+}
 function loadLex(){
   try{
     const raw = localStorage.getItem(LEXKEY);
-    LEX = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(LEX_SEED));
-  }catch(e){ LEX = JSON.parse(JSON.stringify(LEX_SEED)); }
+    const v = raw ? JSON.parse(raw) : null;
+    if(v && v.LEX){ LEX = v.LEX; SUFFIX = v.SUFFIX || null; }
+    else LEX = seedObj();
+  }catch(e){ LEX = seedObj(); }
 }
 function saveLex(){
-  try{ localStorage.setItem(LEXKEY, JSON.stringify(LEX)); }
+  try{ localStorage.setItem(LEXKEY, JSON.stringify(SUFFIX ? {LEX, SUFFIX} : {LEX})); }
   catch(e){ /* storage unavailable — the export box is the fallback */ }
 }
 loadLex();
@@ -528,7 +538,7 @@ function check(res, cls){
     if(cls==="pnoun") t.push(!endsU ? {ok:true,s:nasalEnd?"primary noun, nasal-final":"primary noun"}
                                     : {ok:false,s:"nouns may never end in –u"});
   }
-  if(COINED.includes(sp)) t.push({ok:false, s:"collides with " + sp + " — " + LEX[sp][0]});
+  if(COINED.includes(sp)) t.push({ok:false, s:"collides with " + sp + " — " + LEX[sp].g});
   else if(RETIRED.includes(sp)) t.push({ok:false, s:"this shape was retired once already"});
   return t;
 }
@@ -802,7 +812,7 @@ function keepWord(res, src){
   const rel = $("kRelated").value.trim();
   const note = $("kNote").value.trim();
 
-  LEX[w] = [gloss || "(no gloss yet)", cls];
+  LEX[w] = {g: gloss || "(no gloss yet)", c: CMAP[cls] || "noun", real: true};
   saveLex();
   logLine(`${stamp()}  KEPT ${src.toUpperCase()} → ${w} /${res.ipa}/  ${gloss}`);
 
@@ -833,8 +843,9 @@ $("cls2").onchange = renderDerivation;
 renderDerivation();
 
 /* ══════════ lexicon ══════════ */
-const CLASSGROUP = {pnoun:"Nouns", dnoun:"Nouns", verb:"Verbs", irreg:"Verbs",
-                    pron:"Pronouns", func:"Function words", suffix:"Suffixes"};
+const CLASSGROUP = {noun:"Nouns", verb:"Verbs", pron:"Pronouns", case:"Particles",
+  aux:"Auxiliaries", evid:"Evidentials", q:"Question", conj:"Conjunction",
+  adv:"Adverbs", num:"Numbers", negopen:"Negation"};
 function renderLex(){
   const words = Object.keys(LEX).sort();
   $("lexCount").textContent = words.length + " words";
@@ -846,7 +857,7 @@ function renderLex(){
   $("lexList").innerHTML = Object.keys(groups).map(g=>
     `<h3 style="margin:14px 0 6px;font-size:14px">${g}</h3>` +
     `<div class="tags">${groups[g].map(w=>
-      `<span class="tag">${w} <span style="opacity:.6">${LEX[w][0]}</span>` +
+      `<span class="tag">${w} <span style="opacity:.6">${LEX[w].g}</span>` +
       `<button class="lxrm" data-w="${w}" aria-label="Remove ${w}" ` +
       `style="background:none;border:0;color:inherit;opacity:.5;padding:0 0 0 6px;font-size:14px">×</button></span>`
       ).join("")}</div>`
@@ -863,7 +874,7 @@ $("lexList").onclick = e => {
 $("lxAdd").onclick = () => {
   const w = $("lxWord").value.trim().toLowerCase();
   if(!w) return;
-  LEX[w] = [$("lxGloss").value.trim() || "(no gloss yet)", $("lxClass").value];
+  LEX[w] = {g: $("lxGloss").value.trim() || "(no gloss yet)", c: $("lxClass").value, real: true};
   saveLex(); renderLex();
   logLine(`${stamp()}  added ${w} to the lexicon by hand`);
   $("lxWord").value = ""; $("lxGloss").value = "";
@@ -876,7 +887,7 @@ $("lxImport").onclick = () => {
   }catch(e){ $("lxIO").value = "That is not valid JSON. Export from the other device and paste the whole line."; }
 };
 $("lxReset").onclick = () => {
-  LEX = JSON.parse(JSON.stringify(LEX_SEED)); saveLex(); renderLex();
+  LEX = seedObj(); saveLex(); renderLex();
 };
 renderLex();
 

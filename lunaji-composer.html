@@ -67,6 +67,7 @@ th{color:var(--dim); font-weight:500; font-size:12px}
 
 <nav role="tablist">
   <button role="tab" aria-selected="true" data-tab="write">Write</button>
+  <button role="tab" aria-selected="false" data-tab="frames">Frames</button>
   <button role="tab" aria-selected="false" data-tab="words">Words</button>
   <button role="tab" aria-selected="false" data-tab="para">Paradigm</button>
   <button role="tab" aria-selected="false" data-tab="exp">Export</button>
@@ -133,6 +134,25 @@ th{color:var(--dim); font-weight:500; font-size:12px}
 </section>
 
 <!-- ───────── WORDS ───────── -->
+<section id="frames" hidden>
+  <p class="hint">Lexicology §6 step 6 — say it in a sentence before you keep it. Every frame below is built only from coined words, so what you hear is the language and not scaffolding.</p>
+  <div class="panel">
+    <label for="frWord">Word to test</label>
+    <select id="frWord"></select>
+    <div id="frOut"></div>
+  </div>
+  <div class="panel">
+    <label for="frNote">What you heard</label>
+    <textarea id="frNote" rows="2" placeholder="Which frame it failed in, and what the seam sounded like."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="frKeep">Keep</button>
+      <button class="btn ghost" id="frRedraw">Redraw</button>
+      <button class="btn ghost" id="frCopy">Copy verdicts</button>
+    </div>
+    <pre id="frLog" style="margin-top:10px"></pre>
+  </div>
+</section>
+
 <section id="words" hidden>
   <style>
     #words .frow{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px}
@@ -190,46 +210,69 @@ th{color:var(--dim); font-weight:500; font-size:12px}
    real:false = placeholder from Grammar §0                       */
 let LEX = {
   // pronouns
-  ga:   {g:"I",              c:"pron", real:true},
-  wi:   {g:"you",            c:"pron", real:true},
-  gawi: {g:"we.INCL",        c:"pron", real:true},
-  gata: {g:"we.EXCL",        c:"pron", real:true},
-  ishi: {g:"3SG.ANIM",       c:"pron", real:true},
+  gan:{g:"I",c:"pron",real:true}, win:{g:"you",c:"pron",real:true},
+  ishin:{g:"3SG.ANIM",c:"pron",real:true},
+  ganwin:{g:"we.INCL",c:"pron",real:true}, ganta:{g:"we.EXCL",c:"pron",real:true},
   // nouns
-  helan:{g:"person",         c:"noun", real:true},
-  hena: {g:"faint.sound",    c:"noun", real:true, also:"neg"},
-  hiba: {g:"trace",          c:"noun", real:true},
-  vweta:{g:"company",        c:"noun", real:true},
+  helan:{g:"person",c:"noun",real:true},
+  hena:{g:"faint.sound",c:"noun",real:true,also:"neg"},
+  hiba:{g:"trace",c:"noun",real:true},
+  nowireta:{g:"company",c:"noun",real:true},
+  lonji:{g:"night",c:"noun",real:true},
+  uwiki:{g:"moon",c:"noun",real:true},
+  onankonzan:{g:"dead.of.night",c:"noun",real:true},
+  noaye:{g:"wind",c:"noun",real:true},
+  tsuri:{g:"doctor",c:"noun",real:true},
+  akyoza:{g:"name",c:"noun",real:true},
+  aoyan:{g:"road",c:"noun",real:true},
+  ani:{g:"flower",c:"noun",real:true},
+  fanvonedi:{g:"dream",c:"noun",real:true},
+  okison:{g:"silence",c:"noun",real:true},
+  omime:{g:"door",c:"noun",real:true},
+  vanonla:{g:"greeting",c:"noun",real:true},
+  heni:{g:"Lunaji (endonym)",c:"noun",real:true},
   // verbs
-  vwetu:{g:"be.awake.with",  c:"verb", real:true},
+  sofou:{g:"see",c:"verb",real:true},
+  kyonku:{g:"hear",c:"verb",real:true},
+  kominu:{g:"be.tired",c:"verb",real:true},
+  inoyu:{g:"be.dark",c:"verb",real:true},
+  nialipu:{g:"stir",c:"verb",real:true},
+  nowiretsu:{g:"be.awake.with",c:"verb",real:true},
+  kazon:{g:"come",c:"verb",real:true,note:"nasal-vowel irregular"},
+  hin:{g:"exist.ANIM",c:"verb",real:true,note:"nasal-vowel irregular"},
+  yozu:{g:"exist.INAN",c:"verb",real:true},
+  inku:{g:"exist.UNKNOWN",c:"verb",real:true},
   // case particles
-  a:    {g:"TOP",            c:"case", real:true},
-  na:   {g:"TOP / that",     c:"case", real:true, also:"dem"},
-  ba:   {g:"SUBJ",           c:"case", real:true},
-  ni:   {g:"OBJ",            c:"case", real:true},
-  pe:   {g:"POSS",           c:"case", real:true},
-  wa:   {g:"LOC",            c:"case", real:true},
-  di:   {g:"OBL",            c:"case", real:true},
-  toma: {g:"SRC",            c:"case", real:true},
-  // negation
-  mi:   {g:"NEG(open)",      c:"negopen",  real:true},
-  // placeholders — Grammar §0
-  mira: {g:"see",            c:"verb", real:false},
-  nemu: {g:"be.tired",       c:"verb", real:false},
-  hira: {g:"flower",         c:"noun", real:false},
-  sami: {g:"man",            c:"noun", real:false},
-  isha: {g:"doctor",         c:"noun", real:false},
-  sara: {g:"—",              c:"noun", real:false},
-  yo:   {g:"3SG.ANIM (old)", c:"pron", real:false, note:"superseded by ishi"},
-  ku:   {g:"AUX.completed",  c:"aux",  real:false},
-  bo:   {g:"AUX.habitual",   c:"aux",  real:false},
-  ko:   {g:"Q",              c:"q",    real:false}
+  a:{g:"TOP",c:"case",real:true}, na:{g:"TOP / that",c:"case",real:true,also:"dem"},
+  ba:{g:"SUBJ",c:"case",real:true}, ni:{g:"OBJ",c:"case",real:true},
+  pe:{g:"POSS",c:"case",real:true}, wa:{g:"LOC",c:"case",real:true},
+  di:{g:"OBL",c:"case",real:true}, toma:{g:"SRC / than",c:"case",real:true},
+  // negation, auxiliaries, tail
+  mi:{g:"NEG(open)",c:"negopen",real:true},
+  byon:{g:"AUX.completed",c:"aux",real:true},
+  lon:{g:"AUX.habitual",c:"aux",real:true},
+  gu:{g:"COP.PAST",c:"case",real:true,note:"function word; surfaces only as guze"},
+  la:{g:"EVID.nonvisual",c:"evid",real:true},
+  po:{g:"EVID.inference",c:"evid",real:true},
+  ke:{g:"EVID.assumption",c:"evid",real:true},
+  jin:{g:"Q",c:"q",real:true},
+  noron:{g:"but",c:"conj",real:true},
+  oyan:{g:"might",c:"adv",real:true},
+  // numbers
+  zo:{g:"1",c:"num",real:true}, van:{g:"2",c:"num",real:true},
+  ki:{g:"3",c:"num",real:true}, ra:{g:"4",c:"num",real:true},
+  bai:{g:"5",c:"num",real:true}, baizo:{g:"6",c:"num",real:true},
+  baivan:{g:"7",c:"num",real:true}, baiki:{g:"8",c:"num",real:true},
+  baira:{g:"9",c:"num",real:true}, gonte:{g:"10",c:"num",real:true},
+  zero:{g:"0",c:"num",real:true}
 };
 const NEGCLOSE = "hena";
 let SUFFIX = {
   ze: {g:"PAST",    on:"verb", real:true},
-  ri: {g:"ONGOING", on:"verb", real:false},
-  ta: {g:"PL",      on:"anim", real:true}
+  ri: {g:"ONGOING", on:"verb", real:true},
+  ta: {g:"PL",      on:"anim", real:true},
+  re: {g:"CL.ANIM", on:"num",  real:true},
+  ko: {g:"CL.INAN", on:"num",  real:true}
 };
 
 /* the lexicon is data, and it survives the tab closing where the browser allows it */
@@ -439,6 +482,8 @@ function render(){
 
 /* ═══════════ palette ═══════════ */
 const CLASSNAMES = {pron:"Pronouns", noun:"Nouns", verb:"Verbs", case:"Particles",
+  evid:"Evidentials", aux:"Auxiliaries", q:"Question", conj:"Conjunction",
+  adv:"Adverbs", num:"Numbers", negopen:"Negation",
   negopen:"Negation", aux:"Auxiliaries", q:"Question", other:"Other"};
 function paintPalette(){
   const groups = {};
@@ -525,7 +570,7 @@ $("doImport").onclick = ()=>{
     $("io").value = "Imported " + Object.keys(LEX).length + " words.";
   }catch(e){ $("io").value = "That isn't a valid export."; }
 };
-function repaint(){ paintPalette(); paintWords(); paintParaSelect(); paintPara(); render(); }
+function repaint(){ paintPalette(); paintWords(); paintParaSelect(); paintPara(); paintFrames(); render(); }
 
 /* ═══════════ gaps ═══════════ */
 const GAPS = [];
@@ -553,6 +598,80 @@ function morasOf(str){
     const sy = syllabify(w); return n + (sy ? sy.reduce((m,s)=>m+sylMoras(s),0) : 0);
   },0);
 }
+/* ═══════════ frames — the ear test ═══════════
+   Frames are built from real words only. The seam frames matter most: the
+   hena loman near-rhyme was found in a seam, not in isolation.            */
+const nasalFinal = w => /[aeiou]n$/.test(w) && !/[aeiou]n[aeiou]/.test(w.slice(-3));
+const joinNi = w => nasalFinal(w) ? w + " ni" : w + "ni";
+const topicOf = w => nasalFinal(w) ? w + "a" : w + "na";
+
+function framesFor(w){
+  const e = LEX[w]; if(!e) return [];
+  const c = e.c, F = [], put = (label, line, why) => F.push({label, line, why});
+
+  if(c === "noun" || c === "pron"){
+    put("Bare", w, "weight and stress with nothing helping it");
+    put("Topic-marked", topicOf(w), nasalFinal(w)
+      ? "the nasal dissolves and the stress moves with it — one word, two shapes"
+      : "the consonant-initial allomorph");
+    put("Object, before the verb", joinNi(w) + " sofouze",
+      nasalFinal(w) ? "ni stays separate after a nasal-final noun" :
+      "the compression site — fast speech bites hardest right before the verb");
+    put("Modified", "kominu " + w, "an adjectival verb immediately in front");
+    put("Located", w + "wa okison hin", "with the locative, in a full clause");
+    put("In the reference frame", "Lonjiwa " + joinNi(w) + " sofouze hena.",
+      "straight against the benchmark");
+    if(c === "pron") put("Plural", w + "ta", "the animate plural");
+  }
+  else if(c === "verb" || c === "aux"){
+    const nas = nasalFinal(w);
+    put("Bare", w, "the citation form, and the imperative");
+    put("Past", w + "ze", nas
+      ? "no theme vowel to protect the suffix — watch for a second sibilant dissimilating"
+      : "the theme vowel sits between the root and a voiced onset");
+    put("Negated", w + " hena", "the seam. This is where hena loman was caught");
+    put("With an object", "noaye ni " + w + "ze", "the beat after ni, then the run-up");
+    put("Adverbial stack", "kominu " + w, "two bare verbs side by side, neither suffixed");
+    put("Ongoing, habitual, past", w + "ri lonze", "the longest the verb ever gets");
+    put("Full clause", "Lonjiwa noaye ni " + w + "ze hena.", "against the benchmark");
+  }
+  else if(c === "evid" || c === "q" || c === "conj"){
+    put("After the negator", "sofouze hena " + w, "the tail seam — its commonest left neighbour");
+    put("After a heavy word", "onankonzan " + w, "against a three-nasal word");
+    put("Full clause", "Lonjiwa noaye ni kyonkuze hena " + w + ".", "in the post-verbal tail");
+  }
+  else {
+    put("Joined to a long noun", "onankonzan" + w, "the ancient particles cliticize");
+    put("Joined to a short noun", "ani" + w, "on the lightest noun in the lexicon");
+    put("Braced", "helan ba " + "lonji" + w + " sofouze", "long words on both sides — §1b.5");
+  }
+  return F;
+}
+
+const VERDICTS = [];
+function paintFrames(){
+  const sel = $("frWord"), keep = sel.value;
+  sel.innerHTML = Object.keys(LEX).filter(w=>LEX[w].real).sort()
+    .map(w=>`<option value="${w}">${w} — ${LEX[w].g}</option>`).join("");
+  if(keep && LEX[keep]) sel.value = keep;
+  const w = sel.value;
+  $("frOut").innerHTML = framesFor(w).map(f=>
+    `<div style="margin:14px 0 0"><div class="hint" style="opacity:.7">${f.label}</div>` +
+    `<div style="font-size:19px;margin:2px 0">${f.line}</div>` +
+    `<div class="hint">/${ipaOf(f.line.replace(/[.]/g,""))}/ · ${morasOf(f.line.replace(/[.]/g,""))} moras</div>` +
+    `<div class="hint" style="opacity:.65">${f.why}</div></div>`).join("");
+}
+function logVerdict(v){
+  const w = $("frWord").value, note = $("frNote").value.trim();
+  VERDICTS.push(`${stamp()}  ${v.toUpperCase()} ${w}${note ? "  — " + note : ""}`);
+  $("frLog").textContent = VERDICTS.join("\n");
+  $("frNote").value = "";
+}
+$("frWord").onchange = paintFrames;
+$("frKeep").onclick = () => logVerdict("keep");
+$("frRedraw").onclick = () => logVerdict("redraw");
+$("frCopy").onclick = () => navigator.clipboard.writeText(VERDICTS.join("\n"));
+
 function paintParaSelect(){
   const vs = Object.keys(LEX).filter(w=>LEX[w].c==="verb").sort();
   const keep = $("pverb").value;
@@ -628,7 +747,7 @@ $("copyExp").onclick = ()=>{
 document.querySelectorAll("nav button").forEach(b=>{
   b.onclick = ()=>{
     document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["write","words","para","exp","gaps"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+    ["write","frames","words","para","exp","gaps"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
   };
 });
 
