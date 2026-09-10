@@ -101,6 +101,13 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
         <label for="fOnset">Onset before the theme vowel</label>
         <input id="fOnset" placeholder="b g v l m n y" spellcheck="false">
       </div>
+      <div>
+        <label for="fBanSeq">Must not contain</label>
+        <input id="fBanSeq" placeholder="j, ts, sy" spellcheck="false">
+        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-weight:400">
+          <input type="checkbox" id="fNoGlide"> no glides
+        </label>
+      </div>
     </div>
     <div class="row" style="margin-top:8px">
       <div>
@@ -675,6 +682,8 @@ function readFilter(){
   const list = id => ($(id).value || "").toLowerCase().split(/[,\s]+/).filter(Boolean);
   return {
     banEnd:  list("fBanEnd"),
+    banSeq:  list("fBanSeq"),
+    noGlide: $("fNoGlide") && $("fNoGlide").checked,
     onsets:  list("fOnset"),
     moraMin: Number($("fMoraMin").value) || 0,
     moraMax: Number($("fMoraMax").value) || 99,
@@ -685,6 +694,8 @@ function readFilter(){
 function filterText(){
   const f = readFilter(), bits = [];
   if(f.banEnd.length)  bits.push("not ending " + f.banEnd.join("/"));
+  if(f.banSeq.length)  bits.push("no " + f.banSeq.join("/"));
+  if(f.noGlide)        bits.push("no glides");
   if(f.onsets.length)  bits.push("theme onset in " + f.onsets.join(""));
   if(f.moraMin || f.moraMax < 99) bits.push(`${f.moraMin || 1}-${f.moraMax === 99 ? "any" : f.moraMax} moras`);
   if(f.rhyme === "lex")  bits.push("no rhyme with any existing word");
@@ -694,6 +705,10 @@ function filterText(){
 function passesFilter(res, f){
   const w = res.spelling;
   if(f.banEnd.some(e => w.endsWith(e))) return false;
+  if(f.banSeq.some(e => w.includes(e))) return false;
+  // A glide is y or w before a vowel. ny is the consonant ɲ, not a glide, so it
+  // survives this — which is why a bare "no y" substring ban would over-reach.
+  if(f.noGlide && /(^|[^n])y[aeiou]|w[aeiou]/.test(w)) return false;
   if(res.moras < f.moraMin || res.moras > f.moraMax) return false;
   if(f.onsets.length && !f.onsets.includes(themeOnset(w))) return false;
   if(f.rhyme){
@@ -707,7 +722,8 @@ function passesFilter(res, f){
 function drawStock(cls, sylOpt, n, endReq, startReq){
   const out=[]; let guard=0;
   const F = readFilter();
-  const tight = endReq || startReq || F.banEnd.length || F.onsets.length || F.rhyme || F.moraMin;
+  const tight = endReq || startReq || F.banEnd.length || F.banSeq.length ||
+                F.noGlide || F.onsets.length || F.rhyme || F.moraMin;
   const cap = tight ? n*2000 : n*40;
   while(out.length<n && guard<cap){
     guard++;
@@ -745,7 +761,7 @@ function logLine(s){ LOG.push(s); $("logOut").textContent = LOG.join("\n"); save
    wrote and the whole log lived in memory only. The lexicon persisted; the work
    in progress did not, which is the half you would actually miss.            */
 const WORKKEY = "lunaji-forge-work";
-const WORKFIELDS = ["filter","fBanEnd","fOnset","fMoraMin","fMoraMax","fRhyme",
+const WORKFIELDS = ["filter","fBanEnd","fBanSeq","fOnset","fMoraMin","fMoraMax","fRhyme",
                     "fRhymeList","rootIn","cls","cls2","kGloss","kRelated","kNote"];
 let restoring = false;
 function saveWork(){
