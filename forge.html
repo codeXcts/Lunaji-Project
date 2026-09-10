@@ -244,7 +244,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
     <div class="row" style="margin-top:8px">
       <button class="btn ghost" id="lxExport">Export</button>
       <button class="btn ghost" id="lxImport">Import (replaces)</button>
-      <button class="btn ghost" id="lxReset">Reset to the built-in list</button>
+      <button class="btn ghost" id="lxReset">Add any missing built-in words</button>
     </div>
   </div>
 </section>
@@ -738,7 +738,36 @@ document.querySelectorAll("nav button").forEach(b=>{
 let stock = [], slotDraws = 0, forced = false;
 let lastDraw = null;   // how the root in the Derive tab was obtained
 const LOG = [];
-function logLine(s){ LOG.push(s); $("logOut").textContent = LOG.join("\n"); }
+function logLine(s){ LOG.push(s); $("logOut").textContent = LOG.join("\n"); saveWork(); }
+
+/* Nothing here survived a page close: the stack, the taken root, the filter you
+   wrote and the whole log lived in memory only. The lexicon persisted; the work
+   in progress did not, which is the half you would actually miss.            */
+const WORKKEY = "lunaji-forge-work";
+const WORKFIELDS = ["filter","fBanEnd","fOnset","fMoraMin","fMoraMax","fRhyme",
+                    "fRhymeList","rootIn","cls","cls2","kGloss","kRelated","kNote"];
+let restoring = false;
+function saveWork(){
+  if(restoring) return;
+  const f = {};
+  WORKFIELDS.forEach(id => { if($(id)) f[id] = $(id).value; });
+  try{ localStorage.setItem(WORKKEY, JSON.stringify({f, stock, slotDraws, forced, lastDraw, LOG})); }
+  catch(e){}
+}
+function loadWork(){
+  let v; try{ v = JSON.parse(localStorage.getItem(WORKKEY) || "null"); }catch(e){ return; }
+  if(!v) return;
+  restoring = true;
+  WORKFIELDS.forEach(id => { if($(id) && v.f && v.f[id] !== undefined) $(id).value = v.f[id]; });
+  stock = v.stock || []; slotDraws = v.slotDraws || 0;
+  forced = !!v.forced; lastDraw = v.lastDraw || null;
+  if(v.LOG) { LOG.length = 0; v.LOG.forEach(l=>LOG.push(l)); $("logOut").textContent = LOG.join("\n"); }
+  restoring = false;
+  if(stock.length) paintStack();
+  if($("rootIn").value) renderDerivation();
+}
+document.addEventListener("input", saveWork);
+document.addEventListener("change", saveWork);
 const stamp = () => new Date().toISOString().slice(0,10);
 
 function takeRoot(i){
@@ -750,6 +779,7 @@ function takeRoot(i){
   logLine(`${stamp()}  TOOK ${r.root} → ${r.out} /${r.ipa}/  [${forced ? "forced draw" : "position " + (i+1) + " of " + stock.length}]`);
   stock = []; slotDraws = 0; forced = false;
   $("rootIn").value = r.root;
+  saveWork();
   $("cls2").value = $("cls").value;
   renderDerivation();
   document.querySelector('nav button[data-tab="derive"]').click();
@@ -828,6 +858,7 @@ function renderDerivation(){
       <input id="kGloss" placeholder="to be tired" spellcheck="false">
       <label for="kRelated">Related words, if any</label>
       <input id="kRelated" placeholder="nowireta, -ta" spellcheck="false">
+      <div id="frames"></div>
       <label for="kNote">What you heard when you said it</label>
       <textarea id="kNote" rows="2" placeholder="Judged in a sentence, not in isolation — Lexicology §6 step 6."></textarea>
       <div class="row" style="margin-top:10px">
@@ -838,12 +869,57 @@ function renderDerivation(){
       <div id="entryOut"></div>
     </div>`;
 
+  paintFrames(res.spelling, $("cls2").value);
   $("keepWord") && ($("keepWord").onclick = () => keepWord(res, src));
   $("dropWord").onclick = () => {
     logLine(`${stamp()}  DISCARDED ${src.toUpperCase()} → ${res.spelling}${$("kNote").value.trim() ? "  — " + $("kNote").value.trim() : ""}`);
     $("rootIn").value = ""; lastDraw = null; renderDerivation();
     document.querySelector('nav button[data-tab="draw"]').click();
   };
+}
+
+/* Lexicology §6 step 6 — say it in a sentence before you keep it. Frames use
+   only coined words, and the seam comes first: hena loman failed there while
+   sounding fine in isolation. */
+const nasEnd = w => /[aeiou]n$/.test(w);
+const withNi = w => nasEnd(w) ? w + " ni" : w + "ni";
+const withTop = w => nasEnd(w) ? w + "a" : w + "na";
+
+function framesFor(w, cls){
+  const F = [], put = (l, line, why) => F.push({l, line, why});
+  if(cls === "verb" || cls === "irreg"){
+    put("Negated — the seam", w + " hena", "where loman failed");
+    put("Bare", w, "the citation form, and the imperative");
+    put("Past", w + "ze", nasEnd(w) ? "no theme vowel protecting the suffix" : "");
+    put("With an object", "noaye ni " + w + "ze", "the beat after ni, then the run-up");
+    put("Adverbial stack", "kominu " + w, "two bare verbs, neither suffixed");
+    put("Full clause", "Lonjiwa noaye ni " + w + "ze hena.", "against the benchmark");
+  } else if(cls === "pnoun" || cls === "dnoun"){
+    put("Topic-marked", withTop(w), nasEnd(w) ? "the nasal dissolves, the stress moves" : "");
+    put("Bare", w, "weight and stress unaided");
+    put("Object before the verb", withNi(w) + " sofouze", nasEnd(w) ? "ni stays separate" : "the compression site");
+    put("Clause in front of it", "nialipu " + w, "the shape it wears as a head noun");
+    put("Modified", "kominu " + w, "an adjectival verb in front");
+    put("Counted", "rako " + w, "numeral plus inanimate counter");
+    put("Full clause", "Lonjiwa " + withNi(w) + " sofouze hena.", "against the benchmark");
+  } else {
+    put("After the negator", "sofouze hena " + w, "its commonest left neighbour");
+    put("Joined to a long noun", "onankonzan" + w, "if it cliticizes");
+    put("Braced", "helan ba lonji" + w + " sofouze", "long words both sides — §1b.5");
+    put("Full clause", "Lonjiwa noaye ni kyonkuze hena " + w + ".", "in the tail");
+  }
+  return F;
+}
+function paintFrames(w, cls){
+  if(!$("frames")) return;
+  $("frames").innerHTML =
+    `<label style="display:block">Say these before you keep it</label>` +
+    framesFor(w, cls).map(f=>
+      `<div style="margin:10px 0 0">
+         <div class="hint" style="opacity:.7">${f.l}</div>
+         <div style="font-size:19px">${f.line}</div>
+         ${f.why ? `<div class="hint" style="opacity:.6">${f.why}</div>` : ``}
+       </div>`).join("");
 }
 
 /* Turn the fired rules into the prose the Dictionary actually uses:
@@ -978,8 +1054,13 @@ $("lxImport").onclick = () => {
     if(next && typeof next === "object"){ LEX = next; saveLex(); renderLex(); $("lxIO").value = "Imported."; }
   }catch(e){ $("lxIO").value = "That is not valid JSON. Export from the other device and paste the whole line."; }
 };
+// Merge, never replace. The saved lexicon is the only copy of anything coined
+// since the file was built, so a button that overwrites it is a footgun.
 $("lxReset").onclick = () => {
-  LEX = seedObj(); saveLex(); renderLex();
+  const seed = seedObj(); let added = 0;
+  for(const w in seed) if(!LEX[w]){ LEX[w] = seed[w]; added++; }
+  saveLex(); renderLex();
+  logLine(`${stamp()}  merged in ${added} built-in word${added===1?"":"s"}`);
 };
 renderLex();
 
@@ -1014,6 +1095,7 @@ $("copyLog").onclick = () => {
   );
   setTimeout(()=> $("copyLog").textContent = "Copy log", 2000);
 };
+loadWork();
 </script>
 </body>
 </html>
