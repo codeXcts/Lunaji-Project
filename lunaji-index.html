@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lunaji Index</title>
+<style>
+:root{--bg:#12100f;--fg:#e8e2d9;--dim:#8b8177;--accent:#c9a227;--line:#2a2622;--card:#181513}
+*{box-sizing:border-box}
+body{margin:0;padding:0 14px 60px;background:var(--bg);color:var(--fg);
+     font:16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;background:var(--bg);padding:14px 0 8px;border-bottom:1px solid var(--line);z-index:5}
+h1{margin:0 0 2px;font-size:19px;letter-spacing:.02em}
+h1 span{color:var(--accent)}
+.sub{color:var(--dim);font-size:12.5px;margin:0 0 10px}
+input{width:100%;padding:11px 12px;font-size:16px;border-radius:9px;
+      border:1px solid var(--line);background:var(--card);color:var(--fg)}
+input:focus{outline:none;border-color:var(--accent)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.tag{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);
+     background:var(--card);color:var(--dim);cursor:pointer}
+.tag[data-on="1"]{border-color:var(--accent);color:var(--accent)}
+.count{color:var(--dim);font-size:12px;margin:12px 0 6px}
+ul{list-style:none;margin:0;padding:0}
+li{padding:11px 0;border-bottom:1px solid var(--line)}
+.k{font-weight:600}
+.k em{color:var(--accent);font-style:normal}
+.loc{display:inline-block;margin-top:3px;font-size:13.5px;color:var(--accent)}
+.loc b{font-weight:600}
+.note{display:block;margin-top:3px;font-size:13px;color:var(--dim)}
+.alias{display:block;margin-top:2px;font-size:12px;color:#6d645b}
+.open{color:#d98a4a}
+footer{margin-top:26px;color:var(--dim);font-size:12.5px;line-height:1.6}
+mark{background:none;color:var(--accent)}
+</style>
+
+<header>
+  <h1>Lunaji <span>index</span></h1>
+  <p class="sub">Where things live, not what they say. Current to 2026-09-10.</p>
+  <input id="q" placeholder="flower, plural, negation, stress…" autocomplete="off">
+  <div class="tags" id="tags"></div>
+</header>
+
+<p class="count" id="count"></p>
+<div id="coinbar" style="margin:14px 0 6px"></div>
+<div id="coinout"></div>
+<ul id="out"></ul>
+
+<footer>
+  <b>Files:</b> Grammar · Phonology · Lexicology · Dictionary · Proto &amp; Sound Changes.<br>
+  Section numbers are the stable layer — they survive rewrites of the text inside them.<br>
+  <span class="open">Orange</span> marks something still open.
+</footer>
+
+<script>
+// [key, file, section, note, aliases, open?]
+const D = [
+["Flower — ani","Dictionary","Nouns › ani","AKUNI → ani. Inanimate; demonstrates the animacy rule in all four places at once.","ani akuni plant"],
+["Animacy — the definition","Grammar","§3.3","Animate = it moves or makes sound on its own. Contextual, not lexical.","self-acting alive animate inanimate"],
+["Animacy — where it applies","Grammar","§2.1, §3.3, §4.7, §7","Four sites: plural, pronoun, existence verb, counters. One category, cannot differ between them.","four places"],
+["Plural — animates only","Grammar","§2.1","-ta marks animates. Plants and objects can never take it.","-ta number plural"],
+["Plural of an inanimate","Grammar","§2.1","There isn't one. Bare form is unspecified; count with a numeral if it matters.","flowers many"],
+["Bare noun = unspecified","Grammar","§2.1","Not singular. The question of how many simply isn't asked.","number singular"],
+["Counters — -re, -ko","Grammar","§7","Two only, animate and inanimate. Bound to the numeral, precedes the noun.","classifier -re -ko"],
+["Counter vs -ta","Grammar","§7","They do not co-occur. kire helanta is out.","together"],
+["Existence verbs","Grammar","§4.7","hin animate, yozu inanimate, inku unknown.","hin yozu inku there is melu rivu"],
+["inku — the unknown","Dictionary","Verbs › inku","Something acted and I cannot identify it. inku la. Replaced rivu 2026-09-10.","unknown existence rivu"],
+
+["Negation — the bracket","Grammar","§4.3","mi opens, hena closes. Bare hena is the neutral form since 2026-09-10.","not mi hena no"],
+["mi — position and spelling","Grammar","§4.3, §1b.4","Proclitic on the verb complex, written separate. French ne arrangement.","proclitic ne"],
+["Negation under embedding","Grammar","§6.2","Each clause carries its own bracket. Inner hena precedes the head noun.","subordinate scope"],
+["Verb complex — what counts","Grammar","§6.2","Verb, or adverbial verb plus verb. Arguments are outside it.","predicate mi landing"],
+
+["Subordination — the construction","Grammar","§6.1","Clause before a noun. Relative, adverbial and complement all use it.","embedding clause"],
+["Adverbial clauses","Grammar","§6.1","Nominalized clause plus a case particle. wa = when, toma = since, di = because.","when because since"],
+["Complement clauses","Grammar","§6.1","Needs a nominalizer — not yet coined.","the fact that",1],
+["Relative clauses","Grammar","§5.1, §6.1","Same construction as attributive adjectives. Gap strategy, no relativizer.","who that which"],
+["Topic inside a subordinate clause","Grammar","§6.2","Not allowed. Topic is discourse-level. Subjects inside relatives take ba.","na a topic"],
+["Tail is matrix-only","Grammar","§6.2","Evidentials and jin cannot sit in an embedded clause. Negation can.","scope jin evidential"],
+["Subordinate tense","Grammar","§6.2","Anterior or absolute — undecided.","-ze embedded",1],
+
+["Comparison — than","Grammar","§5.4","A ba B toma [adjectival verb]. Separative comparative, no morphology.","bigger than toma comparative"],
+["Superlative","Grammar","§5.4","Not encoded. Implicature from a universal standard.","biggest most"],
+["Equative — as X as","Grammar","§5.4","Open. di rejected as overloaded.","as as same",1],
+
+["Coordination — noron","Grammar","§6","Clause-final, on the end of the first clause. Outside the §4.8 tail.","but noron loman kedo"],
+["noron — the entry","Dictionary","Function words › noron","Replaced loman 2026-09-10 after the hena loman seam failed.","but coordinator"],
+
+["Word order","Grammar","§1","SOV, head-final, agglutinative.","typology sov head-final"],
+["Head-finality — consequences","Grammar","§1","Postpositions, modifiers precede, suffixes not prefixes, topic-first.","order modifiers"],
+["Case particles — the seven","Grammar","§2.2","a/na topic, ba, ni, pe, wa, di, toma.","ba ni pe wa di particles"],
+["Which particles join in writing","Grammar","§1b.4","The six ancient ones join. toma and mi stay separate.","joined spacing clitic"],
+["helan ni — the exception","Grammar","§1b.4","Nasal-final noun keeps a nasal-initial particle separate.","ni doubled"],
+["Topic particle a ~ na","Dictionary","Function words › a ~ na","Two shapes by the noun's final segment. Persists across sentences.","topic wa marker"],
+["Topic vs demonstrative na","Dictionary","Function words › na","Position distinguishes them: na helan against helana.","that the demonstrative"],
+["Subject drop","Grammar","§2.3","Once a topic stands, naming the subject again is marked.","pronoun omission"],
+["Definiteness","Grammar","§2.4","None. No articles.","the a"],
+["Gender","Grammar","§2.5","None.","masculine feminine"],
+
+["Pronouns — the grid","Grammar","§3.1","gan, win, ishin. All nasal-final so they attract stress.","i you he she"],
+["Inclusive vs exclusive we","Grammar","§3.2","ganwin inclusive (compound), ganta exclusive (regular -ta).","ganwin ganta we"],
+["Third person is animate-only","Grammar","§3.3","Demonstratives cover everything else. Inanimate form on a person is contempt.","ishin it"],
+["Formality","Grammar","§3.4","None. Door left open in the verb suffix stack.","polite tu vous",1],
+
+["Tense","Grammar","§4.1","Two-way, past -ze. Goes on the last verb.","-ze past future"],
+["Aspect","Grammar","§4.2","-ri ongoing; byon and lon are auxiliary verbs, and nasal-vowel irregulars.","byon lon habitual ongoing bu zu"],
+["-ri — the ongoing suffix","Dictionary","Coining queue","Still a placeholder.","ongoing aspect",1],
+["Evidentials","Grammar","§4.4","la direct non-visual, po inference, ke assumption. Optional.","la po ke evidence"],
+["Mood — question, command","Grammar","§4.5","jin final particle; bare verb for commands.","jin question imperative"],
+["Might / maybe — oyan","Grammar","§5.3","Adverb, not grammatical. Sits at the outer edge of what it scopes.","oyan possibility might"],
+["Copula","Grammar","§4.6","Zero in non-past; gu → guze in the past only.","is was gu"],
+["Post-verbal order","Grammar","§4.8","Auxiliary → hena → evidential → question. Scope: narrow closest.","tail order"],
+["Adjectives are verbs","Grammar","§5.1","No adjective class. nemu = to be tired.","adjective attributive"],
+["Adverbs","Grammar","§5.2","No adverb class either. Bare verb before a verb.","manner adverb"],
+["Verbs stay short","Grammar","§4","No extra slots. Split into free words instead.","length constraint"],
+
+["Numbers","Grammar","§7","Decimal with a quinary sub-base; 6–9 built on bai.","zo van ki ra bai gonte counting"],
+["Zero","Dictionary","Numbers › zero","Loanword. Takes no counter.","zero none loan"],
+
+["Consonants","Phonology","§1","Twenty-one. ʃ ʒ ts are derived.","inventory sounds"],
+["Sonorant weighting","Phonology","§1.1","Generator bias, not a rule. The largest contributor to texture.","frequency texture"],
+["Vowels — oral","Phonology","§2","a e i o u. u is the weak vowel.","five vowels"],
+["Nasal vowels — three","Phonology","§2","ã ĩ õ. ũ→õ and ẽ→ã: nasal vowels lower.","an in on nasal en"],
+["No en spelling","Phonology","§2","Not legal. Any e-root nasalizes to an.","en illegal"],
+["Where nasal vowels came from","Phonology","§3","V + n → Ṽ. The n left its mora behind.","history nasalization"],
+["Syllable structure","Phonology","§4.1","(C)(G)V. No codas at all; every word ends in a vowel.","template cv shape"],
+["Words ending in an/in/on","Phonology","§4.1a","That is a vowel, not a consonant. Could be spelled bõ.","final nasal legal"],
+["Vowel sequences","Phonology","§4.1b","Legal, two syllables each. No diphthongs.","pai koi hiatus diphthong"],
+["No doubled consonants","Phonology","§4.2 r1","A geminate would close a syllable.","geminate"],
+["si / zi / tu do not occur","Phonology","§4.2 r2","Coronal obstruents change before a high vowel. Productive.","shi ji tsu palatalization"],
+["Nasal vowel before nasal consonant","Phonology","§4.2 r3","Banned word-internally only. Legal across a word boundary.","helan ni ban"],
+["Suffix shapes unavailable","Phonology","§4.2 r4","-ma, -na, -nya, -ya, -ha.","suffix onset forbidden"],
+["No w after velar, labiodental, r","Phonology","§4.2 r5","kw gw vw fw rw banned. Coronals and labials keep Cw.","vw kw cluster w"],
+["Obstruent + liquid onsets","Phonology","§4.2 r6","pr br kl fl etc. Produced by syncope, never coined.","cluster pra bl"],
+["No glide before its own vowel","Phonology","§4.2 r7a","yi and wu banned. nyi left legal.","yi wu kyiso glide"],
+["nyi — legal or not","Phonology","§7","/ɲi/ against /ni/. Undecided.","ny palatal",1],
+["Cluster + nasal vowel","Phonology","§4.2 r7","Never in the same syllable. Enforced upstream in R3.","krãː nokran"],
+["Mora timing","Phonology","§5","Oral vowel 1 mora, nasal 2. Glides and clusters add nothing.","beats rhythm mora"],
+["Stress rule","Phonology","§5","Last nasal syllable, else the final syllable. Non-reducing.","accent prominence"],
+["Run-up","Phonology","§5","Why content roots are 3–4 syllables.","approach length"],
+["Orthography","Phonology","§6","sh j ts ny y r; an in on.","spelling letters"],
+["The nasal reading rule","Phonology","§6","A nasal letter is read by what follows it.","kana kan kanta"],
+["Elision","Phonology","§6","Monosyllabic particle before an identical vowel. d'itsuze.","apostrophe r10 d'"],
+["Native script","Phonology","§7","Not decided.","writing system",1],
+["d before u","Phonology","§7","Whether it parallels t → ts. Decide before any d-final verb root.","du zu",1],
+
+["Word classes by final vowel","Lexicology","§1","-u verb, -a deverbal noun, -a/e/i/o or nasal primary noun.","class theme vowel"],
+["Nouns never end in -u","Lexicology","§1","The only hard ban the class system creates.","-u ban"],
+["Nasal-vowel irregular verbs","Lexicology","§1.2","KATUN → kan. hin is the first member.","irregular hin class"],
+["Derivation","Lexicology","§2","Two proto-roots off one skeleton. Never a nominalizing suffix.","noun verb pair"],
+["Why no nominalizer","Lexicology","§2.2","R3 + R4 collapse three verbs into one noun.","suffix -na fails"],
+["Compounding","Lexicology","§2.3","Proto compounds survive only if the first element doesn't end in -u.","ganwin compound"],
+["Loanwords","Lexicology","§4","Fix the syllables, not the ending. A loan in -u must be reshaped.","borrowing french zero"],
+["Suffix shape filter","Lexicology","§4a","One mora; verbal suffixes need a voiced non-nasal onset.","safe onsets b d g v z r l w"],
+["Coining procedure","Lexicology","§6","Seven steps. Draw from blind stock, never invent at the point of need.","how to coin draw"],
+["Generator spec","Lexicology","§6","3–4 syllables, sonorant-weighted, vowel bias to o and u.","forge settings stock"],
+["Blind vs shortlist","Lexicology","§6","Both honest. Neither lets you tune toward an output.","discard take"],
+["Say it in a sentence","Lexicology","§6 step 6","And the other words must be coined, or the test proves nothing.","test ear placeholder"],
+["Drift — final -u devoicing","Lexicology","§5.1","Watch k p s f sh finals.","erosion whisper"],
+["Drift — R3 and R4 going dark","Lexicology","§5.2","No u-roots of the right shape means no clusters and no opaque families.","syncope risk"],
+["Drift — generator bias","Lexicology","§5.3","Designing the lexicon by statistics.","texture sameness"],
+
+["The sound changes R1–R10","Proto","Part 2","Ordered, applied top to bottom. Order is the whole game.","rules r1 r2 r3 r4 r5"],
+["R2 and stress","Proto","R2","Cannot fire in a stressed first syllable. Word-initial glides are drawn, not derived.","niura nyura glide cgv"],
+["R3 — the u rule","Proto","R3","Syncope. Blocked before a nasal vowel. No longer running.","syncope u deletion"],
+["R5 — nasalization","Proto","R5","Syllable-final only. The basis of the kan ~ kana alternation.","nasal vowel source"],
+["R8, R9, R10 still running","Proto","R8–R10","Palatalization, affrication, elision are live today.","productive active"],
+["Worked examples","Proto","Part 3","Every rule with a root that shows it.","table examples"],
+["Root shape","Proto","§1.5","Content 3–4 syllables; function 1, or 2 for a recent recruit.","length syllables"],
+
+["Reference sentence","Dictionary","top","Lonjiwa uwiki ni sofouze hena. The benchmark by ear, and the first built entirely from coined words.","benchmark test moon night"],
+["Provisional words — cleared","Dictionary","Provisional","All fifteen coined by 2026-09-10. Nothing provisional remains.","placeholder nokuran kanuwan"],
+["Retired words","Dictionary","Retired","loman, sen, vwetsu, lomen, bu, zu, melu, rivu, the old pronouns.","dead removed"],
+["Coining queue","Dictionary","Coining queue","What still needs a word.","todo next",1],
+["Watch items","Grammar","§8","Legal constructions expected to be avoided, and live drift risks.","irregularities log"],
+["Endonym — heni","Dictionary","Nouns › heni","The hushed tongue. Lunaji is the exonym.","name language heni"],
+];
+
+const FILES = ["Grammar","Phonology","Lexicology","Dictionary","Proto"];
+
+/* Coining constraints, keyed by class. These exist because the two-syllable rule
+   for new function words is stated in five places and headed in none of them —
+   you had to know where to look before you could look it up.                  */
+const CLASSES = ["verb","noun","function word","suffix","numeral"];
+const C = [
+ [["verb","noun","function word","suffix","numeral"],"Draw blind. Take the first legal root off a batch you did not shape.","Lexicology §6"],
+ [["verb","noun","function word","suffix","numeral"],"Write the filter before you see the stack. Rejecting until something feels right is shortlist drift with extra steps.","Dictionary, standing note"],
+ [["verb","noun","function word","suffix","numeral"],"Say it in a sentence before you keep it. Isolated words were judged fine for two days while the language was judged characterless.","Lexicology §6 step 6"],
+ [["verb","noun","function word","suffix","numeral"],"Open syllables only, ends in a vowel, no si/zi/tu, no doubled consonants, no w after a velar, labiodental or r, no cluster in the same syllable as a nasal vowel.","Lexicology §6 step 5"],
+ [["verb","noun","function word","suffix","numeral"],"A content word should not be homophonous with a particle sequence.","Grammar §8"],
+
+ [["verb","noun"],"Three to four syllables at proto. A two-syllable word cannot have a run-up. Short is legitimate only when syncope earned it.","Proto §1.5"],
+ [["verb"],"Theme vowel -u, which never drops. Nouns may never end in -u.","Lexicology §1.1"],
+ [["verb"],"A proto root ending -un, -in or -en surfaces as a nasal-vowel irregular instead. The draw decides this, not you.","Lexicology §1.2"],
+ [["verb"],"Watch what stacks behind the theme vowel: -uze, -uri, and a following bare verb in the adverbial construction.","Lexicology §4a"],
+
+ [["noun"],"Class vowel -a for deverbal, -a/e/i/o or a nasal vowel for primary.","Lexicology §1"],
+ [["noun"],"A noun and its verb are two separate proto-roots off one skeleton. Never a nominalizing suffix — it destroys a consonant on every derived noun.","Lexicology §2, §2.2"],
+ [["noun"],"Nasal-final nouns liaise: the particle grabs the nasal and the stress moves with it. Test both shapes.","Grammar §1a"],
+ [["noun"],"Check it against the topic particle. fona was redrawn because fonana stuttered.","Dictionary › akyoza"],
+
+ [["function word"],"TWO SYLLABLES if it is a recent grammaticalisation, ONE if it is ancient. Syllable count encodes age, and the orthography follows it: two syllables are written separate, one cliticizes and joins.","Grammar §1b.4, §6.1, §5.4"],
+ [["function word"],"A new one is bleached from a noun. hena was a faint sound, toma was the back or side away from you. Give it the noun it came from.","Lexicology §1.3"],
+ [["function word"],"Consonant-initial by default. Vowel-initial is a small earned class created by reanalysis, and it already has exactly one member.","Grammar §1b.1, §1b.2"],
+ [["function word"],"A light clitic needs long words on both sides. Two adjacent bare monosyllables is the shape that reads as staccato.","Grammar §1b.5"],
+ [["function word"],"No theme vowel. Function words are outside the class system.","Lexicology §1.3"],
+
+ [["suffix"],"One mora. A glide costs nothing; -kya passes, -kan and -ton do not.","Lexicology §4a"],
+ [["suffix"],"Unavailable shapes: -ma, -na, -nya, -ya, -ha.","Lexicology §4a, Phonology §4.2 rule 4"],
+ [["suffix"],"Verbal suffixes need a voiced onset, not nasal, not y. Safe: b d g v z r l w.","Lexicology §4a"],
+
+ [["numeral"],"No final -u — adjectival verbs also precede nouns, so X-u helan would be ambiguous.","Dictionary › numerals"],
+ [["numeral"],"No minimal pairs inside the set, or against particles and pronouns that stand next to nouns.","Dictionary › numerals"]
+];
+let active = "";
+const $ = i => document.getElementById(i);
+
+let coinCls = "";
+CLASSES.forEach(c=>{
+  const b=document.createElement("div"); b.className="tag"; b.textContent="coining a " + c;
+  b.onclick=()=>{ coinCls = coinCls===c ? "" : c;
+    [...$("coinbar").children].forEach(x=>x.dataset.on = x.textContent==="coining a "+coinCls ? "1":"0");
+    paintCoin(); };
+  $("coinbar").appendChild(b);
+});
+function paintCoin(){
+  if(!coinCls){ $("coinout").innerHTML = ""; return; }
+  const rows = C.filter(r=>r[0].includes(coinCls));
+  $("coinout").innerHTML =
+    `<p class="note" style="margin:8px 0">${rows.length} constraints bind a ${coinCls}. Everything below is already written down somewhere — this is only the list of where.</p>` +
+    `<ul>` + rows.map(r=>`<li>
+       <span class="note">${r[1]}</span>
+       <span class="loc">${r[2]}</span>
+     </li>`).join("") + `</ul>`;
+}
+
+FILES.forEach(f=>{
+  const b=document.createElement("div"); b.className="tag"; b.textContent=f;
+  b.onclick=()=>{ active = active===f ? "" : f;
+    [...$("tags").children].forEach(c=>c.dataset.on = c.textContent===active ? "1":"0");
+    render(); };
+  $("tags").appendChild(b);
+});
+
+function hl(s,q){ if(!q) return s;
+  return s.replace(new RegExp("("+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig"),"<mark>$1</mark>"); }
+
+function render(){
+  const q = $("q").value.trim().toLowerCase();
+  const rows = D.filter(r=>{
+    if(active && r[1]!==active) return false;
+    if(!q) return true;
+    return (r[0]+" "+r[2]+" "+r[3]+" "+(r[4]||"")).toLowerCase().includes(q);
+  });
+  $("count").textContent = rows.length + (rows.length===1?" entry":" entries")
+    + (active?" · "+active:"") + (q?" matching “"+$("q").value.trim()+"”":"");
+  $("out").innerHTML = rows.map(r=>`<li>
+      <span class="k">${hl(r[0],q)}${r[5]?' <em>· open</em>':''}</span>
+      <span class="loc"><b>${r[1]}</b> ${r[2]}</span>
+      <span class="note">${hl(r[3],q)}</span>
+      ${r[4]?`<span class="alias">${hl(r[4],q)}</span>`:""}
+    </li>`).join("") ||
+    `<li><span class="note">Nothing matches. Try a plainer word — the aliases carry things like “flowers”, “but”, “bigger than”.</span></li>`;
+}
+$("q").oninput = render;
+render();
+</script>
