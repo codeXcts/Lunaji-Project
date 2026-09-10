@@ -91,7 +91,35 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   <div class="panel">
     <label for="filter">Write the filter before you draw</label>
     <textarea id="filter" rows="2" placeholder="e.g. one mora, voiced non-nasal non-y onset, must not erode into ba"></textarea>
-    <p class="hint">Lexicology §6: state the constraints, then take the first root that passes.</p>
+    <p class="hint">Lexicology §6: state the constraints, then take the first root that passes. The three fields below are enforced on the draw; the box above is for the reasoning that isn't machine-checkable.</p>
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label for="fBanEnd">Must not end in</label>
+        <input id="fBanEnd" placeholder="onku, ru" spellcheck="false">
+      </div>
+      <div>
+        <label for="fOnset">Onset before the theme vowel</label>
+        <input id="fOnset" placeholder="b g v l m n y" spellcheck="false">
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label for="fMoraMin">Moras, min–max</label>
+        <div class="row">
+          <input id="fMoraMin" type="number" min="1" max="9" placeholder="min">
+          <input id="fMoraMax" type="number" min="1" max="9" placeholder="max">
+        </div>
+      </div>
+      <div>
+        <label for="fRhyme">Near-rhymes</label>
+        <select id="fRhyme">
+          <option value="">allow</option>
+          <option value="lex">reject any that rhymes with a word in the lexicon</option>
+          <option value="list">reject rhymes with the words listed below</option>
+        </select>
+        <input id="fRhymeList" placeholder="kyonku, kominu" spellcheck="false" style="margin-top:6px">
+      </div>
+    </div>
   </div>
 
   <div class="row">
@@ -622,9 +650,64 @@ function startsOK(sp, req){
   if(req==="V")    return /^[aeiou]/.test(sp);
   return sp.startsWith(req);
 }
+/* The written filter, enforced. Lexicology §6 exists to stop a root being tuned
+   toward an output; a filter you state before the draw is what makes that
+   checkable, so it should shape the stack rather than merely annotate it. */
+const V = "aeiou";
+// Work on spellings, not parsed structures: the lexicon is stored as spellings
+// and a rhyme is a fact about the written tail either way.
+const rhymeTail = w => w.length >= 4 ? w.slice(-3) : w;
+function themeOnset(w){
+  let i = w.length - 1;
+  if(w[i] === "n") i--;                       // a word-final n is the vowel's nasality
+  while(i >= 0 && !V.includes(w[i])) i--;     // land on the final vowel
+  let j = i - 1, on = "";
+  while(j >= 0 && !V.includes(w[j])){
+    // Phonology §6: an n is a real consonant only when a vowel follows it.
+    if(w[j] === "n" && !V.includes(w[j+1])) break;
+    on = w[j] + on; j--;
+  }
+  return on;
+}
+
+function readFilter(){
+  const list = id => ($(id).value || "").toLowerCase().split(/[,\s]+/).filter(Boolean);
+  return {
+    banEnd:  list("fBanEnd"),
+    onsets:  list("fOnset"),
+    moraMin: Number($("fMoraMin").value) || 0,
+    moraMax: Number($("fMoraMax").value) || 99,
+    rhyme:   $("fRhyme").value,
+    rhymeList: list("fRhymeList")
+  };
+}
+function filterText(){
+  const f = readFilter(), bits = [];
+  if(f.banEnd.length)  bits.push("not ending " + f.banEnd.join("/"));
+  if(f.onsets.length)  bits.push("theme onset in " + f.onsets.join(""));
+  if(f.moraMin || f.moraMax < 99) bits.push(`${f.moraMin || 1}-${f.moraMax === 99 ? "any" : f.moraMax} moras`);
+  if(f.rhyme === "lex")  bits.push("no rhyme with any existing word");
+  if(f.rhyme === "list" && f.rhymeList.length) bits.push("no rhyme with " + f.rhymeList.join("/"));
+  return bits.join("; ");
+}
+function passesFilter(res, f){
+  const w = res.spelling;
+  if(f.banEnd.some(e => w.endsWith(e))) return false;
+  if(res.moras < f.moraMin || res.moras > f.moraMax) return false;
+  if(f.onsets.length && !f.onsets.includes(themeOnset(w))) return false;
+  if(f.rhyme){
+    const t = rhymeTail(w);
+    const against = f.rhyme === "lex" ? Object.keys(LEX) : f.rhymeList;
+    if(against.some(o => o !== w && o.length >= 3 && rhymeTail(o) === t)) return false;
+  }
+  return true;
+}
+
 function drawStock(cls, sylOpt, n, endReq, startReq){
   const out=[]; let guard=0;
-  const cap = (endReq || startReq) ? n*800 : n*40;
+  const F = readFilter();
+  const tight = endReq || startReq || F.banEnd.length || F.onsets.length || F.rhyme || F.moraMin;
+  const cap = tight ? n*2000 : n*40;
   while(out.length<n && guard<cap){
     guard++;
     const nSyl = sylOpt || weighted([[3,60],[4,40]]);
@@ -633,6 +716,7 @@ function drawStock(cls, sylOpt, n, endReq, startReq){
     try{ res = derive(root); }catch(e){ continue; }
     if(!endsOK(res.spelling, endReq)) continue;
     if(!startsOK(res.spelling, startReq)) continue;
+    if(!passesFilter(res, F)) continue;
     const bad = check(res, cls).some(t=>!t.ok);
     if(bad) continue;
     if(out.some(o=>o.root===root)) continue;
@@ -659,6 +743,8 @@ const stamp = () => new Date().toISOString().slice(0,10);
 
 function takeRoot(i){
   const r = stock[i];
+  if(i >= 3 && !filterText() && !$("filter").value.trim() &&
+     !confirm("Position " + (i+1) + " with no filter written.\n\nLexicology §6: rejecting until something feels right is shortlist drift with extra steps. Take it anyway?")) return;
   lastDraw = forced ? "Taken as a forced draw."
                     : `Drawn at position ${i+1} of ${stock.length}.`;
   logLine(`${stamp()}  TOOK ${r.root} → ${r.out} /${r.ipa}/  [${forced ? "forced draw" : "position " + (i+1) + " of " + stock.length}]`);
@@ -708,7 +794,7 @@ $("gen").onclick = () => {
   const n = forced ? 1 : Number($("count").value);
   stock = drawStock(cls, Number($("syls").value), n, $("ends").value, $("onset").value);
   slotDraws++;
-  logLine(`${stamp()}  drew ${stock.length} ${cls} root${stock.length===1?"":"s"}${$("ends").value?" ending "+$("ends").value:""}${forced?" · FORCED":""} · filter: ${$("filter").value.trim() || "(none written)"}`);
+  logLine(`${stamp()}  drew ${stock.length} ${cls} root${stock.length===1?"":"s"}${$("ends").value?" ending "+$("ends").value:""}${forced?" · FORCED":""} · filter: ${[filterText(), $("filter").value.trim()].filter(Boolean).join(" | ") || "(none written)"}`);
   paintStack();
 };
 $("newslot").onclick = () => {
