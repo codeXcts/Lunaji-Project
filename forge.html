@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lunaji Forge</title>
+<style>
+:root{
+  --bg:#151a22; --panel:#1d242e; --panel2:#232c38; --line:#2f3a48;
+  --text:#e2e6ea; --dim:#93a0ae; --lamp:#e6b95c; --cool:#7fb6c4;
+  --ok:#8fc09a; --bad:#d9908c;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  padding:20px 16px 80px; max-width:760px; margin:0 auto;
+}
+h1{font:600 26px/1.2 Iowan Old Style,Palatino,Georgia,serif; margin:0 0 2px}
+h2{font:600 17px/1.3 system-ui,sans-serif; margin:26px 0 8px; color:var(--text)}
+.sub{color:var(--dim); font-size:14px; margin:0 0 20px}
+.lun{font-family:Iowan Old Style,Palatino,Georgia,serif}
+.proto{font-family:Iowan Old Style,Palatino,Georgia,serif; letter-spacing:.06em}
+nav{display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:18px; flex-wrap:wrap}
+nav button{
+  background:none; border:0; border-bottom:2px solid transparent; color:var(--dim);
+  padding:9px 12px; font:inherit; font-size:15px; cursor:pointer;
+}
+nav button[aria-selected="true"]{color:var(--lamp); border-bottom-color:var(--lamp)}
+nav button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--cool); outline-offset:2px}
+section[hidden]{display:none}
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:14px; margin-bottom:14px}
+label{display:block; font-size:13px; color:var(--dim); margin-bottom:4px}
+input,select,textarea{
+  background:var(--panel2); color:var(--text); border:1px solid var(--line);
+  border-radius:4px; padding:8px 10px; font:inherit; width:100%;
+}
+textarea{resize:vertical}
+.row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px}
+.row>div{flex:1 1 130px}
+.btn{
+  background:var(--lamp); color:#1a1206; border:0; border-radius:4px;
+  padding:9px 16px; font:600 15px system-ui,sans-serif; cursor:pointer;
+}
+.btn.ghost{background:none; color:var(--cool); border:1px solid var(--line)}
+.btn:disabled{opacity:.4; cursor:default}
+.stack{list-style:none; padding:0; margin:12px 0 0}
+.stack li{
+  display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:4px;
+  border:1px solid transparent;
+}
+.stack li.top{background:var(--panel2); border-color:var(--lamp)}
+.stack li .n{color:var(--dim); font-size:12px; min-width:22px}
+.stack li .r{font-size:19px; letter-spacing:.06em}
+.stack li .out{color:var(--dim); font-size:14px; margin-left:auto}
+.ladder{list-style:none; padding:0; margin:0}
+.ladder li{display:flex; gap:12px; padding:5px 0; border-bottom:1px solid var(--line); align-items:baseline}
+.ladder li:last-child{border:0}
+.ladder .rule{color:var(--cool); font-size:13px; min-width:130px}
+.ladder .form{font-size:18px}
+.ladder .idle{opacity:.35}
+.result{font-size:30px; margin:10px 0 2px}
+.ipa{color:var(--dim); font-size:17px}
+.tags{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px}
+.tag{font-size:12px; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--dim)}
+.tag.ok{color:var(--ok)} .tag.bad{color:var(--bad); background:#2c2022}
+.warn{border-left:3px solid var(--lamp); padding:8px 12px; background:var(--panel2); font-size:14px; margin:12px 0}
+table{width:100%; border-collapse:collapse; font-size:14px}
+th,td{text-align:left; padding:5px 6px; border-bottom:1px solid var(--line)}
+th{color:var(--dim); font-weight:500; font-size:12px}
+td.f{color:var(--bad)} td.p{color:var(--ok)}
+pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:12px; overflow:auto; font-size:13px; white-space:pre-wrap}
+.hint{font-size:13px; color:var(--dim); margin:6px 0 0}
+</style>
+</head>
+<body>
+
+<h1>Lunaji Forge</h1>
+<p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
+
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-tab="draw">Draw</button>
+  <button role="tab" aria-selected="false" data-tab="derive">Derive</button>
+  <button role="tab" aria-selected="false" data-tab="verify">Verify</button>
+  <button role="tab" aria-selected="false" data-tab="lexicon">Lexicon</button>
+  <button role="tab" aria-selected="false" data-tab="log">Log</button>
+</nav>
+
+<!-- ───────────── DRAW ───────────── -->
+<section id="draw">
+  <div class="panel">
+    <label for="filter">Write the filter before you draw</label>
+    <textarea id="filter" rows="2" placeholder="e.g. one mora, voiced non-nasal non-y onset, must not erode into ba"></textarea>
+    <p class="hint">Lexicology §6: state the constraints, then take the first root that passes.</p>
+  </div>
+
+  <div class="row">
+    <div>
+      <label for="cls">Class</label>
+      <select id="cls">
+        <option value="verb">Verb (–u)</option>
+        <option value="irreg">Irregular verb (–un → –on)</option>
+        <option value="dnoun">Deverbal noun (–a)</option>
+        <option value="pnoun">Primary noun (–a/e/i/o or nasal)</option>
+        <option value="func">Function root (1–2 syllables)</option>
+      </select>
+    </div>
+    <div>
+      <label for="syls">Syllables</label>
+      <select id="syls">
+        <option value="0">3 or 4, weighted</option>
+        <option value="1">1 — ancient function root</option>
+        <option value="2">2 — recent recruit</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </div>
+    <div>
+      <label for="ends">Must end in</label>
+      <select id="ends">
+        <option value="">anything</option>
+        <option value="on">–on</option>
+        <option value="an">–an</option>
+        <option value="in">–in</option>
+        <option value="NAS">any nasal vowel</option>
+        <option value="ORAL">an oral vowel</option>
+      </select>
+    </div>
+    <div>
+      <label for="onset">Starts with</label>
+      <select id="onset">
+        <option value="">anything</option>
+        <option value="SON">any sonorant (n m r l w y)</option>
+        <option value="NAS">a nasal (n m)</option>
+        <option value="V">a vowel</option>
+        <option value="n">n</option><option value="m">m</option>
+        <option value="r">r</option><option value="l">l</option>
+        <option value="w">w</option><option value="y">y</option>
+        <option value="k">k</option><option value="s">s</option>
+        <option value="z">z</option><option value="h">h</option>
+        <option value="p">p</option><option value="b">b</option>
+        <option value="t">t</option><option value="d">d</option>
+        <option value="f">f</option><option value="g">g</option>
+        <option value="v">v</option>
+      </select>
+    </div>
+    <div>
+      <label for="count">Stock size</label>
+      <input id="count" type="number" value="12" min="1" max="60">
+    </div>
+  </div>
+
+  <p class="hint" style="opacity:.6">build 2026-09-10c</p>
+  <button class="btn" id="gen">Generate stock</button>
+  <button class="btn ghost" id="newslot">New slot</button>
+  <p class="hint">Draw one: tap any root to take it. Reject the batch and draw again and the Forge hands you a single root — that one is the word.</p>
+
+  <div id="shortWarn"></div>
+  <div id="drawWarn"></div>
+  <ul class="stack" id="stack"></ul>
+</section>
+
+<!-- ───────────── DERIVE ───────────── -->
+<section id="derive" hidden>
+  <div class="panel">
+    <label for="rootIn">Proto-root</label>
+    <input id="rootIn" class="proto" placeholder="KANUMA" autocapitalize="characters" spellcheck="false">
+    <p class="hint">Caps. Write the glide as Y or W. A syllable-final N before a consonant or at the end is a coda.</p>
+  </div>
+  <div class="row"><div>
+    <label for="cls2">Check against class</label>
+    <select id="cls2">
+      <option value="any">Don't check</option>
+      <option value="verb">Verb (–u)</option>
+      <option value="irreg">Irregular verb (–on)</option>
+      <option value="dnoun">Deverbal noun (–a)</option>
+      <option value="pnoun">Primary noun</option>
+      <option value="func">Function root</option>
+    </select>
+  </div></div>
+  <div id="derivation"></div>
+</section>
+
+<!-- ───────────── VERIFY ───────────── -->
+<section id="verify" hidden>
+  <p class="hint">The twenty-root test from Lexicology §3, run against this engine. If a row fails, the engine's reading of that rule is wrong — not your language.</p>
+  <button class="btn" id="runTest">Run the test set</button>
+  <div id="testOut"></div>
+</section>
+
+<!-- ───────────── LEXICON ───────────── -->
+<section id="lexicon" hidden>
+  <p class="hint">Every word the Forge knows. Kept words land here automatically, and the collision check reads from this list — so it sharpens as the language grows.</p>
+  <div class="panel">
+    <div id="lexCount" class="hint"></div>
+    <div id="lexList"></div>
+  </div>
+  <div class="panel">
+    <label for="lxWord">Add a word the Forge missed</label>
+    <div class="row">
+      <input id="lxWord" placeholder="sofou" spellcheck="false">
+      <input id="lxGloss" placeholder="to see" spellcheck="false">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <select id="lxClass">
+        <option value="pnoun">primary noun</option><option value="dnoun">deverbal noun</option>
+        <option value="verb">verb</option><option value="irreg">irregular verb</option>
+        <option value="func">function word</option><option value="suffix">suffix</option>
+      </select>
+      <button class="btn" id="lxAdd">Add</button>
+    </div>
+  </div>
+  <div class="panel">
+    <label for="lxIO">Move the lexicon between devices or into the Composer</label>
+    <textarea id="lxIO" rows="4" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn ghost" id="lxExport">Export</button>
+      <button class="btn ghost" id="lxImport">Import (replaces)</button>
+      <button class="btn ghost" id="lxReset">Reset to the built-in list</button>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── LOG ───────────── -->
+<section id="log" hidden>
+  <p class="hint">Every draw, take and discard this session. Copy it into the Journal.</p>
+  <button class="btn ghost" id="copyLog">Copy log</button>
+  <pre id="logOut">Nothing yet.</pre>
+</section>
+
+<script>
+"use strict";
+
+/* ══════════ inventory ══════════ */
+const VOW = "aeiou".split("");
+const CONS = "pbtdkgmnfvszhrlwy".split("");
+// Generator bias (Phonology §1.1, Lexicology §6): sonorant-weighted, soft obstruents,
+// vowels skewed to o and u. Frequency, not legality — CONS above is what's legal.
+const CONS_W = "nnnnnmmmrrrrllllwwwyykkkkssszzhhpbtdfgv".split("");
+const VOW_W  = "aeiiooooouuuu".split("");
+const OBSTRUENT = "pbtdkgfvsz", LIQUID = "rl";   // sh, j, ny are derived, never proto
+const NASAL_C = ["m","n","ɲ"];
+const GLIDES = ["y","w"];
+const isV = c => VOW.includes(c) || "ãẽĩõ".includes(c);
+
+/* ══════════ parse ══════════ */
+function parse(str){
+  const s = str.trim().toLowerCase().replace(/[^a-z']/g,"");
+  const w = []; let i = 0;
+  while(i < s.length){
+    let c = s[i];
+    if(isV(c)){ /* no onset */ }
+    else if(CONS.includes(c) || c==="j"){
+      if(c==="j") c = "y";                       // J read as the glide
+      w.push({t:"C", s:c}); i++;
+    } else throw new Error("Unknown letter: " + s[i]);
+
+    if(GLIDES.includes(s[i]) && isV(s[i+1])){ w.push({t:"G", s:s[i]}); i++; }
+
+    if(!isV(s[i])) throw new Error("No vowel at position " + (i+1));
+    w.push({t:"V", s:s[i], nasal:false}); i++;
+
+    // n is a coda only if no vowel AND no glide follows — NY is onset n + y, feeding R8
+    if(s[i]==="n" && !(isV(s[i+1]) || s[i+1]==="y" || s[i+1]==="w")){ w.push({t:"N", s:"n"}); i++; }
+  }
+  if(!w.length) throw new Error("Empty root");
+  return syllabify(w);
+}
+function syllabify(w){
+  let n = -1;
+  for(const seg of w) if(seg.t==="V"){ n++; seg.syl = n; }
+  return w;
+}
+const clone = w => w.map(x => Object.assign({}, x));
+
+/* ══════════ R1 – R8 ══════════ */
+// R1 — geminates and nasal clusters simplify (proto banned both)
+function R1(w){
+  let fired = false;
+  for(let i=0;i<w.length-1;i++){
+    const a=w[i], b=w[i+1];
+    if(a.t==="N" && b.t==="C" && NASAL_C.includes(b.s)){ w.splice(i,1); fired=true; i--; continue; }
+    if((a.t==="C"||a.t==="N") && b.t==="C" && a.s===b.s){ w.splice(i,1); fired=true; i--; }
+  }
+  return fired;
+}
+// R2 — unstressed prevocalic i/u becomes a glide. Blocked after r (Phonology §4.2.5)
+function R2(w){
+  let fired = false;
+  for(let i=0;i<w.length-1;i++){
+    const v=w[i];
+    if(v.t!=="V" || v.syl===0 || v.nasal) continue;
+    if(v.s!=="i" && v.s!=="u") continue;
+    if(w[i+1].t!=="V") continue;
+    const prev = w[i-1];
+    // Phonology §4.2.5 — no w after a velar, a labiodental or r
+    if(prev && prev.t==="C" && "rkgfv".includes(prev.s) && v.s==="u") continue;
+    w[i] = {t:"G", s: v.s==="i" ? "y" : "w"};
+    syllabify(w); fired = true;
+  }
+  return fired;
+}
+// R3 — unstressed u deletes, except word-finally
+// R3 — unstressed u deletes, except word-finally, and never in front of a nasal vowel
+function R3(w){
+  let fired=false;
+  for(let i=0;i<w.length;i++){
+    const v=w[i];
+    if(v.t==="V" && v.s==="u" && v.syl>0 && i!==w.length-1){
+      // "between two consonants" is literal — KARUA keeps its u, nothing follows it but a vowel
+      const lc = w[i-1] && w[i-1].t==="C", rc = w[i+1] && (w[i+1].t==="C" || w[i+1].t==="N");
+      if(!lc || !rc) continue;
+      // blocked where deleting would leave a cluster before a nasal vowel (NOKURAN)
+      const clusters = w[i+1].t==="C";
+      const nextNasal = w[i+2] && w[i+2].t==="V" && w[i+3] && w[i+3].t==="N";
+      if(clusters && nextNasal) continue;
+      w.splice(i,1); syllabify(w); fired=true; i--;
+    }
+  }
+  return fired;
+}
+// R4 — cluster cleanup. A nasal before a non-nasal survives as a coda; anything else is lost
+function R4(w){
+  let fired=false;
+  for(let i=0;i<w.length-1;i++){
+    const a=w[i], b=w[i+1];
+    if(a.t!=="C") continue;
+    if(b.t!=="C" && b.t!=="N") continue;
+    if(OBSTRUENT.includes(a.s) && LIQUID.includes(b.s)) continue;   // TAPURA → tapra
+    if(NASAL_C.includes(a.s) && !NASAL_C.includes(b.s)){ w[i]={t:"N",s:a.s}; fired=true; }
+    else { w.splice(i,1); fired=true; i--; }
+    syllabify(w);
+  }
+  return fired;
+}
+// R5 — a coda nasal nasalizes the vowel before it and leaves its mora behind
+function R5(w){
+  let fired=false;
+  for(let i=0;i<w.length;i++){
+    if(w[i].t!=="N") continue;
+    if(w[i+1] && w[i+1].t==="V"){ w[i]={t:"C", s:w[i].s}; fired=true; continue; }  // onset, not coda
+    for(let k=i-1;k>=0;k--) if(w[k].t==="V"){ w[k].nasal=true; break; }
+    w.splice(i,1); fired=true; i--;
+  }
+  return fired;
+}
+// R6 — nasal vowels lower: ũ → õ and ẽ → ã. Three nasal vowels survive: ã ĩ õ
+function R6(w){
+  let fired=false;
+  for(const s of w){
+    if(s.t!=="V" || !s.nasal) continue;
+    if(s.s==="u"){ s.s="o"; fired=true; }
+    else if(s.s==="e"){ s.s="a"; fired=true; }
+  }
+  return fired;
+}
+// R7 — bookkeeping only. Nothing after this point may be conditioned by stress
+function R7(){ return false; }
+// R8 — s/z palatalize before i; n + y fuse to ɲ (n before w is untouched — cf. kanwe)
+function R8(w){
+  let fired=false;
+  for(let i=0;i<w.length-1;i++){
+    const a=w[i], b=w[i+1];
+    if(a.t==="C" && (a.s==="s"||a.s==="z") && b.t==="V" && b.s==="i"){
+      a.s = a.s==="s" ? "ʃ" : "ʒ"; fired=true;
+    }
+    if(a.t==="C" && a.s==="n" && b.t==="G" && b.s==="y"){ a.s="ɲ"; w.splice(i+1,1); fired=true; }
+  }
+  return fired;
+}
+
+const RULES = [
+  ["R1","geminate / nasal cluster",R1],
+  ["R2","glide formation",R2],
+  ["R3","u-weakening",R3],
+  ["R4","cluster cleanup",R4],
+  ["R5","nasalization",R5],
+  ["R6","ũ → õ",R6],
+  ["R7","stress bookkeeping",R7],
+  ["R8","palatalization",R8]
+];
+
+/* ══════════ render ══════════ */
+const SPELL = {"ʃ":"sh","ʒ":"j","ɲ":"ny"};
+function spell(w){
+  let out="";
+  const sy = syllables(w);
+  sy.forEach((s,i)=>{
+    if(i>0){
+      const prevV = sy[i-1].v;
+      if(prevV.nasal && !s.onset && !s.glide) out += "'";   // Phonology §6 edge case
+    }
+    const tsu = s.onset==="t" && !s.glide && s.v.s==="u" && !s.v.nasal;
+    if(s.onset) out += tsu ? "ts" : s.onset.split("").map(c=>SPELL[c]||c).join("");
+    if(s.glide) out += s.glide.s;
+    out += s.v.s + (s.v.nasal ? "n" : "");
+  });
+  return out;
+}
+function ipa(w){
+  const sy = syllables(w);
+  // Phonology §5 — stress falls on the last nasal syllable, or the final syllable
+  let str = -1;
+  sy.forEach((s,i)=>{ if(s.v.nasal) str = i; });
+  if(str < 0) str = sy.length - 1;
+  const NAS = {a:"ã",e:"ẽ",i:"ĩ",o:"õ",u:"ũ"};
+  return sy.map((s,i)=>{
+    let o = (i===str ? "ˈ" : "");
+    const tsu = s.onset==="t" && !s.glide && s.v.s==="u" && !s.v.nasal;
+    if(s.onset) o += tsu ? "ts"
+      : s.onset === "ny" ? "ɲ"
+      : s.onset.split("").map(c => c==="r" ? "ɾ" : c==="y" ? "j" : c).join("");
+    if(s.glide) o += s.glide.s==="y" ? "j" : "w";
+    o += s.v.nasal ? NAS[s.v.s]+"ː" : s.v.s;
+    return o;
+  }).join(".");
+}
+function syllables(w){
+  const out=[]; let cur={onset:"",glide:null,v:null};
+  for(const seg of w){
+    if(seg.t==="C") cur.onset += seg.s;          // clusters accumulate into one onset
+    else if(seg.t==="G") cur.glide = seg;
+    else if(seg.t==="V"){ cur.v = seg; out.push(cur); cur={onset:"",glide:null,v:null}; }
+  }
+  return out;
+}
+const moras = w => w.filter(s=>s.t==="V").reduce((n,s)=>n+(s.nasal?2:1),0);
+
+/* ══════════ derive ══════════ */
+function derive(rootStr){
+  let w = parse(rootStr);
+  const steps = [];
+  for(const [id,name,fn] of RULES){
+    const fired = fn(w);
+    steps.push({id,name,fired,form:spell(w)});
+  }
+  return {word:w, steps, spelling:spell(w), ipa:ipa(w), moras:moras(w)};
+}
+
+/* ══════════ legality ══════════ */
+const LEX_SEED = {
+  /* function words */
+  "a":["topic particle","func"],"na":["that; this — demonstrative","func"],
+  "ba":["subject particle","func"],"ni":["object particle","func"],
+  "pe":["possessive particle","func"],"wa":["location particle","func"],
+  "di":["oblique particle","func"],"toma":["from; than","func"],
+  "mi":["negation, opening half","func"],"hena":["not","func"],
+  "ta":["plural, animates only","suffix"],"ze":["past tense","suffix"],
+  "ri":["ongoing aspect","suffix"],
+  "la":["evidential — direct non-visual","func"],"po":["evidential — inference","func"],
+  "ke":["evidential — assumption","func"],"jin":["question particle","func"],
+  "noron":["but; and yet","func"],"oyan":["might; maybe","func"],
+  "byon":["completed aspect auxiliary","irreg"],"lon":["habitual aspect auxiliary","irreg"],
+  /* numbers */
+  "zo":["1","func"],"van":["2","func"],"ki":["3","func"],"ra":["4","func"],"bai":["5","func"],
+  "baizo":["6","func"],"baivan":["7","func"],"baiki":["8","func"],"baira":["9","func"],
+  "gonte":["10","func"],"zero":["0 — loanword","func"],
+  "re":["counter — animate","suffix"],"ko":["counter — inanimate","suffix"],
+  /* pronouns */
+  "gan":["I","pron"],"win":["you","pron"],"ishin":["he, she — animate","pron"],
+  "ganwin":["we — inclusive","pron"],"ganta":["we — exclusive","pron"],
+  /* verbs */
+  "hin":["to exist — animate","irreg"],"yozu":["to exist — inanimate","verb"],
+  "inku":["to exist — unknown","verb"],"gu":["was, were — past copula","verb"],
+  "kominu":["to be tired","verb"],"inoyu":["to be dark","verb"],
+  "nialipu":["to stir; to move slightly","verb"],"kazon":["to come","irreg"],
+  "kyonku":["to hear","verb"],"sofou":["to see","verb"],
+  "nowiretsu":["to be awake alongside someone","verb"],
+  /* nouns */
+  "helan":["person","pnoun"],"nowireta":["company; the ones with you","dnoun"],
+  "onankonzan":["the dead of night","pnoun"],"noaye":["the wind","pnoun"],
+  "tsuri":["a doctor","pnoun"],"uwiki":["the moon","pnoun"],"lonji":["night","pnoun"],
+  "akyoza":["a name","pnoun"],"aoyan":["a road","pnoun"],"ani":["a flower","pnoun"],
+  "hiba":["a trace","pnoun"],"fanvonedi":["a dream","pnoun"],"okison":["silence","pnoun"],
+  "omime":["a door","pnoun"],"vanonla":["hello; a greeting","dnoun"],
+  "heni":["Lunaji — the endonym","pnoun"]
+};
+/* Words that were coined and then withdrawn. Not collisions — a soft warning,
+   so a shape that has already been rejected once is recognised on sight. */
+const RETIRED = ["vwetsu","vweta","sen","lomen","loman","ga","wi","gawi","gata","ishi",
+  "bu","zu","sami","fona","fyemyoi","romon","viku","vika","ka","ken","nokuran","kanuwan",
+  "tsunoman","helimon","ivelan","sonurema","peduran","imon","solan","weseru","lebru",
+  "nyobru","soblu","moturon","tapra","hira","mira","nemu","isha","kwanshi","numu","kyiso"];
+
+const LEXKEY = "lunaji.lexicon.v1";
+let LEX = {};
+function loadLex(){
+  try{
+    const raw = localStorage.getItem(LEXKEY);
+    LEX = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(LEX_SEED));
+  }catch(e){ LEX = JSON.parse(JSON.stringify(LEX_SEED)); }
+}
+function saveLex(){
+  try{ localStorage.setItem(LEXKEY, JSON.stringify(LEX)); }
+  catch(e){ /* storage unavailable — the export box is the fallback */ }
+}
+loadLex();
+const COINED = { includes: w => Object.prototype.hasOwnProperty.call(LEX, w) };
+function check(res, cls){
+  const w = res.word, t = [];
+  const last = w[w.length-1];
+  t.push(last && last.t==="V"
+    ? {ok:true, s:"ends in a vowel"} : {ok:false, s:"does not end in a vowel"});
+  const coda = w.some(s=>s.t==="N");
+  if(coda) t.push({ok:false, s:"coda survives — a rule failed"});
+  for(let i=0;i<w.length-1;i++){
+    if(w[i].t==="C" && w[i+1].t==="C" && !(OBSTRUENT.includes(w[i].s) && LIQUID.includes(w[i+1].s)))
+      t.push({ok:false, s:"illegal cluster — only obstruent + liquid survives"});
+    if(w[i].t==="C" && "rkgfv".includes(w[i].s) && w[i+1].t==="G" && w[i+1].s==="w")
+      t.push({ok:false, s:"w after a velar, labiodental or r (Phonology §4.2.5)"});
+    if(w[i].t==="C" && (w[i].s==="s"||w[i].s==="z") && w[i+1].t==="V" && w[i+1].s==="i")
+      t.push({ok:false, s:"s/z before i survived R8"});
+  }
+  // Phonology §4.2.7 — a cluster onset and a nasal vowel may not share a syllable
+  if(syllables(w).some(s=>s.onset.length>1 && s.v.nasal))
+    t.push({ok:false, s:"cluster onset on a nasal syllable (Phonology §4.2.7)"});
+  t.push({ok:true, s: res.moras + " mora" + (res.moras===1?"":"s")});
+  const sp = res.spelling;
+  // a glide before its own vowel is inaudible — /yi/ and /wu/. ny + i is ɲi and is left alone.
+  if(/(^|[^n])yi/.test(sp) || /wu/.test(sp))
+    t.push({ok:false, s:"glide before its own vowel (/yi/, /wu/) — inaudible"});
+  if(cls && cls!=="any" && cls!=="func"){
+    const endsU = /u$/.test(sp), endsNas = /[aio]n$/.test(sp), endsA = /a$/.test(sp);
+    const nasalEnd = endsNas;
+    if(cls==="verb")  t.push(endsU ? {ok:true,s:"verb theme –u"} : {ok:false,s:"not a verb: needs final –u"});
+    if(cls==="irreg") t.push(endsNas ? {ok:true,s:"nasal-vowel irregular"} : {ok:false,s:"not a nasal-vowel irregular"});
+    if(cls==="dnoun") t.push(endsA ? {ok:true,s:"deverbal –a"} : {ok:false,s:"not a deverbal noun: needs final –a"});
+    if(cls==="pnoun") t.push(!endsU ? {ok:true,s:nasalEnd?"primary noun, nasal-final":"primary noun"}
+                                    : {ok:false,s:"nouns may never end in –u"});
+  }
+  if(COINED.includes(sp)) t.push({ok:false, s:"collides with " + sp + " — " + LEX[sp][0]});
+  else if(RETIRED.includes(sp)) t.push({ok:false, s:"this shape was retired once already"});
+  return t;
+}
+
+/* ══════════ generator ══════════ */
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function weighted(pairs){
+  const tot = pairs.reduce((n,p)=>n+p[1],0); let r = Math.random()*tot;
+  for(const [v,wt] of pairs){ r -= wt; if(r<=0) return v; }
+  return pairs[0][0];
+}
+// All six shapes stay reachable (Phonology §4.1). Weights are a design choice — edit them.
+const SHAPES = [["CV",48],["CVN",14],["CGV",10],["V",13],["VN",8],["GV",7]];
+function makeSyllable(shape, prevSeg){
+  let s = "";
+  if(shape[0]==="C"){
+    let c; let guard=0;
+    do { c = pick(CONS_W); guard++; } while(guard<20 && prevSeg && c===prevSeg);
+    s += c;
+  }
+  if(shape[0]==="C" && shape[1]==="G"){
+    const c = s[s.length-1];
+    const g = "rkgfv".includes(c) ? "y" : pick(GLIDES);   // no w after velar, labiodental or r
+    if(g!==c) s += g;
+  }
+  else if(shape[0]==="G") s += pick(GLIDES);
+  const gl = s[s.length-1];
+  let v; let vg=0;
+  do{ v = pick(VOW_W); vg++; }
+  while(vg<30 && ((gl==="y"&&v==="i")||(gl==="w"&&v==="u")));   // no yi, no wu
+  s += v;
+  if(shape.endsWith("N")) s += "n";
+  return s;
+}
+function generateRoot(cls, nSyl){
+  if(cls==="func" && !nSyl) nSyl = 1;   // only when no explicit count is chosen
+  let body = "";
+  for(let i=0;i<nSyl-1;i++){
+    const prev = body[body.length-1];
+    body += makeSyllable(weighted(SHAPES), prev);
+  }
+  // final syllable carries the theme
+  let fin = "";
+  const onsetShape = weighted([["C",68],["CG",14],["",10],["G",8]]);
+  if(onsetShape.includes("C")){
+    let c; let guard=0;
+    do{ c=pick(CONS_W); guard++; } while(guard<20 && body && body[body.length-1]==="n" && c==="n");
+    fin += c;
+  }
+  if(onsetShape.includes("G")){
+    const c = fin[fin.length-1];
+    const g = "rkgfv".includes(c) ? "y" : pick(GLIDES);
+    if(g!==c) fin += g;
+  }
+  const gl2 = fin[fin.length-1];
+  if((gl2==="y"&&cls==="dnoun")||false){}   // theme vowels a/u/e/i/o handled below
+  if(cls==="verb" && gl2==="w") fin = fin.slice(0,-1);          // would give wu
+  if(cls==="verb")       fin += "u";
+  else if(cls==="irreg") fin += "un";
+  else if(cls==="dnoun") fin += "a";
+  else if(cls==="pnoun") fin += pick(["a","e","i","o"]) + (Math.random()<0.45 ? "n" : "");
+  else                   fin += pick(VOW_W) + (Math.random()<0.4 ? "n" : "");
+  return (body + fin).toUpperCase();
+}
+function endsOK(sp, req){
+  if(!req) return true;
+  if(req==="NAS")  return /[aio]n$/.test(sp);
+  if(req==="ORAL") return /[aeiou]$/.test(sp);
+  return sp.endsWith(req);
+}
+function startsOK(sp, req){
+  if(!req) return true;
+  if(req==="SON")  return /^[nmrlwy]/.test(sp);
+  if(req==="NAS")  return /^[nm]/.test(sp);
+  if(req==="V")    return /^[aeiou]/.test(sp);
+  return sp.startsWith(req);
+}
+function drawStock(cls, sylOpt, n, endReq, startReq){
+  const out=[]; let guard=0;
+  const cap = (endReq || startReq) ? n*800 : n*40;
+  while(out.length<n && guard<cap){
+    guard++;
+    const nSyl = sylOpt || weighted([[3,60],[4,40]]);
+    const root = generateRoot(cls, nSyl);
+    let res;
+    try{ res = derive(root); }catch(e){ continue; }
+    if(!endsOK(res.spelling, endReq)) continue;
+    if(!startsOK(res.spelling, startReq)) continue;
+    const bad = check(res, cls).some(t=>!t.ok);
+    if(bad) continue;
+    if(out.some(o=>o.root===root)) continue;
+    out.push({root, out:res.spelling, ipa:res.ipa,
+              fired: res.steps.filter(x=>x.fired).map(x=>x.id).join(" ")});
+  }
+  return out;
+}
+
+/* ══════════ ui ══════════ */
+const $ = id => document.getElementById(id);
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick = () => {
+    document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
+    ["draw","derive","verify","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+  };
+});
+
+let stock = [], slotDraws = 0, forced = false;
+let lastDraw = null;   // how the root in the Derive tab was obtained
+const LOG = [];
+function logLine(s){ LOG.push(s); $("logOut").textContent = LOG.join("\n"); }
+const stamp = () => new Date().toISOString().slice(0,10);
+
+function takeRoot(i){
+  const r = stock[i];
+  lastDraw = forced ? "Taken as a forced draw."
+                    : `Drawn at position ${i+1} of ${stock.length}.`;
+  logLine(`${stamp()}  TOOK ${r.root} → ${r.out} /${r.ipa}/  [${forced ? "forced draw" : "position " + (i+1) + " of " + stock.length}]`);
+  stock = []; slotDraws = 0; forced = false;
+  $("rootIn").value = r.root;
+  $("cls2").value = $("cls").value;
+  renderDerivation();
+  document.querySelector('nav button[data-tab="derive"]').click();
+  paintStack();
+}
+
+function paintStack(){
+  const ul = $("stack"); ul.innerHTML = "";
+  stock.forEach((r,i)=>{
+    const li = document.createElement("li");
+    if(i===0) li.className = "top";
+    li.style.cursor = "pointer";
+    li.innerHTML = `<span class="n">${forced ? "the word" : i+1}</span>
+      <span class="r proto">${r.root}</span>
+      <span class="out lun">${r.out} /${r.ipa}/</span>
+      <span class="n">${r.fired || "no rules fired"}</span>`;
+    li.onclick = () => takeRoot(i);
+    ul.appendChild(li);
+  });
+  $("gen").textContent = slotDraws === 0 ? "Generate stock"
+                       : slotDraws === 1 ? "Reject batch — draw one, forced"
+                       : "Draw one, forced";
+  const shortContent = ["verb","irreg","dnoun","pnoun"].includes($("cls").value)
+                        && [1,2].includes(Number($("syls").value));
+  $("shortWarn").innerHTML = shortContent
+    ? `<div class="warn">Content roots are 3–4 syllables (Proto §1.5). The 1- and 2-syllable settings are for function roots.</div>` : "";
+  if(!stock.length && slotDraws>0){
+    $("drawWarn").innerHTML = `<div class="warn">No legal root came back. That combination of
+      class, syllables, starts-with and ends-in may be impossible — a verb must end in <em>–u</em>,
+      so it can never end in <em>–on</em>; a 1-syllable root cannot also start with a vowel and end
+      in a nasal. Loosen one dropdown and draw again.</div>`;
+    return;
+  }
+  $("drawWarn").innerHTML = forced
+    ? `<div class="warn">Second draw for this slot. Lexicology §6: the filter is written, so this root is the word. Tap it to take it, or press New slot to start over deliberately.</div>`
+    : slotDraws >= 1
+    ? `<div class="warn">One batch already rejected for this slot. The next draw returns a single root and you take it.</div>` : "";
+}
+$("gen").onclick = () => {
+  const cls = $("cls").value;
+  forced = slotDraws >= 1;
+  const n = forced ? 1 : Number($("count").value);
+  stock = drawStock(cls, Number($("syls").value), n, $("ends").value, $("onset").value);
+  slotDraws++;
+  logLine(`${stamp()}  drew ${stock.length} ${cls} root${stock.length===1?"":"s"}${$("ends").value?" ending "+$("ends").value:""}${forced?" · FORCED":""} · filter: ${$("filter").value.trim() || "(none written)"}`);
+  paintStack();
+};
+$("newslot").onclick = () => {
+  stock = []; slotDraws = 0; forced = false;
+  logLine(`${stamp()}  — new slot —`);
+  paintStack();
+};
+
+
+function renderDerivation(){
+  const box = $("derivation"); const src = $("rootIn").value.trim();
+  if(!src){ box.innerHTML = `<p class="hint">Type a proto-root above, or take one from the stack.</p>`; return; }
+  let res;
+  try{ res = derive(src); }
+  catch(e){ box.innerHTML = `<div class="warn">${e.message}. Check the shape against Phonology §4.1.</div>`; return; }
+  const tags = check(res, $("cls2").value);
+  const bad = tags.some(t=>!t.ok);
+  box.innerHTML = `
+    <div class="panel">
+      <ul class="ladder">
+        <li><span class="rule">proto</span><span class="form proto">${src.toUpperCase()}</span></li>
+        ${res.steps.map(s=>`<li class="${s.fired?"":"idle"}"><span class="rule">${s.id} · ${s.name}</span>
+          <span class="form lun">${s.fired ? s.form : "—"}</span></li>`).join("")}
+      </ul>
+      <div class="result lun">${res.spelling}</div>
+      <div class="ipa">/${res.ipa}/</div>
+      <div class="tags">${tags.map(t=>`<span class="tag ${t.ok?"ok":"bad"}">${t.s}</span>`).join("")}</div>
+    </div>
+    <div class="panel">
+      <label for="kGloss">Meaning</label>
+      <input id="kGloss" placeholder="to be tired" spellcheck="false">
+      <label for="kRelated">Related words, if any</label>
+      <input id="kRelated" placeholder="nowireta, -ta" spellcheck="false">
+      <label for="kNote">What you heard when you said it</label>
+      <textarea id="kNote" rows="2" placeholder="Judged in a sentence, not in isolation — Lexicology §6 step 6."></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="keepWord" ${bad ? "disabled" : ""}>Keep this word</button>
+        <button class="btn ghost" id="dropWord">Redraw instead</button>
+      </div>
+      ${bad ? `<p class="hint">The checker is holding this one. Fix it or redraw.</p>` : ``}
+      <div id="entryOut"></div>
+    </div>`;
+
+  $("keepWord") && ($("keepWord").onclick = () => keepWord(res, src));
+  $("dropWord").onclick = () => {
+    logLine(`${stamp()}  DISCARDED ${src.toUpperCase()} → ${res.spelling}${$("kNote").value.trim() ? "  — " + $("kNote").value.trim() : ""}`);
+    $("rootIn").value = ""; lastDraw = null; renderDerivation();
+    document.querySelector('nav button[data-tab="draw"]').click();
+  };
+}
+
+/* Turn the fired rules into the prose the Dictionary actually uses:
+   "R3 killed the unstressed u, R4 ate the l." */
+function rulePhrases(res, src){
+  const fired = res.steps.filter(s=>s.fired);
+  if(!fired.length) return "No rule fires.";
+  const forms = [src.toLowerCase()].concat(res.steps.map(s=>s.form));
+  // What a rule removed, by letter, ignoring order — the mid-derivation
+  // spelling drops a surviving coda n, so position-based diffing misreads R4.
+  const removed = i => {
+    const b = forms[i+1].split("");
+    return forms[i].split("").filter(c => {
+      const k = b.indexOf(c);
+      if(k < 0) return true;
+      b.splice(k,1); return false;
+    });
+  };
+  const r5fired = res.steps.some(st => st.id==="R5" && st.fired);
+  const out = [];
+  res.steps.forEach((st,i)=>{
+    if(!st.fired) return;
+    const gone = removed(i);
+    const c = gone[0] || "";
+    switch(st.id){
+      case "R1": out.push("R1 collapsed the nasal cluster"); break;
+      case "R2": out.push("R2 turned an unstressed vowel into a glide"); break;
+      case "R3": out.push("R3 killed the unstressed *u*"); break;
+      case "R4": {
+        const nKept = r5fired && gone.includes("n");
+        const eaten = gone.filter(x => !(nKept && x === "n"));
+        out.push(
+          eaten.length && nKept ? `R4 ate the *${eaten[0]}* and kept the *n* as a coda`
+          : eaten.length        ? `R4 ate the *${eaten[0]}*`
+          : nKept               ? "R4 kept the *n* as a coda"
+          :                       "R4 reduced the cluster");
+        break;
+      }
+      case "R5": out.push("R5 nasalized"); break;
+      case "R6": out.push("R6 lowered"); break;
+      case "R8": out.push("R8 palatalized"); break;
+      case "R9": out.push("R9 affricated *t* before *u*"); break;
+      case "R10": out.push("R10 elided"); break;
+      default: out.push(st.id + " fired");
+    }
+  });
+  return out.join(", ") + ".";
+}
+
+const CLASSLABEL = {verb:"verb", irreg:"verb — irregular (nasal-vowel class)",
+  dnoun:"deverbal noun", pnoun:"primary noun", func:"function word", any:"class"};
+
+function keepWord(res, src){
+  const w = res.spelling;
+  if(COINED.includes(w)){ alert(w + " is already in the lexicon."); return; }
+  const cls = $("cls2").value;
+  const gloss = $("kGloss").value.trim();
+  const rel = $("kRelated").value.trim();
+  const note = $("kNote").value.trim();
+
+  LEX[w] = [gloss || "(no gloss yet)", cls];
+  saveLex();
+  logLine(`${stamp()}  KEPT ${src.toUpperCase()} → ${w} /${res.ipa}/  ${gloss}`);
+
+  const lines = [
+    `### ${w}`,
+    `**/${res.ipa}/** · *${CLASSLABEL[cls] || "class"}*`,
+    `1. ${gloss}`,
+    `< ${src.toUpperCase()}`
+  ];
+  if(rel) lines.push(`~ related: ${rel}`);
+  lines.push(`» ${rulePhrases(res, src)}${lastDraw ? " " + lastDraw : ""}`);
+  if(note) lines.push(`» ${note}`);
+  lines.push(`[coined ${stamp()}]`);
+  const entry = lines.join("\n");
+
+  $("entryOut").innerHTML = `<label style="margin-top:12px;display:block">Dictionary entry</label>
+    <pre id="entry">${entry.replace(/</g,"&lt;")}</pre>
+    <button class="btn ghost" id="copyEntry">Copy entry</button>
+    <p class="hint">${Object.keys(LEX).length} words in the lexicon. Paste this under the right heading in Dictionary.md.</p>`;
+  $("copyEntry").onclick = () => {
+    navigator.clipboard.writeText(entry);
+    $("copyEntry").textContent = "Copied";
+  };
+  renderLex();
+}
+$("rootIn").oninput = () => { lastDraw = null; renderDerivation(); };
+$("cls2").onchange = renderDerivation;
+renderDerivation();
+
+/* ══════════ lexicon ══════════ */
+const CLASSGROUP = {pnoun:"Nouns", dnoun:"Nouns", verb:"Verbs", irreg:"Verbs",
+                    pron:"Pronouns", func:"Function words", suffix:"Suffixes"};
+function renderLex(){
+  const words = Object.keys(LEX).sort();
+  $("lexCount").textContent = words.length + " words";
+  const groups = {};
+  words.forEach(w=>{
+    const g = CLASSGROUP[LEX[w][1]] || "Other";
+    (groups[g] = groups[g] || []).push(w);
+  });
+  $("lexList").innerHTML = Object.keys(groups).map(g=>
+    `<h3 style="margin:14px 0 6px;font-size:14px">${g}</h3>` +
+    `<div class="tags">${groups[g].map(w=>
+      `<span class="tag">${w} <span style="opacity:.6">${LEX[w][0]}</span>` +
+      `<button class="lxrm" data-w="${w}" aria-label="Remove ${w}" ` +
+      `style="background:none;border:0;color:inherit;opacity:.5;padding:0 0 0 6px;font-size:14px">×</button></span>`
+      ).join("")}</div>`
+  ).join("");
+}
+$("lexList").onclick = e => {
+  const b = e.target.closest(".lxrm");
+  if(!b) return;
+  const w = b.dataset.w;
+  if(!confirm("Remove " + w + " from the lexicon?")) return;
+  delete LEX[w]; saveLex(); renderLex();
+  logLine(`${stamp()}  removed ${w} from the lexicon`);
+};
+$("lxAdd").onclick = () => {
+  const w = $("lxWord").value.trim().toLowerCase();
+  if(!w) return;
+  LEX[w] = [$("lxGloss").value.trim() || "(no gloss yet)", $("lxClass").value];
+  saveLex(); renderLex();
+  logLine(`${stamp()}  added ${w} to the lexicon by hand`);
+  $("lxWord").value = ""; $("lxGloss").value = "";
+};
+$("lxExport").onclick = () => { $("lxIO").value = JSON.stringify(LEX); };
+$("lxImport").onclick = () => {
+  try{
+    const next = JSON.parse($("lxIO").value);
+    if(next && typeof next === "object"){ LEX = next; saveLex(); renderLex(); $("lxIO").value = "Imported."; }
+  }catch(e){ $("lxIO").value = "That is not valid JSON. Export from the other device and paste the whole line."; }
+};
+$("lxReset").onclick = () => {
+  LEX = JSON.parse(JSON.stringify(LEX_SEED)); saveLex(); renderLex();
+};
+renderLex();
+
+/* ══════════ verify ══════════ */
+const TESTS = [
+  ["KIN","kin"],["KUN","kon"],["KEN","kan"],["SATUNA","sana"],["TAPURA","tapra"],
+  ["NOKURAN","nokuran"],["KANUTA","kanta"],["HIRUN","hin"],["KASI","kashi"],
+  ["SITU","shitsu"],["NOWIRETU","nowiretsu"],["NIURA","nyura"],["KARUA","karua"],
+  ["KANUE","kanwe"],["HELAN","helan"],["HERUNA","hena"]
+];
+$("runTest").onclick = () => {
+  let pass=0;
+  const rows = TESTS.map(([root,want])=>{
+    let got; try{ got = derive(root).spelling; }catch(e){ got = "error"; }
+    const ok = got===want; if(ok) pass++;
+    return `<tr><td class="proto">${root}</td><td class="lun">${want}</td>
+      <td class="lun ${ok?"p":"f"}">${got}</td><td class="${ok?"p":"f"}">${ok?"match":"differs"}</td></tr>`;
+  }).join("");
+  $("testOut").innerHTML = `
+    <p class="hint">${pass} of ${TESTS.length} match Proto §3.</p>
+    <table><tr><th>Proto</th><th>Documented</th><th>This engine</th><th></th></tr>${rows}</table>
+    <div class="warn">NIURA is expected to differ. Its <em>i</em> sits in the first
+    syllable, which proto stress protects, so R2 as written cannot glide it — yet
+    Proto §3 gives <em>nyura</em>. Either R2 needs an exception for a vowel directly
+    before another vowel, or that example is wrong.</div>`;
+};
+
+$("copyLog").onclick = () => {
+  navigator.clipboard.writeText(LOG.join("\n")).then(
+    ()=> $("copyLog").textContent = "Copied",
+    ()=> $("copyLog").textContent = "Select the text below and copy it"
+  );
+  setTimeout(()=> $("copyLog").textContent = "Copy log", 2000);
+};
+</script>
+</body>
+</html>

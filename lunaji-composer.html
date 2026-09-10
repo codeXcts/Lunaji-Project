@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lunaji Composer</title>
+<style>
+:root{
+  --bg:#151a22; --panel:#1d242e; --panel2:#232c38; --line:#2f3a48;
+  --text:#e2e6ea; --dim:#93a0ae; --lamp:#e6b95c; --cool:#7fb6c4;
+  --ok:#8fc09a; --bad:#d9908c;
+}
+*{box-sizing:border-box}
+body{margin:0 auto; max-width:760px; background:var(--bg); color:var(--text);
+  font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:20px 16px 80px}
+h1{font:600 26px/1.2 Iowan Old Style,Palatino,Georgia,serif; margin:0 0 2px}
+.sub{color:var(--dim); font-size:14px; margin:0 0 20px}
+.lun{font-family:Iowan Old Style,Palatino,Georgia,serif}
+nav{display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:18px; flex-wrap:wrap}
+nav button{background:none; border:0; border-bottom:2px solid transparent; color:var(--dim);
+  padding:9px 12px; font:inherit; font-size:15px; cursor:pointer}
+nav button[aria-selected="true"]{color:var(--lamp); border-bottom-color:var(--lamp)}
+nav button:focus-visible,.btn:focus-visible,input:focus-visible,textarea:focus-visible,.chip:focus-visible{outline:2px solid var(--cool); outline-offset:2px}
+section[hidden]{display:none}
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:14px; margin-bottom:14px}
+label{display:block; font-size:13px; color:var(--dim); margin-bottom:5px}
+input,textarea{background:var(--panel2); color:var(--text); border:1px solid var(--line);
+  border-radius:4px; padding:10px; font:inherit; width:100%}
+#line{font-family:Iowan Old Style,Palatino,Georgia,serif; font-size:19px}
+textarea{resize:vertical; font-size:14px}
+.btn{background:var(--lamp); color:#1a1206; border:0; border-radius:4px; padding:9px 16px;
+  font:600 15px system-ui,sans-serif; cursor:pointer}
+.btn.ghost{background:none; color:var(--cool); border:1px solid var(--line)}
+.pal{margin-top:14px}
+.pal h3{font:500 12px system-ui,sans-serif; color:var(--dim); margin:12px 0 6px}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{background:var(--panel2); border:1px solid var(--line); color:var(--text);
+  border-radius:14px; padding:5px 11px; font:16px Iowan Old Style,Palatino,Georgia,serif; cursor:pointer}
+.chip small{font:11px system-ui,sans-serif; color:var(--dim); margin-left:5px}
+.chip.ph{border-style:dashed; color:var(--dim)}
+.gloss{display:flex; flex-wrap:wrap; gap:16px; margin:4px 0 12px}
+.gloss div{min-width:0}
+.gloss .w{font:19px Iowan Old Style,Palatino,Georgia,serif}
+.gloss .w.ph{color:var(--dim); border-bottom:1px dashed var(--dim)}
+.gloss .w.unk{color:var(--bad)}
+.gloss .g{font-size:12px; color:var(--dim); white-space:nowrap}
+.ipa{font-size:19px; color:var(--cool); margin:2px 0 6px; word-break:break-word}
+.meta{font-size:13px; color:var(--dim)}
+.checks{list-style:none; padding:0; margin:14px 0 0}
+.checks li{padding:7px 0 7px 22px; border-top:1px solid var(--line); font-size:14px; position:relative}
+.checks li:before{position:absolute; left:0; top:7px}
+.checks li.ok:before{content:"✓"; color:var(--ok)}
+.checks li.warn:before{content:"!"; color:var(--lamp)}
+.checks li.err:before{content:"×"; color:var(--bad)}
+.hint{font-size:13px; color:var(--dim); margin:8px 0 0}
+pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:12px;
+  overflow:auto; font-size:13px; white-space:pre-wrap}
+table{width:100%; border-collapse:collapse; font-size:14px}
+th,td{text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); vertical-align:top}
+th{color:var(--dim); font-weight:500; font-size:12px}
+</style>
+</head>
+<body>
+
+<h1>Lunaji Composer</h1>
+<p class="sub">Write a sentence. Get it read back, glossed and checked. Runs offline.</p>
+
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-tab="write">Write</button>
+  <button role="tab" aria-selected="false" data-tab="words">Words</button>
+  <button role="tab" aria-selected="false" data-tab="para">Paradigm</button>
+  <button role="tab" aria-selected="false" data-tab="exp">Export</button>
+  <button role="tab" aria-selected="false" data-tab="gaps">Gaps</button>
+</nav>
+
+<!-- ───────── WRITE ───────── -->
+<section id="write">
+  <div class="panel">
+    <label for="line">Sentence</label>
+    <input id="line" placeholder="mi helan a vwetu hena" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn ghost" id="clear">Clear</button>
+      <button class="btn ghost" id="back">Delete word</button>
+      <button class="btn ghost" id="fix">Fix topic particle</button>
+    </div>
+  </div>
+
+  <div id="out"></div>
+
+  <div class="pal panel" id="palette"></div>
+</section>
+
+<!-- ───────── PARADIGM ───────── -->
+<section id="para" hidden>
+  <style>
+    #para select,#exp select,#exp textarea,#exp input{width:100%; background:var(--panel2);
+      color:var(--text); border:1px solid var(--line); border-radius:4px; padding:8px 10px; font:inherit}
+    #para label,#exp label{display:block; font-size:13px; color:var(--dim); margin-bottom:4px}
+    #exp .go{background:var(--lamp); color:#1a1206; border:0; border-radius:4px;
+      padding:9px 16px; font:600 15px system-ui,sans-serif; cursor:pointer; margin:0 6px 6px 0}
+  </style>
+  <p class="hint">Every form of one verb at once. Adjectives are verbs (Grammar §5.1), so this is also the full paradigm of <i>tired</i>, <i>dark</i> and the rest.</p>
+  <div class="panel">
+    <label for="pverb">Verb</label>
+    <select id="pverb"></select>
+  </div>
+  <div id="paraOut"></div>
+</section>
+
+<!-- ───────── EXPORT ───────── -->
+<section id="exp" hidden>
+  <p class="hint">Paste-ready markdown for the project files. Everything here is generated from the lexicon, so it stays current as you coin.</p>
+  <div class="panel">
+    <label for="expKind">What to generate</label>
+    <select id="expKind">
+      <option value="dict">Dictionary entries — skeletons for every coined word</option>
+      <option value="table">Word list — a markdown table with IPA and moras</option>
+      <option value="journal">Journal entry — dated, with the gaps you hit</option>
+      <option value="log">Change-log row — dated, blank</option>
+    </select>
+    <div style="margin-top:10px">
+      <label for="jExtra">Note for the journal entry (optional)</label>
+      <textarea id="jExtra" rows="2" placeholder="What you decided today, and why."></textarea>
+    </div>
+    <div style="margin-top:10px">
+      <button class="go" id="doGen">Generate</button>
+      <button class="go" id="copyExp">Copy</button>
+    </div>
+  </div>
+  <div class="panel">
+    <textarea id="expOut" rows="14" spellcheck="false"></textarea>
+  </div>
+</section>
+
+<!-- ───────── WORDS ───────── -->
+<section id="words" hidden>
+  <style>
+    #words .frow{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px}
+    #words .frow>div{flex:1 1 140px}
+    #words label{display:block; font-size:13px; color:var(--dim); margin-bottom:4px}
+    #words input,#words select,#words textarea{width:100%; background:var(--panel2);
+      color:var(--text); border:1px solid var(--line); border-radius:4px; padding:8px 10px; font:inherit}
+    #words .go{background:var(--lamp); color:#1a1206; border:0; border-radius:4px;
+      padding:9px 16px; font:600 15px system-ui,sans-serif; cursor:pointer; margin:0 6px 6px 0}
+  </style>
+  <p class="hint">Add words here. The palette, the glosser and the checks all read this list, so everything keeps working as the lexicon grows. Dashed entries are not real words yet.</p>
+  <div class="panel">
+    <div class="frow">
+      <div><label for="wf">Word</label><input id="wf" spellcheck="false" autocapitalize="off"></div>
+      <div><label for="wg">Gloss</label><input id="wg"></div>
+    </div>
+    <div class="frow">
+      <div><label for="wc">Class</label><select id="wc">
+        <option value="noun">noun</option><option value="verb">verb</option>
+        <option value="pron">pronoun</option><option value="case">case particle</option>
+        <option value="aux">auxiliary</option><option value="q">question particle</option>
+        <option value="suffix">suffix</option></select></div>
+      <div><label for="wr">Status</label><select id="wr">
+        <option value="1">coined</option><option value="0">placeholder</option></select></div>
+    </div>
+    <button class="go" id="addWord">Add</button>
+  </div>
+  <div id="wordlist"></div>
+  <div class="panel">
+    <label for="io">Export / import</label>
+    <textarea id="io" rows="4" spellcheck="false"></textarea>
+    <button class="go" id="doExport">Export</button>
+    <button class="go" id="doImport">Import (replaces)</button>
+    <p class="hint">Export and keep the blob somewhere safe before you close the tab. That text is your lexicon — paste it back to restore it on any device.</p>
+  </div>
+</section>
+
+<!-- ───────── GAPS ───────── -->
+<section id="gaps" hidden>
+  <div class="panel">
+    <label for="gapNote">What you tried to say and couldn't</label>
+    <textarea id="gapNote" rows="3" placeholder="wanted: the light went out an hour ago — no word for hour, no word for go out"></textarea>
+    <div style="margin-top:10px"><button class="btn" id="addGap">Log the gap</button></div>
+    <p class="hint">A sentence you can't finish is data about a gap. These are the highest-value words to coin next.</p>
+  </div>
+  <button class="btn ghost" id="copyGaps">Copy for the Journal</button>
+  <pre id="gapOut">Nothing logged yet.</pre>
+</section>
+
+<script>
+"use strict";
+
+/* ═══════════ lexicon ═══════════
+   real:true  = coined and in the Dictionary
+   real:false = placeholder from Grammar §0                       */
+let LEX = {
+  // pronouns
+  ga:   {g:"I",              c:"pron", real:true},
+  wi:   {g:"you",            c:"pron", real:true},
+  gawi: {g:"we.INCL",        c:"pron", real:true},
+  gata: {g:"we.EXCL",        c:"pron", real:true},
+  ishi: {g:"3SG.ANIM",       c:"pron", real:true},
+  // nouns
+  helan:{g:"person",         c:"noun", real:true},
+  hena: {g:"faint.sound",    c:"noun", real:true, also:"neg"},
+  hiba: {g:"trace",          c:"noun", real:true},
+  vweta:{g:"company",        c:"noun", real:true},
+  // verbs
+  vwetu:{g:"be.awake.with",  c:"verb", real:true},
+  // case particles
+  a:    {g:"TOP",            c:"case", real:true},
+  na:   {g:"TOP / that",     c:"case", real:true, also:"dem"},
+  ba:   {g:"SUBJ",           c:"case", real:true},
+  ni:   {g:"OBJ",            c:"case", real:true},
+  pe:   {g:"POSS",           c:"case", real:true},
+  wa:   {g:"LOC",            c:"case", real:true},
+  di:   {g:"OBL",            c:"case", real:true},
+  toma: {g:"SRC",            c:"case", real:true},
+  // negation
+  mi:   {g:"NEG(open)",      c:"negopen",  real:true},
+  // placeholders — Grammar §0
+  mira: {g:"see",            c:"verb", real:false},
+  nemu: {g:"be.tired",       c:"verb", real:false},
+  hira: {g:"flower",         c:"noun", real:false},
+  sami: {g:"man",            c:"noun", real:false},
+  isha: {g:"doctor",         c:"noun", real:false},
+  sara: {g:"—",              c:"noun", real:false},
+  yo:   {g:"3SG.ANIM (old)", c:"pron", real:false, note:"superseded by ishi"},
+  ku:   {g:"AUX.completed",  c:"aux",  real:false},
+  bo:   {g:"AUX.habitual",   c:"aux",  real:false},
+  ko:   {g:"Q",              c:"q",    real:false}
+};
+const NEGCLOSE = "hena";
+let SUFFIX = {
+  ze: {g:"PAST",    on:"verb", real:true},
+  ri: {g:"ONGOING", on:"verb", real:false},
+  ta: {g:"PL",      on:"anim", real:true}
+};
+
+/* the lexicon is data, and it survives the tab closing where the browser allows it */
+try{
+  const s = localStorage.getItem("lunaji-lex");
+  if(s){ const v = JSON.parse(s); if(v && v.LEX){ LEX = v.LEX; SUFFIX = v.SUFFIX || SUFFIX; } }
+}catch(e){}
+function save(){
+  try{ localStorage.setItem("lunaji-lex", JSON.stringify({LEX, SUFFIX})); }catch(e){}
+}
+
+/* ═══════════ read a written word ═══════════ */
+const VOW = "aeiou";
+const isVow = c => c && VOW.includes(c);
+function syllabify(word){
+  const s = word.toLowerCase(); const out=[]; let i=0;
+  while(i < s.length){
+    let onset=null, glide=null;
+    if(s.substr(i,2)==="ts"){ onset="t"; i+=2; }        // ts is /t/ before u, an allophone
+    else if(s.substr(i,2)==="sh"){ onset="ʃ"; i+=2; }
+    else if(s.substr(i,2)==="ny"){ onset="ɲ"; i+=2; }
+    else if(!isVow(s[i]) && s[i]!=="'" && s[i]!==undefined){ onset = s[i]==="j" ? "ʒ" : s[i]; i++; }
+    if((s[i]==="y"||s[i]==="w") && isVow(s[i+1]) && onset){ glide = s[i]==="y" ? "j" : "w"; i++; }
+    if(!isVow(s[i])) return null;
+    const v = s[i]; i++;
+    let nasal = false;
+    if(s[i]==="n" && s[i+1]!=="y" && !isVow(s[i+1])){ nasal = true; i++; if(s[i]==="'") i++; }
+    out.push({onset, glide, v, nasal});
+  }
+  return out.length ? out : null;
+}
+const NASV = {a:"ã",e:"ẽ",i:"ĩ",o:"õ",u:"ũ"};
+function sylIPA(s){
+  let o = "";
+  // t before u is realized as ts, wherever it stands
+  if(s.onset === "t" && !s.glide && s.v === "u" && !s.nasal) o += "ts";
+  else if(s.onset) o += s.onset==="r" ? "ɾ" : s.onset;
+  if(s.glide) o += s.glide;
+  o += s.nasal ? NASV[s.v] + "ː" : s.v;
+  return o;
+}
+const sylMoras = s => s.nasal ? 2 : 1;
+
+/* liaison across a word boundary: a nasal-final word before a vowel-initial one
+   hands its n over as an onset (Grammar §1b.4). The mora goes with it.        */
+function phraseIPA(words){
+  const parsed = words.map(w => ({w, sy: syllabify(w)}));
+  for(let i=0;i<parsed.length-1;i++){
+    const A = parsed[i].sy, B = parsed[i+1].sy;
+    if(!A || !B) continue;
+    const last = A[A.length-1], first = B[0];
+    if(last.nasal && !first.onset && !first.glide){
+      last.nasal = false;
+      first.onset = "n";
+      parsed[i].liaised = true;
+    }
+  }
+  const chunks = parsed.map(p => p.sy ? p.sy.map(sylIPA).join(".") : "?");
+  const moras  = parsed.reduce((n,p)=> n + (p.sy ? p.sy.reduce((m,s)=>m+sylMoras(s),0) : 0), 0);
+  return {ipa: chunks.join(" "), moras, parsed};
+}
+
+/* ═══════════ look a word up ═══════════ */
+function lookup(word){
+  const w = word.toLowerCase();
+  if(LEX[w]) return {word:w, ...LEX[w], stem:w, sfx:[]};
+  // strip suffixes, longest chain first
+  for(const sfx of Object.keys(SUFFIX)){
+    if(w.length > sfx.length && w.endsWith(sfx)){
+      const stem = w.slice(0, -sfx.length);
+      const base = LEX[stem];
+      if(base) return {word:w, g:base.g+"-"+SUFFIX[sfx].g, c:base.c, real:base.real && SUFFIX[sfx].real,
+                       stem, sfx:[sfx], base};
+    }
+  }
+  // two suffixes, e.g. -ri-ze
+  for(const s1 of Object.keys(SUFFIX)) for(const s2 of Object.keys(SUFFIX)){
+    const tail = s1 + s2;
+    if(w.length > tail.length && w.endsWith(tail)){
+      const stem = w.slice(0, -tail.length), base = LEX[stem];
+      if(base) return {word:w, g:base.g+"-"+SUFFIX[s1].g+"-"+SUFFIX[s2].g, c:base.c,
+                       real:base.real && SUFFIX[s1].real && SUFFIX[s2].real, stem, sfx:[s1,s2], base};
+    }
+  }
+  return {word:w, g:"?", c:"unknown", real:false, stem:w, sfx:[]};
+}
+
+/* ═══════════ checks ═══════════ */
+function runChecks(toks, words){
+  const out = [];
+  const add = (lvl,s) => out.push({lvl,s});
+
+  // 1. unknown words
+  const unknown = toks.filter(t=>t.c==="unknown");
+  if(unknown.length) add("err", "Not a word: " + unknown.map(t=>t.word).join(", ") +
+    ". Log it as a gap if you meant something real.");
+
+  // 2. placeholders
+  const ph = toks.filter(t=>!t.real && t.c!=="unknown");
+  if(ph.length) add("warn", "Placeholder" + (ph.length>1?"s":"") + ": " +
+    ph.map(t=>t.word).join(", ") + ". The sentence isn't sayable until these are coined.");
+  const oldYo = toks.find(t=>t.stem==="yo");
+  if(oldYo) add("warn", "yo is superseded by ishi.");
+
+  // 3. phonotactics on every word
+  for(const t of toks){
+    if(!syllabify(t.word)) { add("err", t.word + " can't be syllabified — check it against Phonology §4.1."); continue; }
+    if(/rw/.test(t.word)) add("err", t.word + ": rw is banned (Phonology §4.2.5).");
+    if(/[sz]i/.test(t.word)) add("err", t.word + ": s or z before i should be written sh or j.");
+  }
+
+  // 4. topic particle allomorph
+  for(let i=0;i<toks.length;i++){
+    if(toks[i].word!=="a" && toks[i].word!=="na") continue;
+    if(i===0) continue;                                   // na as a demonstrative opens a phrase
+    const prev = toks[i-1].word;
+    const sy = syllabify(prev);
+    if(!sy) continue;
+    const nasalFinal = sy[sy.length-1].nasal;
+    if(toks[i].word==="a" && !nasalFinal)
+      add("err", `"${prev} a" — ${prev} is not nasal-final, so the topic particle is na (Grammar §1b.3).`);
+    if(toks[i].word==="na" && nasalFinal && toks[i-1].c!=="case")
+      add("warn", `"${prev} na" — ${prev} is nasal-final, so the topic particle would be a. Fine if this na is the demonstrative.`);
+  }
+
+  // 5. negation bracket
+  const hasOpen = words.includes("mi"), closeAt = words.lastIndexOf(NEGCLOSE);
+  const closeIsNeg = closeAt > -1 && closeAt > 0 && toks[closeAt-1] &&
+                     (toks[closeAt-1].c==="verb" || toks[closeAt-1].c==="aux" || toks[closeAt-1].c==="noun" || toks[closeAt-1].c==="pron");
+  if(hasOpen && words.indexOf("mi")!==0)
+    add("err", "mi is clause-initial, not preverbal (Grammar §4.3).");
+  if(hasOpen && closeAt===-1)
+    add("err", "mi opened the negation and nothing closed it. hena goes after the verb.");
+  if(!hasOpen && closeIsNeg)
+    add("ok", "Negated with hena alone — casual register. mi is kept in careful speech (§4.3).");
+  if(hasOpen && closeIsNeg)
+    add("ok", "Negation bracketed: mi … hena. Careful register.");
+
+  // 6. tense placement
+  const verbs = toks.filter(t=>t.c==="verb");
+  const aux   = toks.find(t=>t.c==="aux");
+  const tensedVerb = toks.find(t=>t.c==="verb" && t.sfx.includes("ze"));
+  const tensedAux  = toks.find(t=>t.c==="aux"  && t.sfx.includes("ze"));
+  if(aux && tensedVerb && !tensedAux)
+    add("err", "Tense goes on the last piece of the verb complex. With an auxiliary present, -ze sits on the auxiliary (Grammar §4.1).");
+  if(tensedVerb || tensedAux) add("ok", "Past tense marked with -ze.");
+
+  // 7. -ta only on animates
+  for(const t of toks){
+    if(!t.sfx.includes("ta")) continue;
+    if(t.c==="pron"){ add("ok", t.word + ": pronouns are animate by definition (§3.5)."); continue; }
+    if(t.stem==="helan") continue;
+    add("warn", t.word + ": -ta marks animates only — things that move or make sound on their own (§3.3). Fine if it is acting right now.");
+  }
+
+  // 8. verb-final
+  const contentIdx = toks.map((t,i)=>({t,i})).filter(x=>["verb","noun","pron"].includes(x.t.c));
+  if(contentIdx.length){
+    const last = contentIdx[contentIdx.length-1];
+    if(last.t.c!=="verb")
+      add("warn", "The clause doesn't end on a verb. Lunaji is SOV — unless this is a copula sentence, where the topic particle does the linking (§4.6).");
+    else {
+      const tail = toks.slice(last.i+1).map(t=>t.c);
+      const rank = {aux:1, negclose:2, evid:3, q:4};
+      let prev = 0, bad = false;
+      for(const c of tail){ const r = rank[c] || 0; if(r && r < prev) bad = true; if(r) prev = r; }
+      if(bad) add("err", "Tail order is auxiliary → negation → evidential → question (Grammar §4.8).");
+      else add("ok", "Verb-final, tail in order.");
+    }
+  }
+
+  // 9. liaison notice
+  return out;
+}
+
+/* ═══════════ render ═══════════ */
+const $ = id => document.getElementById(id);
+function render(){
+  const raw = $("line").value.trim().replace(/\s+/g," ");
+  const box = $("out");
+  if(!raw){ box.innerHTML = `<p class="hint">Tap words below, or type. Try: mi helan a vwetu hena</p>`; return; }
+  // either spelling reaches the same word: tsu and tu are one thing
+  const words = raw.toLowerCase().split(" ").map(w => w.replace(/ts(?=u)/g, "t"));
+  const toks = words.map(w=>{
+    const t = lookup(w);
+    if(w === NEGCLOSE){
+      const i = words.indexOf(w);
+      if(i>0) { t.c = "negclose"; t.g = "NEG"; }
+    }
+    return t;
+  });
+  const {ipa, moras, parsed} = phraseIPA(words);
+  const liaisons = parsed.filter(p=>p.liaised).length;
+  const checks = runChecks(toks, words);
+
+  box.innerHTML = `
+    <div class="panel">
+      <div class="gloss">${toks.map(t=>`<div>
+        <div class="w ${t.c==='unknown'?'unk':(t.real?'':'ph')}">${t.word}</div>
+        <div class="g">${t.g}</div></div>`).join("")}</div>
+      <div class="ipa">/${ipa}/</div>
+      <div class="meta">${moras} moras${liaisons?` · ${liaisons} liaison${liaisons>1?"s":""}`:""}</div>
+      <ul class="checks">${checks.map(c=>`<li class="${c.lvl}">${c.s}</li>`).join("") ||
+        `<li class="ok">Nothing to flag.</li>`}</ul>
+    </div>`;
+}
+
+/* ═══════════ palette ═══════════ */
+const CLASSNAMES = {pron:"Pronouns", noun:"Nouns", verb:"Verbs", case:"Particles",
+  negopen:"Negation", aux:"Auxiliaries", q:"Question", other:"Other"};
+function paintPalette(){
+  const groups = {};
+  Object.keys(LEX).sort().forEach(w=>{
+    const c = LEX[w].c || "other";
+    (groups[c] = groups[c] || []).push(w);
+  });
+  $("palette").innerHTML = Object.keys(groups).map(c=>
+    `<h3>${CLASSNAMES[c] || c}</h3><div class="chips">${
+      groups[c].map(w=>{
+        const e = LEX[w];
+        return `<button class="chip ${e.real ? "" : "ph"}" data-w="${w}">${w}<small>${e.g}</small></button>`;
+      }).join("")}</div>`).join("") +
+    `<h3>Suffixes — tap to attach to the last word</h3><div class="chips">${
+      Object.keys(SUFFIX).map(s=>`<button class="chip ${SUFFIX[s].real?"":"ph"}" data-s="${s}">-${s}<small>${SUFFIX[s].g}</small></button>`).join("")}</div>`;
+}
+$("palette").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  const inp = $("line");
+  if(b.dataset.w){
+    inp.value = (inp.value.trim() + " " + b.dataset.w).trim();
+  } else if(b.dataset.s){
+    const parts = inp.value.trim().split(/\s+/).filter(Boolean);
+    if(!parts.length) return;
+    parts[parts.length-1] += b.dataset.s;
+    inp.value = parts.join(" ");
+  }
+  render();
+});
+$("line").oninput = render;
+$("clear").onclick = ()=>{ $("line").value=""; render(); };
+$("back").onclick = ()=>{
+  const p = $("line").value.trim().split(/\s+/).filter(Boolean); p.pop();
+  $("line").value = p.join(" "); render();
+};
+$("fix").onclick = ()=>{
+  const p = $("line").value.trim().split(/\s+/).filter(Boolean);
+  for(let i=1;i<p.length;i++){
+    if(p[i]!=="a" && p[i]!=="na") continue;
+    const sy = syllabify(p[i-1]); if(!sy) continue;
+    p[i] = sy[sy.length-1].nasal ? "a" : "na";
+  }
+  $("line").value = p.join(" "); render();
+};
+
+/* ═══════════ word list ═══════════ */
+const RM = `style="background:none;border:0;color:var(--bad);cursor:pointer;font:inherit"`;
+function paintWords(){
+  $("wordlist").innerHTML = `<table><tr><th>Word</th><th>IPA</th><th>Gloss</th><th>Moras</th><th></th></tr>` +
+    Object.keys(LEX).sort().map(w=>{
+      const sy = syllabify(w), e = LEX[w];
+      return `<tr><td class="lun" style="${e.real?"":"opacity:.55"}">${w}</td>
+        <td>${sy?"/"+sy.map(sylIPA).join(".")+"/":"—"}</td>
+        <td>${e.g}${e.real?"":" <span style='color:var(--dim)'>· placeholder</span>"}</td>
+        <td>${sy?sy.reduce((m,s)=>m+sylMoras(s),0):"—"}</td>
+        <td><button class="rm" data-w="${w}" ${RM}>remove</button></td></tr>`;
+    }).join("") +
+    Object.keys(SUFFIX).sort().map(s=>
+      `<tr><td class="lun" style="${SUFFIX[s].real?"":"opacity:.55"}">-${s}</td><td>—</td>
+       <td>${SUFFIX[s].g}</td><td>—</td>
+       <td><button class="rm" data-s="${s}" ${RM}>remove</button></td></tr>`).join("") +
+    `</table>`;
+  $("wordlist").querySelectorAll(".rm").forEach(b=>b.onclick = ()=>{
+    if(b.dataset.w) delete LEX[b.dataset.w]; else delete SUFFIX[b.dataset.s];
+    save(); repaint();
+  });
+}
+$("addWord").onclick = ()=>{
+  const f = $("wf").value.trim().toLowerCase().replace(/^-/,"");
+  if(!f) return;
+  const g = $("wg").value.trim() || "—", real = $("wr").value === "1";
+  if($("wc").value === "suffix") SUFFIX[f] = {g, on:"verb", real};
+  else LEX[f] = {g, c:$("wc").value, real};
+  $("wf").value = $("wg").value = "";
+  save(); repaint();
+};
+$("doExport").onclick = ()=>{ $("io").value = JSON.stringify({LEX, SUFFIX}); };
+$("doImport").onclick = ()=>{
+  try{
+    const v = JSON.parse($("io").value);
+    if(!v || !v.LEX) throw 0;
+    LEX = v.LEX; SUFFIX = v.SUFFIX || SUFFIX;
+    save(); repaint();
+    $("io").value = "Imported " + Object.keys(LEX).length + " words.";
+  }catch(e){ $("io").value = "That isn't a valid export."; }
+};
+function repaint(){ paintPalette(); paintWords(); paintParaSelect(); paintPara(); render(); }
+
+/* ═══════════ gaps ═══════════ */
+const GAPS = [];
+const stamp = () => new Date().toISOString().slice(0,10);
+$("addGap").onclick = ()=>{
+  const n = $("gapNote").value.trim(); if(!n) return;
+  const attempt = $("line").value.trim();
+  GAPS.push(`${stamp()}  ${n}${attempt ? `\n           attempted: ${attempt}` : ""}`);
+  $("gapNote").value = "";
+  $("gapOut").textContent = GAPS.join("\n\n");
+};
+$("copyGaps").onclick = ()=>{
+  navigator.clipboard.writeText(GAPS.join("\n\n")).then(
+    ()=> $("copyGaps").textContent = "Copied",
+    ()=> $("copyGaps").textContent = "Select the text below and copy it");
+  setTimeout(()=> $("copyGaps").textContent = "Copy for the Journal", 2000);
+};
+
+/* ═══════════ paradigm ═══════════ */
+function ipaOf(str){
+  return str.split(" ").map(w=>{ const sy = syllabify(w); return sy ? sy.map(sylIPA).join(".") : "?"; }).join(" ");
+}
+function morasOf(str){
+  return str.split(" ").reduce((n,w)=>{
+    const sy = syllabify(w); return n + (sy ? sy.reduce((m,s)=>m+sylMoras(s),0) : 0);
+  },0);
+}
+function paintParaSelect(){
+  const vs = Object.keys(LEX).filter(w=>LEX[w].c==="verb").sort();
+  const keep = $("pverb").value;
+  $("pverb").innerHTML = vs.map(w=>
+    `<option value="${w}">${w} — ${LEX[w].g}${LEX[w].real?"":" (placeholder)"}</option>`).join("");
+  if(vs.includes(keep)) $("pverb").value = keep;
+}
+function paintPara(){
+  const v = $("pverb").value;
+  if(!v){ $("paraOut").innerHTML = `<p class="hint">No verbs in the lexicon yet.</p>`; return; }
+  const rows = [
+    ["plain",             v],
+    ["past",              v+"ze"],
+    ["ongoing",           v+"ri"],
+    ["ongoing past",      v+"ri"+"ze"],
+    ["completed",         v+" ku"],
+    ["completed past",    v+" kuze"],
+    ["habitual",          v+"ri bo"],
+    ["habitual past",     v+"ri boze"],
+    ["negative, casual",  v+" hena"],
+    ["negative, careful", "mi "+v+" hena"],
+    ["negative past",     "mi "+v+"ze hena"],
+    ["question",          v+"ze hena ko"],
+    ["attributive",       v+" helan"]
+  ];
+  $("paraOut").innerHTML = `<div class="panel"><table>
+    <tr><th>Form</th><th>Lunaji</th><th>IPA</th><th>Moras</th></tr>` +
+    rows.map(([k,f])=>`<tr><td>${k}</td><td class="lun">${f}</td><td>/${ipaOf(f)}/</td><td>${morasOf(f)}</td></tr>`).join("") +
+    `</table>
+    <p class="hint">Tense sits on the last piece of the complex, so it lands on the auxiliary wherever there is one (Grammar §4.1).
+    Still placeholders: <i>-ri</i>, <i>ku</i>, <i>bo</i>, <i>ko</i>. <i>helan</i> just stands in for a noun.</p></div>`;
+}
+$("pverb").onchange = paintPara;
+
+/* ═══════════ export ═══════════ */
+function entryIPA(w){ const sy = syllabify(w); return sy ? sy.map(sylIPA).join(".") : "?"; }
+function exportDict(){
+  return Object.keys(LEX).filter(w=>LEX[w].real).sort().map(w=>{
+    const e = LEX[w];
+    return `### ${w}\n**/${entryIPA(w)}/** · *${e.c}*\n1. ${e.g}\n< \n~ related: \n» \n[coined ]`;
+  }).join("\n\n");
+}
+function exportTable(){
+  return `| Word | IPA | Moras | Class | Gloss |\n|---|---|---|---|---|\n` +
+    Object.keys(LEX).sort().map(w=>{
+      const sy = syllabify(w), e = LEX[w];
+      return `| ${w}${e.real?"":" \\*"} | /${entryIPA(w)}/ | ${sy?sy.reduce((m,s)=>m+sylMoras(s),0):"—"} | ${e.c} | ${e.g} |`;
+    }).join("\n") + `\n\n\\* = placeholder, not a real word yet.`;
+}
+function exportJournal(){
+  const n = $("jExtra").value.trim();
+  const gaps = GAPS.length
+    ? `**Gaps hit**\n\n` + GAPS.map(g=>"- " + g.replace(/\n\s+/g, " · ")).join("\n")
+    : "";
+  return `### ${stamp()} — \n\n${n}${n && gaps ? "\n\n" : ""}${gaps}`;
+}
+function exportLog(){ return `| Date | Change | Reason |\n|---|---|---|\n| ${stamp()} |  |  |`; }
+$("doGen").onclick = ()=>{
+  const k = $("expKind").value;
+  $("expOut").value = k==="dict" ? exportDict()
+                    : k==="table" ? exportTable()
+                    : k==="journal" ? exportJournal()
+                    : exportLog();
+};
+$("copyExp").onclick = ()=>{
+  navigator.clipboard.writeText($("expOut").value).then(
+    ()=> $("copyExp").textContent = "Copied",
+    ()=> $("copyExp").textContent = "Select and copy");
+  setTimeout(()=> $("copyExp").textContent = "Copy", 2000);
+};
+
+/* ═══════════ tabs ═══════════ */
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
+    ["write","words","para","exp","gaps"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+  };
+});
+
+repaint();
+</script>
+</body>
+</html>
