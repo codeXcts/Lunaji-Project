@@ -98,8 +98,8 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
     <div>
       <label for="cls">Class</label>
       <select id="cls">
-        <option value="verb">Verb (–u)</option>
-        <option value="irreg">Irregular verb (–un → –on)</option>
+        <option value="verb">Verb — rules decide regular or irregular</option>
+        <option value="irreg">Irregular verb — forces a nasal final</option>
         <option value="dnoun">Deverbal noun (–a)</option>
         <option value="pnoun">Primary noun (–a/e/i/o or nasal)</option>
         <option value="func">Function root (1–2 syllables)</option>
@@ -171,7 +171,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
     <label for="cls2">Check against class</label>
     <select id="cls2">
       <option value="any">Don't check</option>
-      <option value="verb">Verb (–u)</option>
+      <option value="verb">Verb — rules decide regular or irregular</option>
       <option value="irreg">Irregular verb (–on)</option>
       <option value="dnoun">Deverbal noun (–a)</option>
       <option value="pnoun">Primary noun</option>
@@ -532,7 +532,9 @@ function check(res, cls){
   if(cls && cls!=="any" && cls!=="func"){
     const endsU = /u$/.test(sp), endsNas = /[aio]n$/.test(sp), endsA = /a$/.test(sp);
     const nasalEnd = endsNas;
-    if(cls==="verb")  t.push(endsU ? {ok:true,s:"verb theme –u"} : {ok:false,s:"not a verb: needs final –u"});
+    if(cls==="verb")  t.push(endsU ? {ok:true,s:"verb theme –u"}
+                            : endsNas ? {ok:true,s:"verb — nasal-vowel irregular (Lexicology §1.2)"}
+                            : {ok:false,s:"not a verb: needs final –u or a nasal vowel"});
     if(cls==="irreg") t.push(endsNas ? {ok:true,s:"nasal-vowel irregular"} : {ok:false,s:"not a nasal-vowel irregular"});
     if(cls==="dnoun") t.push(endsA ? {ok:true,s:"deverbal –a"} : {ok:false,s:"not a deverbal noun: needs final –a"});
     if(cls==="pnoun") t.push(!endsU ? {ok:true,s:nasalEnd?"primary noun, nasal-final":"primary noun"}
@@ -573,6 +575,7 @@ function makeSyllable(shape, prevSeg){
   if(shape.endsWith("N")) s += "n";
   return s;
 }
+const IRREG_RATE = 0.25;   // share of verb draws given a nasal proto final
 function generateRoot(cls, nSyl){
   if(cls==="func" && !nSyl) nSyl = 1;   // only when no explicit count is chosen
   let body = "";
@@ -596,8 +599,11 @@ function generateRoot(cls, nSyl){
   const gl2 = fin[fin.length-1];
   if((gl2==="y"&&cls==="dnoun")||false){}   // theme vowels a/u/e/i/o handled below
   if(cls==="verb" && gl2==="w") fin = fin.slice(0,-1);          // would give wu
-  if(cls==="verb")       fin += "u";
-  else if(cls==="irreg") fin += "un";
+  // Proto had no irregular verb class. It had roots ending in a nasal, which R5
+  // and R6 later made irregular. So the verb draw carries both finals and lets
+  // the rules decide — asking for one or the other is steering.
+  if(cls==="verb")       fin += (Math.random() < IRREG_RATE ? pick(["un","in","en"]) : "u");
+  else if(cls==="irreg") fin += pick(["un","in","en"]);
   else if(cls==="dnoun") fin += "a";
   else if(cls==="pnoun") fin += pick(["a","e","i","o"]) + (Math.random()<0.45 ? "n" : "");
   else                   fin += pick(VOW_W) + (Math.random()<0.4 ? "n" : "");
