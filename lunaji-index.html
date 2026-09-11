@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lunaji Index</title>
 <style>
@@ -33,7 +35,7 @@ mark{background:none;color:var(--accent)}
 </style>
 
 <header>
-  <h1>Lunaji <span>index</span></h1>
+  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-10-b</div>
   <p class="sub">Where things live, not what they say. Current to 2026-09-10.</p>
   <input id="q" placeholder="flower, plural, negation, stress…" autocomplete="off">
   <div class="tags" id="tags"></div>
@@ -53,6 +55,14 @@ mark{background:none;color:var(--accent)}
 <script>
 // [key, file, section, note, aliases, open?]
 const D = [
+["Interrogatives","Grammar","§3.6","Two roots split by animacy; the seven particles generate the rest. In situ, never fronted.","who what where when how many why question word"],
+["Question words stay in situ","Grammar","§3.6","jin already marks the clause; fronting would mark it twice.","fronting word order question"],
+["where and when are one word","Grammar","§3.6","Because wa covers place and time both.","when where wa"],
+["how and why are one word","Grammar","§3.6","Because di covers instrument and cause.","how why di because"],
+["Animate is the interrogative default","Grammar","§3.6","If something acted it passes the animacy test whether or not you can name it. what is the marked form.","who what animacy unknown"],
+["Answering a question","Grammar","§6.3","Echo the verb. hin yes, hin hena no. No word for yes.","yes no answer echo"],
+["Topic vs ba with existence","Grammar","§4.7a","ba is presentative and new; the topic locates a known referent. Falls out of topics being definite.","there is ga wa existence hin yozu"],
+
 ["Flower — ani","Dictionary","Nouns › ani","AKUNI → ani. Inanimate; demonstrates the animacy rule in all four places at once.","ani akuni plant"],
 ["Animacy — the definition","Grammar","§3.3","Animate = it moves or makes sound on its own. Contextual, not lexical.","self-acting alive animate inanimate"],
 ["Animacy — where it applies","Grammar","§2.1, §3.3, §4.7, §7","Four sites: plural, pronoun, existence verb, counters. One category, cannot differ between them.","four places"],
