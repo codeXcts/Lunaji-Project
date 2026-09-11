@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-0312</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-0334</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -927,7 +927,7 @@ function renderDerivation(){
       <label for="kNote">What you heard when you said it</label>
       <textarea id="kNote" rows="2" placeholder="Judged in a sentence, not in isolation — Lexicology §6 step 6."></textarea>
       <div class="row" style="margin-top:10px">
-        <button class="btn" id="keepWord" ${bad ? "disabled" : ""}>Keep this word</button>
+        <button class="btn" id="keepWord" ${bad ? "disabled" : ""}>${COINED.includes(res.spelling) ? "Update this word" : "Keep this word"}</button>
         <button class="btn ghost" id="dropWord">Redraw instead</button>
       </div>
       ${bad ? `<p class="hint">The checker is holding this one. Fix it or redraw.</p>` : ``}
@@ -1039,7 +1039,11 @@ const CLASSLABEL = {verb:"verb", irreg:"verb — irregular (nasal-vowel class)",
 
 function keepWord(res, src){
   const w = res.spelling;
-  if(COINED.includes(w)){ alert(w + " is already in the lexicon."); return; }
+  // Keeping before the gloss is written is an ordinary thing to do, so a second
+  // Keep updates the entry instead of refusing it.
+  if(COINED.includes(w) &&
+     !confirm(w + " is already in the lexicon as \"" + LEX[w].g + "\".\n\nUpdate it and re-emit the entry?")) return;
+  const existed = COINED.includes(w);
   const cls = $("cls2").value;
   const gloss = $("kGloss").value.trim();
   const rel = $("kRelated").value.trim();
@@ -1047,7 +1051,7 @@ function keepWord(res, src){
 
   LEX[w] = {g: gloss || "(no gloss yet)", c: CMAP[cls] || "noun", real: true};
   saveLex();
-  logLine(`${stamp()}  KEPT ${src.toUpperCase()} → ${w} /${res.ipa}/  ${gloss}`);
+  logLine(`${stamp()}  ${existed ? "UPDATED" : "KEPT"} ${src.toUpperCase()} → ${w} /${res.ipa}/  ${gloss}`);
 
   const lines = [
     `### ${w}`,
@@ -1064,7 +1068,7 @@ function keepWord(res, src){
   $("entryOut").innerHTML = `<label style="margin-top:12px;display:block">Dictionary entry</label>
     <pre id="entry">${entry.replace(/</g,"&lt;")}</pre>
     <button class="btn ghost" id="copyEntry">Copy entry</button>
-    <p class="hint">${Object.keys(LEX).length} words in the lexicon. Paste this under the right heading in Dictionary.md.</p>`;
+    <p class="hint">${Object.keys(LEX).length} words in the lexicon${existed ? ", entry updated" : ""}. Paste this under the right heading in Dictionary.md.</p>`;
   $("copyEntry").onclick = () => {
     navigator.clipboard.writeText(entry);
     $("copyEntry").textContent = "Copied";
