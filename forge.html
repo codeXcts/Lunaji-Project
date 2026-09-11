@@ -40,6 +40,15 @@ input,select,textarea{
 textarea{resize:vertical}
 .row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px}
 .row>div{flex:1 1 130px}
+.toggles{margin:4px 0 12px}
+.toggles label{
+  display:flex; align-items:flex-start; gap:10px;
+  padding:9px 0; font-weight:400; line-height:1.35; cursor:pointer;
+  border-top:1px solid var(--line);
+}
+.toggles label:last-child{border-bottom:1px solid var(--line)}
+.toggles input{flex:0 0 auto; width:20px; height:20px; margin:1px 0 0}
+.toggles em{display:block; font-style:normal; opacity:.55; font-size:13px}
 .btn{
   background:var(--lamp); color:#1a1206; border:0; border-radius:4px;
   padding:9px 16px; font:600 15px system-ui,sans-serif; cursor:pointer;
@@ -77,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-10-b</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-0312</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -104,21 +113,14 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
         <input id="fOnset" placeholder="b g v l m n y" spellcheck="false">
       </div>
       <div>
-        <label for="fParticle">Collisions</label>
-        <label style="display:flex;align-items:center;gap:6px;font-weight:400">
-          <input type="checkbox" id="fParticle" checked> not a particle sequence
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;margin-top:4px;font-weight:400">
-          <input type="checkbox" id="fHead"> no shared first syllable
-        </label>
-      </div>
-      <div>
         <label for="fBanSeq">Must not contain</label>
         <input id="fBanSeq" placeholder="j, ts, sy" spellcheck="false">
-        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-weight:400">
-          <input type="checkbox" id="fNoGlide"> no glides
-        </label>
       </div>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="fParticle" checked><span>Reject a word that splits into a particle sequence <em>— ani is a + ni</em></span></label>
+      <label><input type="checkbox" id="fNoGlide"><span>Reject any glide <em>— y or w before a vowel; ny is not a glide</em></span></label>
+      <label><input type="checkbox" id="fHead"><span>Reject a first syllable an existing word already has</span></label>
     </div>
     <div class="row" style="margin-top:8px">
       <div>
