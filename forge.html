@@ -104,6 +104,15 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
         <input id="fOnset" placeholder="b g v l m n y" spellcheck="false">
       </div>
       <div>
+        <label for="fParticle">Collisions</label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400">
+          <input type="checkbox" id="fParticle" checked> not a particle sequence
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-top:4px;font-weight:400">
+          <input type="checkbox" id="fHead"> no shared first syllable
+        </label>
+      </div>
+      <div>
         <label for="fBanSeq">Must not contain</label>
         <input id="fBanSeq" placeholder="j, ts, sy" spellcheck="false">
         <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-weight:400">
@@ -487,7 +496,7 @@ const LEX_SEED = {
   "la":["evidential — direct non-visual","func"],"po":["evidential — inference","func"],
   "ke":["evidential — assumption","func"],"jin":["question particle","func"],
   "noron":["but; and yet","func"],"oyan":["might; maybe","func"],
-  "byon":["completed aspect auxiliary","irreg"],"lon":["habitual aspect auxiliary","irreg"],
+  "byon":["completed aspect auxiliary","aux"],"lon":["habitual aspect auxiliary","aux"],
   /* numbers */
   "zo":["1","func"],"van":["2","func"],"ki":["3","func"],"ra":["4","func"],"bai":["5","func"],
   "baizo":["6","func"],"baivan":["7","func"],"baiki":["8","func"],"baira":["9","func"],
@@ -523,7 +532,7 @@ const RETIRED = ["vwetsu","vweta","sen","lomen","loman","ga","wi","gawi","gata",
 const LEXKEY = "lunaji-lex";   // shared with the Composer
 let LEX = {}, SUFFIX = null;
 // the Composer's class vocabulary is canonical, since both tools now read one store
-const CMAP = {pnoun:"noun", dnoun:"noun", verb:"verb", irreg:"verb",
+const CMAP = {pnoun:"noun", dnoun:"noun", verb:"verb", irreg:"verb", aux:"aux",
               func:"case", pron:"pron", suffix:"case", any:"noun"};
 function seedObj(){
   const o = {};
@@ -690,6 +699,8 @@ function readFilter(){
     moraMin: Number($("fMoraMin").value) || 0,
     moraMax: Number($("fMoraMax").value) || 99,
     rhyme:   $("fRhyme").value,
+    particle: $("fParticle") && $("fParticle").checked,
+    head:     $("fHead") && $("fHead").checked,
     rhymeList: list("fRhymeList")
   };
 }
@@ -698,12 +709,36 @@ function filterText(){
   if(f.banEnd.length)  bits.push("not ending " + f.banEnd.join("/"));
   if(f.banSeq.length)  bits.push("no " + f.banSeq.join("/"));
   if(f.noGlide)        bits.push("no glides");
+  if(f.particle)       bits.push("not a particle sequence");
+  if(f.head)           bits.push("no shared first syllable");
   if(f.onsets.length)  bits.push("theme onset in " + f.onsets.join(""));
   if(f.moraMin || f.moraMax < 99) bits.push(`${f.moraMin || 1}-${f.moraMax === 99 ? "any" : f.moraMax} moras`);
   if(f.rhyme === "lex")  bits.push("no rhyme with any existing word");
   if(f.rhyme === "list" && f.rhymeList.length) bits.push("no rhyme with " + f.rhymeList.join("/"));
   return bits.join("; ");
 }
+/* Every short function word, longest first, so the greedy split finds toma
+   before it finds to. */
+function particleStock(){
+  return Object.keys(LEX)
+    .filter(w => LEX[w].c === "case" || LEX[w].c === "evid" || LEX[w].c === "aux" ||
+                 LEX[w].c === "q" || LEX[w].c === "negopen" || LEX[w].c === "num")
+    .filter(w => w.length <= 4)
+    .sort((a,b) => b.length - a.length);
+}
+function splitsIntoParticles(w){
+  const P = particleStock();
+  const walk = rest => {
+    if(!rest) return true;
+    return P.some(p => rest.startsWith(p) && walk(rest.slice(p.length)));
+  };
+  return walk(w);
+}
+function firstSyl(w){
+  const m = w.match(/^[^aeiou]*[aeiou]n?(?![aeiou])/) || w.match(/^[^aeiou]*[aeiou]/);
+  return m ? m[0] : w;
+}
+
 function passesFilter(res, f){
   const w = res.spelling;
   if(f.banEnd.some(e => w.endsWith(e))) return false;
@@ -713,6 +748,15 @@ function passesFilter(res, f){
   if(f.noGlide && /(^|[^n])y[aeiou]|w[aeiou]/.test(w)) return false;
   if(res.moras < f.moraMin || res.moras > f.moraMax) return false;
   if(f.onsets.length && !f.onsets.includes(themeOnset(w))) return false;
+  // Grammar §8: a content word should not be homophonous with a particle
+  // sequence. ani is a + ni; lonke is lon + ke. Both were found by ear, late.
+  if(f.particle && splitsIntoParticles(w)) return false;
+  // The rhyme check compares tails, so a shared head is invisible to it —
+  // which is how lonke reached the shortlist beside lonji.
+  if(f.head){
+    const h = firstSyl(w);
+    if(Object.keys(LEX).some(o => o !== w && o.length > 2 && firstSyl(o) === h)) return false;
+  }
   if(f.rhyme){
     const t = rhymeTail(w);
     const against = f.rhyme === "lex" ? Object.keys(LEX) : f.rhymeList;
@@ -724,7 +768,7 @@ function passesFilter(res, f){
 function drawStock(cls, sylOpt, n, endReq, startReq){
   const out=[]; let guard=0;
   const F = readFilter();
-  const tight = endReq || startReq || F.banEnd.length || F.banSeq.length ||
+  const tight = endReq || startReq || F.banEnd.length || F.banSeq.length || F.head ||
                 F.noGlide || F.onsets.length || F.rhyme || F.moraMin;
   const cap = tight ? n*2000 : n*40;
   while(out.length<n && guard<cap){
