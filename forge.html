@@ -86,13 +86,14 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-0731</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-0834</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
   <button role="tab" aria-selected="true" data-tab="draw">Draw</button>
   <button role="tab" aria-selected="false" data-tab="derive">Derive</button>
   <button role="tab" aria-selected="false" data-tab="verify">Verify</button>
+  <button role="tab" aria-selected="false" data-tab="borrow">Borrow</button>
   <button role="tab" aria-selected="false" data-tab="lexicon">Lexicon</button>
   <button role="tab" aria-selected="false" data-tab="log">Log</button>
 </nav>
@@ -233,6 +234,29 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   <p class="hint">The twenty-root test from Lexicology §3, run against this engine. If a row fails, the engine's reading of that rule is wrong — not your language.</p>
   <button class="btn" id="runTest">Run the test set</button>
   <div id="testOut"></div>
+</section>
+
+<!-- ───────────── BORROW ───────────── -->
+<section id="borrow" hidden>
+  <p class="hint">Nativization is <em>repair</em>, not decoration. This only changes what the phonotactics force — it never pads a word to make it feel native, because that is how you get a fake root with a loan's meaning.</p>
+  <div class="panel">
+    <label for="bwIn">The source word, spelled as you would say it</label>
+    <input id="bwIn" placeholder="telefon, kafe, sukuru" spellcheck="false">
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label for="bwSrc">Source</label>
+        <input id="bwSrc" placeholder="French téléphone" spellcheck="false">
+      </div>
+      <div>
+        <label for="bwCls">Enters as</label>
+        <select id="bwCls">
+          <option value="noun">noun</option>
+          <option value="other">function word / other</option>
+        </select>
+      </div>
+    </div>
+    <div id="bwOut"></div>
+  </div>
 </section>
 
 <!-- ───────────── LEXICON ───────────── -->
@@ -811,7 +835,7 @@ const $ = id => document.getElementById(id);
 document.querySelectorAll("nav button").forEach(b=>{
   b.onclick = () => {
     document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["draw","derive","verify","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+    ["draw","derive","verify","borrow","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
   };
 });
 
@@ -1265,6 +1289,76 @@ function keepWord(res, src){
 $("rootIn").oninput = () => { lastDraw = null; renderDerivation(); };
 $("cls2").onchange = renderDerivation;
 renderDerivation();
+
+/* ══════════ borrow ══════════
+   Lexicology §4. Every step below is forced by a rule in Phonology §4.2 or by
+   the class system; nothing here is a matter of taste. If a repair is not
+   required, it does not happen.                                              */
+function nativize(raw, cls){
+  let w = (raw || "").toLowerCase().replace(/[^a-z']/g, "");
+  const log = [];
+  const step = (next, why) => { if(next !== w){ log.push(why + ": " + w + " \u2192 " + next); w = next; } };
+
+  step(w.replace(/ch/g,"sh").replace(/ph/g,"f").replace(/qu/g,"k")
+        .replace(/c(?=[ei])/g,"s").replace(/c/g,"k").replace(/q/g,"k")
+        .replace(/x/g,"ks").replace(/th/g,"t"), "segments outside the inventory");
+  step(w.replace(/([bcdfgklmnprstvz])\1/g,"$1"), "no doubled consonants (rule 1)");
+  step(w.replace(/wu/g,"u").replace(/yi/g,"i"), "a glide may not precede its own vowel (rule 7a)");
+  step(w.replace(/([kgfv r])w/g,"$1"), "no w after a velar, labiodental or r (rule 5)");
+  step(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/tu/g,"tsu"),
+       "coronal obstruents before a high vowel (rule 2)");
+
+  // clusters: obstruent + liquid survive as onsets, everything else needs the
+  // weak vowel between. An n before a consonant is nasality, not a cluster.
+  // Digraphs are folded to single symbols first, or sh would split into s + h.
+  const DI = [["sh","\u00c7"],["ts","\u0166"],["ny","\u00d1"],["ky","\u039a"]];
+  let before = w;
+  DI.forEach(([a,b])=> w = w.split(a).join(b));
+  let prev;
+  do{ prev = w;
+    w = w.replace(/([bdfgkpstvz\u00c7\u0166])([bdfgkmnpstvzh\u00c7\u0166\u00d1\u039a])/g, (m,a,b)=>a+"u"+b);
+    w = w.replace(/([lmr])([bdfgkpstvz\u00c7\u0166])/g, (m,a,b)=>a+"u"+b);
+  } while(w !== prev);
+  DI.forEach(([a,b])=> w = w.split(b).join(a));
+  if(w !== before) log.push("clusters opened with the weak vowel: " + before + " \u2192 " + w);
+
+  // rule 2 again: opening a cluster can create a new si, zi or tu
+  step(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/tu(?!\u0166)/g,"tsu"),
+       "coronal obstruents, after the clusters opened");
+
+  step(w.replace(/([^aeioun])$/,"$1a"), "every word ends in a vowel (§4.1)");
+  step(w.replace(/n$/, m => /[aeiou]n$/.test(w) ? m : "na"), "a final n needs a vowel before it to be nasality");
+  if(cls === "noun") step(w.replace(/u$/,"o"), "nouns may never end in -u (Lexicology §1.1)");
+  return {out: w, log};
+}
+function paintBorrow(){
+  const raw = $("bwIn").value.trim();
+  if(!raw){ $("bwOut").innerHTML = ""; return; }
+  const r = nativize(raw, $("bwCls").value);
+  const w = r.out;
+  const clash = COINED.includes(w) ? "collides with " + w + " \u2014 " + LEX[w].g : null;
+  const split = splitsIntoParticles(w) ? "splits into a particle sequence (Grammar \u00a78)" : null;
+  let pros = ""; try{
+    const hadIt = COINED.includes(w);
+    if(!hadIt) LEX[w] = {g:"(candidate)", c:"noun", real:false};
+    const a = analyse(w + "na");
+    if(!hadIt) delete LEX[w];
+    pros = `<div class="hint">topic-marked: ${w}na \u00b7 ${a.phrases[0].moras}m \u00b7 stress ${a.phrases[0].stress}</div>`;
+  }catch(e){}
+  $("bwOut").innerHTML = `
+    <div style="margin-top:14px;font-size:22px">${w}</div>
+    ${pros}
+    ${r.log.length ? `<label style="display:block;margin-top:10px">What the rules forced</label>
+      <ul class="hint" style="margin:4px 0 0 18px">${r.log.map(l=>`<li>${l}</li>`).join("")}</ul>`
+      : `<p class="hint" style="margin-top:8px">Nothing changed \u2014 it already fits.</p>`}
+    ${clash ? `<p class="hint" style="color:#c77;margin-top:8px">${clash}</p>` : ``}
+    ${split ? `<p class="hint" style="color:#c77;margin-top:4px">${split}</p>` : ``}
+    <label style="display:block;margin-top:12px">Loanword table row</label>
+    <pre>| *${w}* | ${$("bwSrc").value.trim() || "\u2014"} | | ${r.log.length ? "see notes" : "nothing changed"} |</pre>`;
+}
+$("bwIn").oninput = paintBorrow;
+$("bwCls").onchange = paintBorrow;
+$("bwSrc").oninput = paintBorrow;
 
 /* ══════════ lexicon ══════════ */
 const CLASSGROUP = {noun:"Nouns", verb:"Verbs", pron:"Pronouns", case:"Particles",
