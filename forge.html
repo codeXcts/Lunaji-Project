@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-1142</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-1218</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -1595,15 +1595,20 @@ $("copyLog").onclick = () => {
     ()=> $("copyLog").textContent = "Copied",
     ()=> $("copyLog").textContent = "Select the text below and copy it"
   );
+  setTimeout(()=> $("copyLog").textContent = "Copy log", 2000);
+};
+
 $("logFilter").onchange = paintLog;
+
 $("markLog").onclick = () => {
   logLine("\u2500\u2500\u2500 batch \u00b7 " + stamp() + " \u2500\u2500\u2500");
 };
+
 $("clearLog").onclick = () => {
   if(!confirm("Clear the whole log? The lexicon is not affected, but the record of how each word was drawn is.")) return;
   LOG.length = 0; paintLog(); saveWork();
-};
-  setTimeout(()=> $("copyLog").textContent = "Copy log", 2000);
+  $("clearLog").textContent = "Cleared";
+  setTimeout(()=> $("clearLog").textContent = "Clear", 1500);
 };
 loadWork();
 </script>
