@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-0834</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-1142</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -148,6 +148,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
       <label for="cls">Class</label>
       <select id="cls">
         <option value="verb">Verb — rules decide regular or irregular</option>
+        <option value="adjv">Verb, adjectival — stands before a noun</option>
         <option value="irreg">Irregular verb — forces a nasal final</option>
         <option value="dnoun">Deverbal noun (–a)</option>
         <option value="pnoun">Primary noun (–a/e/i/o or nasal)</option>
@@ -240,12 +241,20 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 <section id="borrow" hidden>
   <p class="hint">Nativization is <em>repair</em>, not decoration. This only changes what the phonotactics force — it never pads a word to make it feel native, because that is how you get a fake root with a loan's meaning.</p>
   <div class="panel">
-    <label for="bwIn">The source word, spelled as you would say it</label>
-    <input id="bwIn" placeholder="telefon, kafe, sukuru" spellcheck="false">
+    <label for="bwIn">The source word \u2014 paste it as it is written, accents and all</label>
+    <input id="bwIn" placeholder="lim\u00e3o, caf\u00e9, t\u014dfu" spellcheck="false">
+    <label for="bwGloss">Meaning</label>
+    <input id="bwGloss" placeholder="a lemon" spellcheck="false">
     <div class="row" style="margin-top:8px">
       <div>
-        <label for="bwSrc">Source</label>
-        <input id="bwSrc" placeholder="French téléphone" spellcheck="false">
+        <label for="bwLang">Source language</label>
+        <select id="bwLang">
+          <option value="none">as spelled</option>
+          <option value="pt">Portuguese — trade goods, plants</option>
+          <option value="fr">French — household, kitchen, measures</option>
+          <option value="ja">Japanese — modern and technical</option>
+          <option value="la">Latin / Greek — learned</option>
+        </select>
       </div>
       <div>
         <label for="bwCls">Enters as</label>
@@ -296,6 +305,15 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 <section id="log" hidden>
   <p class="hint">Every draw, take and discard this session. Copy it into the Journal.</p>
   <button class="btn ghost" id="copyLog">Copy log</button>
+  <button class="btn ghost" id="markLog">New batch</button>
+  <button class="btn ghost" id="clearLog">Clear</button>
+  <select id="logFilter" style="margin-top:8px">
+    <option value="">everything</option>
+    <option value="KEPT|UPDATED|BORROWED">kept and borrowed only</option>
+    <option value="TOOK">roots taken</option>
+    <option value="DISCARDED|removed">discarded and removed</option>
+    <option value="drew|filter">draws and filters</option>
+  </select>
   <pre id="logOut">Nothing yet.</pre>
 </section>
 
@@ -551,6 +569,13 @@ const LEX_SEED = {
   "omime":["a door","pnoun"],"vanonla":["hello; a greeting","dnoun"],
   "shin'yu":["to go; to leave","verb"],
   "shin'ya":["goodbye","dnoun"],
+  "dan":["yes","func"],"jo":["diminutive suffix","suffix"],
+  "yeti":["complement nominalizer","func"],"uan":["as ... as","func"],
+  "onu":["to say","verb"],"kuwanu":["to know","verb"],"howeru":["to be good","verb"],
+  "nonyeti":["a thing","pnoun"],"puan":["a likeness","pnoun"],
+  "sainko":["a house","pnoun"],"kunwe":["the sky","pnoun"],
+  "onkiwe":["a bed","pnoun"],"wokonya":["daytime","pnoun"],
+  "muman":["a bird","pnoun"],"zwawashi":["a window","pnoun"],
   "hotori":["a spouse","pnoun"],
   "telefon":["a telephone","pnoun"],
   "monzo":["who — animate interrogative","pnoun"],
@@ -567,7 +592,7 @@ const RETIRED = ["vwetsu","vweta","sen","lomen","loman","ga","wi","gawi","gata",
 const LEXKEY = "lunaji-lex";   // shared with the Composer
 let LEX = {}, SUFFIX = null;
 // the Composer's class vocabulary is canonical, since both tools now read one store
-const CMAP = {pnoun:"noun", dnoun:"noun", verb:"verb", irreg:"verb", aux:"aux",
+const CMAP = {pnoun:"noun", dnoun:"noun", verb:"verb", adjv:"verb", irreg:"verb", aux:"aux",
               func:"case", pron:"pron", suffix:"case", any:"noun"};
 function seedObj(){
   const o = {};
@@ -614,7 +639,7 @@ function check(res, cls){
   if(cls && cls!=="any" && cls!=="func"){
     const endsU = /u$/.test(sp), endsNas = /[aio]n$/.test(sp), endsA = /a$/.test(sp);
     const nasalEnd = endsNas;
-    if(cls==="verb")  t.push(endsU ? {ok:true,s:"verb theme –u"}
+    if(cls==="verb" || cls==="adjv")  t.push(endsU ? {ok:true,s:"verb theme –u"}
                             : endsNas ? {ok:true,s:"verb — nasal-vowel irregular (Lexicology §1.2)"}
                             : {ok:false,s:"not a verb: needs final –u or a nasal vowel"});
     if(cls==="irreg") t.push(endsNas ? {ok:true,s:"nasal-vowel irregular"} : {ok:false,s:"not a nasal-vowel irregular"});
@@ -684,7 +709,7 @@ function generateRoot(cls, nSyl){
   // Proto had no irregular verb class. It had roots ending in a nasal, which R5
   // and R6 later made irregular. So the verb draw carries both finals and lets
   // the rules decide — asking for one or the other is steering.
-  if(cls==="verb")       fin += (Math.random() < IRREG_RATE ? pick(["un","in","en"]) : "u");
+  if(cls==="verb" || cls==="adjv") fin += (Math.random() < IRREG_RATE ? pick(["un","in","en"]) : "u");
   else if(cls==="irreg") fin += pick(["un","in","en"]);
   else if(cls==="dnoun") fin += "a";
   else if(cls==="pnoun") fin += pick(["a","e","i","o"]) + (Math.random()<0.45 ? "n" : "");
@@ -842,13 +867,19 @@ document.querySelectorAll("nav button").forEach(b=>{
 let stock = [], slotDraws = 0, forced = false;
 let lastDraw = null;   // how the root in the Derive tab was obtained
 const LOG = [];
-function logLine(s){ LOG.push(s); $("logOut").textContent = LOG.join("\n"); saveWork(); }
+function logLine(s){ LOG.push(s); paintLog(); saveWork(); }
+function paintLog(){
+  const f = $("logFilter") && $("logFilter").value;
+  const re = f ? new RegExp(f) : null;
+  const rows = re ? LOG.filter(l => re.test(l) || /^\u2500/.test(l)) : LOG;
+  $("logOut").textContent = rows.join("\n");
+}
 
 /* Nothing here survived a page close: the stack, the taken root, the filter you
    wrote and the whole log lived in memory only. The lexicon persisted; the work
    in progress did not, which is the half you would actually miss.            */
 const WORKKEY = "lunaji-forge-work";
-const WORKFIELDS = ["filter","fBanEnd","fBanSeq","fOnset","fMoraMin","fMoraMax","fRhyme",
+const WORKFIELDS = ["filter","fBanEnd","fBanSeq","fOnset","fMoraMin","fMoraMax","fRhyme","bwIn","bwGloss","bwLang","bwCls",
                     "fRhymeList","rootIn","cls","cls2","kGloss","kRelated","kNote"];
 let restoring = false;
 function saveWork(){
@@ -865,7 +896,7 @@ function loadWork(){
   WORKFIELDS.forEach(id => { if($(id) && v.f && v.f[id] !== undefined) $(id).value = v.f[id]; });
   stock = v.stock || []; slotDraws = v.slotDraws || 0;
   forced = !!v.forced; lastDraw = v.lastDraw || null;
-  if(v.LOG) { LOG.length = 0; v.LOG.forEach(l=>LOG.push(l)); $("logOut").textContent = LOG.join("\n"); }
+  if(v.LOG) { LOG.length = 0; v.LOG.forEach(l=>LOG.push(l)); paintLog(); }
   restoring = false;
   if(stock.length) paintStack();
   if($("rootIn").value) renderDerivation();
@@ -995,21 +1026,29 @@ const PVOW = "aeiou";
 const isV = c => !!c && PVOW.includes(c);
 
 function sylsOf(w){
-  w = w.replace(/'/g, "");
+  // the apostrophe is kept during parsing: it is what says an n before a glide
+  // is vowel nasality rather than the onset of the next syllable
   const out = [];
   let i = 0;
   while(i < w.length){
     let on = "";
+    if(w[i] === "'"){ i++; continue; }
     while(i < w.length && !isV(w[i])){
-      // an n before a vowel is an onset; before a consonant it is nasality,
-      // so it belongs to the syllable already emitted
-      if(w[i] === "n" && !isV(w[i+1])) break;
+      // n before a vowel is an onset; before a glide it is also an onset (ny is
+      // ɲ, nw is n + w); before any other consonant it is the previous vowel's
+      // nasality, so it belongs to the syllable already emitted
+      if(w[i] === "n" && !isV(w[i+1]) && w[i+1] !== "y" && w[i+1] !== "w") break;
+      if(w[i] === "'") break;
       on += w[i++];
     }
     if(i >= w.length){ if(on && out.length) out[out.length-1].t += on; break; }
     let v = w[i++];
     let nasal = false;
-    if(w[i] === "n" && !isV(w[i+1])){ nasal = true; i++; }
+    // Orthography §6: n before a bare glide nasalizes ONLY where the apostrophe
+    // says so. Without it, ny is the digraph for ɲ and nw is onset n + glide.
+    if(w[i] === "n" && (w[i+1] === "'" || (!isV(w[i+1]) && w[i+1] !== "y" && w[i+1] !== "w"))){
+      nasal = true; i++;
+    }
     out.push({t: on + v + (nasal ? "n" : ""), nasal, m: nasal ? 2 : 1});
   }
   return out;
@@ -1140,7 +1179,20 @@ const withTop = w => nasEnd(w) ? w + "a" : w + "na";
 
 function framesFor(w, cls){
   const F = [], put = (l, line, why) => F.push({l, line, why});
-  if(cls === "verb" || cls === "irreg"){
+  if(cls === "adjv"){
+    // Grammar §5.1 and §5.2: no adjective class and no adverb class. The bare
+    // verb before a noun modifies the noun; before a verb it modifies the verb.
+    // The head carries a clitic, so the phrase has a real edge to judge. A bare
+    // attributive is a noun phrase that has not been case-marked yet.
+    put("Attributive — the commonest use", w + " helanba", "directly before the head noun, no particle between");
+    put("Attributive, marked head", w + " hotorina", "a three-syllable head, for the other rhythm");
+    put("Ongoing attributive", w + "ri helanba", "where the -ri stutter would show");
+    put("Adverbial", "noaye ni " + w + " kyonkuze", "bare verb before the main verb");
+    put("Predicate", w + " hena", "it is still a verb, so it negates like one");
+    put("Comparative", "onankonzanba lonji toma " + w, "the separative comparative (§5.4)");
+    put("Full clause", "Lonjiwa " + w + " helanba hin.", "against the benchmark");
+    F.push({l:"Bare", line:w, why:"legality only", legality:true});
+  } else if(cls === "verb" || cls === "irreg"){
     put("Negated — the seam", w + " hena", "where loman failed");
     put("Past", w + "ze", nasEnd(w) ? "no theme vowel protecting the suffix" : "");
     put("With an object", "noaye ni " + w + "ze", "the beat after ni, then the run-up");
@@ -1245,7 +1297,7 @@ function rulePhrases(res, src){
   return out.join(", ") + ".";
 }
 
-const CLASSLABEL = {verb:"verb", irreg:"verb — irregular (nasal-vowel class)",
+const CLASSLABEL = {verb:"verb", adjv:"verb — adjectival", irreg:"verb — irregular (nasal-vowel class)",
   dnoun:"deverbal noun", pnoun:"primary noun", func:"function word", any:"class"};
 
 function keepWord(res, src){
@@ -1290,13 +1342,89 @@ $("rootIn").oninput = () => { lastDraw = null; renderDerivation(); };
 $("cls2").onchange = renderDerivation;
 renderDerivation();
 
+/* ══════════ source-language transliteration ══════════
+   Orthography is not sound, and French is the extreme case: mois is /mwa/.
+   Each donor gets an ordered rule set taking its spelling to Lunaji letters.
+   Nativization (below) then applies only what the phonotactics force.        */
+const TRANSLIT = {
+  none: [],
+
+  pt: [
+    [/ã[eo]?/g,"an"], [/õ/g,"on"], [/ç/g,"s"],
+    [/[áàâ]/g,"a"], [/[éê]/g,"e"], [/í/g,"i"], [/[óô]/g,"o"], [/[úü]/g,"u"],
+    [/nh/g,"ny"], [/lh/g,"ly"], [/ch/g,"sh"], [/qu/g,"k"], [/x/g,"sh"],
+    [/rr/g,"r"], [/ss/g,"s"],
+    [/([aeiou])m$/g,"$1n"],                       // sim, bom
+    [/c(?=[ei])/g,"s"], [/c/g,"k"], [/g(?=[ei])/g,"j"]
+  ],
+
+  fr: [
+    // é is protected: it must survive the silent-final-e rule below
+    [/é/g,"\u00c9"], [/[èêë]/g,"e"], [/[àâ]/g,"a"], [/[îï]/g,"i"], [/[ôö]/g,"o"],
+    [/[ùûü]/g,"u"], [/ç/g,"s"], [/œ/g,"e"],
+    // silent finals, judged on the original spelling and so applied first
+    [/(er|ez)$/g,"\u00c9"], [/[stdxzpg]$/g,""],
+    // an oral nasal consonant survives a doubled spelling: bonne is /bɔn/
+    [/([aeiou])nne?$/g,"$1na"], [/([aeiou])mme?$/g,"$1ma"],
+    // nasal vowels — only where no vowel follows
+    [/(ain|aim|ein|eim|in|im|yn|ym)(?![aeiouy])/g,"in"],
+    [/oin(?![aeiouy])/g,"win"], [/ien(?![aeiouy])/g,"yin"],
+    [/(an|am|en|em)(?![aeiouy])/g,"an"],
+    [/(on|om)(?![aeiouy])/g,"on"], [/(un|um)(?![aeiouy])/g,"on"],
+    [/tion/g,"syon"],
+    [/eau|au/g,"o"], [/oi/g,"wa"], [/ou/g,"u"], [/eu|oeu/g,"o"], [/ai|ei/g,"e"],
+    [/ill/g,"y"], [/gn/g,"ny"], [/ch/g,"\u00c7"], [/ph/g,"f"], [/th/g,"t"],
+    [/gu(?=[eiy\u00c9])/g,"\u01e4"], [/qu/g,"k"],
+    [/h/g,""],                                     // ch is already Ç, so safe
+    [/c(?=[eiy\u00c9])/g,"s"], [/c/g,"k"], [/g(?=[eiy\u00c9])/g,"j"],
+    [/([bcdfgklmnprstvz])\1/g,"$1"],
+    [/e$/g,""],                                    // silent final e
+    [/\u00c7/g,"sh"], [/\u00c9/g,"e"], [/\u01e4/g,"g"]   // restore the protected letters
+  ],
+  ja: [
+    [/ō|ô/g,"o"], [/ū|û/g,"u"], [/ā|â/g,"a"], [/ē|ê/g,"e"], [/ī|î/g,"i"],
+    [/ou/g,"o"], [/uu/g,"u"], [/ei/g,"e"],
+    [/ch/g,"sh"],                                  // /tɕ/ has no Lunaji match; ʃ is nearest
+    [/([kstpgdbz])\1/g,"$1"],                      // no geminates
+    [/n'/g,"n"]
+  ],
+
+  la: [
+    [/ae|oe/g,"e"], [/ph/g,"f"], [/th/g,"t"], [/ch/g,"k"], [/qu/g,"k"],
+    [/y/g,"i"], [/v/g,"v"], [/c/g,"k"],
+    [/us$/g,"o"], [/um$/g,"on"]                    // the standard Romance path
+  ]
+};
+const LANGNAME = {none:"as spelled", pt:"Portuguese", fr:"French", ja:"Japanese", la:"Latin / Greek"};
+
+function translit(raw, lang){
+  let w = (raw || "").toLowerCase().trim();
+  const before = w;
+  (TRANSLIT[lang] || []).forEach(([re, to]) => { w = w.replace(re, to); });
+  // anything still outside the alphabet had no rule; drop it rather than
+  // silently mangling the word, and say so
+  const leftover = w.replace(/[a-z']/g, "");
+  w = w.replace(/[^a-z']/g, "");
+  return {out: w, changed: w !== before, leftover};
+}
+
 /* ══════════ borrow ══════════
    Lexicology §4. Every step below is forced by a rule in Phonology §4.2 or by
    the class system; nothing here is a matter of taste. If a repair is not
    required, it does not happen.                                              */
 function nativize(raw, cls){
-  let w = (raw || "").toLowerCase().replace(/[^a-z']/g, "");
+  let w = (raw || "").toLowerCase();
   const log = [];
+  // Source spelling first, so a word can be pasted as it is written. A tilde is
+  // a nasal vowel, which Lunaji spells with a following n; a macron is length,
+  // which Lunaji does not have in oral vowels; an accent is just the vowel.
+  const before0 = w;
+  w = w.replace(/ão|ões|õe/g, "on").replace(/ã/g, "an").replace(/õ/g, "on")
+       .replace(/ç/g, "s").replace(/ñ/g, "ny")
+       .replace(/[áàâäāă]/g, "a").replace(/[éèêëē]/g, "e")
+       .replace(/[íìîïī]/g, "i").replace(/[óòôöō]/g, "o")
+       .replace(/[úùûüū]/g, "u").replace(/[^a-z']/g, "");
+  if(w !== before0) log.push("source spelling read into Lunaji letters: " + before0 + " \u2192 " + w);
   const step = (next, why) => { if(next !== w){ log.push(why + ": " + w + " \u2192 " + next); w = next; } };
 
   step(w.replace(/ch/g,"sh").replace(/ph/g,"f").replace(/qu/g,"k")
@@ -1334,7 +1462,9 @@ function nativize(raw, cls){
 function paintBorrow(){
   const raw = $("bwIn").value.trim();
   if(!raw){ $("bwOut").innerHTML = ""; return; }
-  const r = nativize(raw, $("bwCls").value);
+  const lang = $("bwLang").value;
+  const t = translit(raw, lang);
+  const r = nativize(t.out, $("bwCls").value);
   const w = r.out;
   const clash = COINED.includes(w) ? "collides with " + w + " \u2014 " + LEX[w].g : null;
   const split = splitsIntoParticles(w) ? "splits into a particle sequence (Grammar \u00a78)" : null;
@@ -1346,7 +1476,9 @@ function paintBorrow(){
     pros = `<div class="hint">topic-marked: ${w}na \u00b7 ${a.phrases[0].moras}m \u00b7 stress ${a.phrases[0].stress}</div>`;
   }catch(e){}
   $("bwOut").innerHTML = `
-    <div style="margin-top:14px;font-size:22px">${w}</div>
+    ${t.changed ? `<div class="hint" style="margin-top:12px">${LANGNAME[lang]} spelling \u2192 sounds: <b>${t.out}</b></div>` : ``}
+    ${t.leftover ? `<div class="hint" style="color:#c77">no rule covers: ${t.leftover}</div>` : ``}
+    <div style="margin-top:6px;font-size:22px">${w}</div>
     ${pros}
     ${r.log.length ? `<label style="display:block;margin-top:10px">What the rules forced</label>
       <ul class="hint" style="margin:4px 0 0 18px">${r.log.map(l=>`<li>${l}</li>`).join("")}</ul>`
@@ -1354,11 +1486,20 @@ function paintBorrow(){
     ${clash ? `<p class="hint" style="color:#c77;margin-top:8px">${clash}</p>` : ``}
     ${split ? `<p class="hint" style="color:#c77;margin-top:4px">${split}</p>` : ``}
     <label style="display:block;margin-top:12px">Loanword table row</label>
-    <pre>| *${w}* | ${$("bwSrc").value.trim() || "\u2014"} | | ${r.log.length ? "see notes" : "nothing changed"} |</pre>`;
+    <pre>| *${w}* | *${raw}* | ${LANGNAME[lang]} | ${r.log.length ? r.log.map(l=>l.split(":")[0]).join("; ") : "nothing changed"} |</pre>
+    <button class="btn" id="bwKeep" ${clash ? "disabled" : ""}>Add to the lexicon</button>`;
+  $("bwKeep") && ($("bwKeep").onclick = () => {
+    LEX[w] = {g: $("bwGloss").value.trim() || "(no gloss yet)",
+              c: $("bwCls").value === "noun" ? "noun" : "case", real: true};
+    saveLex(); renderLex();
+    logLine(`${stamp()}  BORROWED ${raw} (${LANGNAME[lang]}) \u2192 ${w}  ${$("bwGloss").value.trim()}`);
+    $("bwKeep").textContent = "Added"; $("bwKeep").disabled = true;
+  });
 }
 $("bwIn").oninput = paintBorrow;
 $("bwCls").onchange = paintBorrow;
-$("bwSrc").oninput = paintBorrow;
+$("bwLang").onchange = paintBorrow;
+$("bwGloss").oninput = paintBorrow;
 
 /* ══════════ lexicon ══════════ */
 const CLASSGROUP = {noun:"Nouns", verb:"Verbs", pron:"Pronouns", case:"Particles",
@@ -1375,14 +1516,25 @@ function renderLex(){
   $("lexList").innerHTML = Object.keys(groups).map(g=>
     `<h3 style="margin:14px 0 6px;font-size:14px">${g}</h3>` +
     `<div class="tags">${groups[g].map(w=>
-      `<span class="tag">${w} <span style="opacity:.6">${LEX[w].g}</span>` +
+      `<span class="tag" data-w="${w}" style="cursor:pointer">${w} <span style="opacity:.6">${LEX[w].g}</span>` +
       `<button class="lxrm" data-w="${w}" aria-label="Remove ${w}" ` +
       `style="background:none;border:0;color:inherit;opacity:.5;padding:0 0 0 6px;font-size:14px">×</button></span>`
       ).join("")}</div>`
   ).join("");
 }
 $("lexList").onclick = e => {
+  const tag = e.target.closest(".tag");
   const b = e.target.closest(".lxrm");
+  if(tag && !b){
+    // load it into the fields below, so Add overwrites — the only way to fix a
+    // gloss once you have moved on to another word in the Derive tab
+    const w = tag.dataset.w;
+    $("lxWord").value = w; $("lxGloss").value = LEX[w].g;
+    $("lxClass").value = LEX[w].c;
+    $("lxAdd").textContent = "Update " + w;
+    $("lxWord").scrollIntoView({behavior:"smooth", block:"center"});
+    return;
+  }
   if(!b) return;
   const w = b.dataset.w;
   if(!confirm("Remove " + w + " from the lexicon?")) return;
@@ -1395,7 +1547,7 @@ $("lxAdd").onclick = () => {
   LEX[w] = {g: $("lxGloss").value.trim() || "(no gloss yet)", c: $("lxClass").value, real: true};
   saveLex(); renderLex();
   logLine(`${stamp()}  added ${w} to the lexicon by hand`);
-  $("lxWord").value = ""; $("lxGloss").value = "";
+  $("lxWord").value = ""; $("lxGloss").value = ""; $("lxAdd").textContent = "Add";
 };
 $("lxExport").onclick = () => { $("lxIO").value = JSON.stringify(LEX); };
 $("lxImport").onclick = () => {
@@ -1443,6 +1595,14 @@ $("copyLog").onclick = () => {
     ()=> $("copyLog").textContent = "Copied",
     ()=> $("copyLog").textContent = "Select the text below and copy it"
   );
+$("logFilter").onchange = paintLog;
+$("markLog").onclick = () => {
+  logLine("\u2500\u2500\u2500 batch \u00b7 " + stamp() + " \u2500\u2500\u2500");
+};
+$("clearLog").onclick = () => {
+  if(!confirm("Clear the whole log? The lexicon is not affected, but the record of how each word was drawn is.")) return;
+  LOG.length = 0; paintLog(); saveWork();
+};
   setTimeout(()=> $("copyLog").textContent = "Copy log", 2000);
 };
 loadWork();
