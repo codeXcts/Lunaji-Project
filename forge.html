@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-11-1218</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-15-0930</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -1365,7 +1365,7 @@ const TRANSLIT = {
     // silent finals, judged on the original spelling and so applied first
     [/(er|ez)$/g,"\u00c9"], [/[stdxzpg]$/g,""],
     // an oral nasal consonant survives a doubled spelling: bonne is /bɔn/
-    [/([aeiou])nne?$/g,"$1na"], [/([aeiou])mme?$/g,"$1ma"],
+    [/([aeiou])nn?e$/g,"$1na"], [/([aeiou])mm?e$/g,"$1ma"],
     // nasal vowels — only where no vowel follows
     [/(ain|aim|ein|eim|in|im|yn|ym)(?![aeiouy])/g,"in"],
     [/oin(?![aeiouy])/g,"win"], [/ien(?![aeiouy])/g,"yin"],
@@ -1454,6 +1454,15 @@ function nativize(raw, cls){
   step(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/tu(?!\u0166)/g,"tsu"),
        "coronal obstruents, after the clusters opened");
 
+  // Modern Lunaji has ã ĩ õ only. ẽ and ũ are not in the inventory, so the
+  // spellings en and un have no reading. This is inventory repair, not R6,
+  // which stopped running long before any loan arrived.
+  step(w.replace(/en(?![aeiouyw])/g,"an").replace(/un(?![aeiouyw])/g,"on"),
+       "ẽ and ũ are not modern vowels (Phonology §2)");
+  // The modern inventory has three nasal vowels: ã ĩ õ. A spelling in en or un
+  // denotes a vowel the language does not have, so no loan may land on one.
+  step(w.replace(/e(n)(?![aeiou])/g,"a$1").replace(/u(n)(?![aeiou])/g,"o$1"),
+       "only ã ĩ õ exist, so en and un are not legal spellings");
   step(w.replace(/([^aeioun])$/,"$1a"), "every word ends in a vowel (§4.1)");
   step(w.replace(/n$/, m => /[aeiou]n$/.test(w) ? m : "na"), "a final n needs a vowel before it to be nasality");
   if(cls === "noun") step(w.replace(/u$/,"o"), "nouns may never end in -u (Lexicology §1.1)");
@@ -1487,7 +1496,7 @@ function paintBorrow(){
     ${split ? `<p class="hint" style="color:#c77;margin-top:4px">${split}</p>` : ``}
     <label style="display:block;margin-top:12px">Loanword table row</label>
     <pre>| *${w}* | *${raw}* | ${LANGNAME[lang]} | ${r.log.length ? r.log.map(l=>l.split(":")[0]).join("; ") : "nothing changed"} |</pre>
-    <button class="btn" id="bwKeep" ${clash ? "disabled" : ""}>Add to the lexicon</button>`;
+    <button class="btn" id="bwKeep" ${clash || split ? "disabled" : ""}>Add to the lexicon</button>`;
   $("bwKeep") && ($("bwKeep").onclick = () => {
     LEX[w] = {g: $("bwGloss").value.trim() || "(no gloss yet)",
               c: $("bwCls").value === "noun" ? "noun" : "case", real: true};
