@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-1500</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-1700</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -95,6 +95,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   <button role="tab" aria-selected="false" data-tab="verify">Verify</button>
   <button role="tab" aria-selected="false" data-tab="borrow">Borrow</button>
   <button role="tab" aria-selected="false" data-tab="phrases">Phrases</button>
+  <button role="tab" aria-selected="false" data-tab="paradigm">Paradigm</button>
   <button role="tab" aria-selected="false" data-tab="lexicon">Lexicon</button>
   <button role="tab" aria-selected="false" data-tab="log">Log</button>
 </nav>
@@ -369,6 +370,28 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
       <button class="btn ghost" id="pbText">As plain text</button>
     </div>
   </div>
+</section>
+
+<!-- ───────────── PARADIGM ───────────── -->
+<section id="paradigm" hidden>
+  <p class="hint">Every form a word takes, split into syllables with the stress marked (ˈ) and the mora count. Built from Grammar §1a, §2, §3 and §4 — not from the Composer.</p>
+  <div class="row">
+    <div style="flex:2 1 180px">
+      <label for="pdWord">Word</label>
+      <input id="pdWord" list="pdList" class="lun" placeholder="aoyan, sofou, gan" spellcheck="false" autocapitalize="off">
+      <datalist id="pdList"></datalist>
+    </div>
+    <div>
+      <label for="pdClass">Treat as</label>
+      <select id="pdClass">
+        <option value="">stored class</option>
+        <option value="noun">noun</option>
+        <option value="verb">verb</option>
+        <option value="pron">pronoun</option>
+      </select>
+    </div>
+  </div>
+  <div id="pdOut"></div>
 </section>
 
 <!-- ───────────── LEXICON ───────────── -->
@@ -1018,7 +1041,7 @@ const $ = id => document.getElementById(id);
 document.querySelectorAll("nav button").forEach(b=>{
   b.onclick = () => {
     document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["draw","derive","verify","borrow","phrases","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+    ["draw","derive","verify","borrow","phrases","paradigm","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
   };
 });
 
@@ -1451,7 +1474,7 @@ function marked(a){
     return txt + (a.phrases[i+1].kind === "verb" ? " \u2016 " : " | ");
   }).join("");
 }
-  return {analyse, marked};
+  return {analyse, marked, ipaWord, morasOfWord, stressIdx, sylsOf};
 })();
 const analyse = Prosody.analyse, marked = Prosody.marked;
 
@@ -2141,6 +2164,135 @@ function paintPbFrames(w){
   } finally { if(!hadIt) delete LEX[w]; }
 }
 paintPB();
+
+/* ══════════ paradigm ══════════ */
+const nasalFinal = w => /[aio]n$/.test(w);
+// Phonology §6: a nasal vowel before a bare glide takes the apostrophe, or
+// aoyanwa would read /a.o.ja.nwa/ — the n taken as an onset before w.
+const J = (w, p) => nasalFinal(w) && /^[yw]/.test(p) ? w + "'" + p : w + p;
+function pdRow(label, form, note, base){
+  const toks = form.split(" ");
+  const ipa = toks.map(t => { try{ return (LEX[t] && Prosody.sylsOf(t).length === 1) ? t : Prosody.ipaWord(t); }catch(e){ return t; } }).join(" ");
+  const m = toks.reduce((a,t) => { try{ return a + Prosody.morasOfWord(t); }catch(e){ return a; } }, 0);
+  let moved = false;
+  if(base && toks[0] !== base){
+    try{
+      const bs = Prosody.sylsOf(base), fs = Prosody.sylsOf(toks[0]);
+      const bi = Prosody.stressIdx(base), fi = Prosody.stressIdx(toks[0]);
+      moved = bi !== fi || (bs[bi] && fs[fi] && bs[bi].t !== fs[fi].t);
+    }catch(e){}
+  }
+  return `<tr><td style="color:var(--dim);font-size:13px">${label}</td>
+    <td><div class="lun" style="font-size:18px">${esc(form)}</div>
+    <div class="hint" style="margin:0">${esc(ipa)} · ${m}m${moved ? ' · <span style="color:var(--lamp)">stress moves</span>' : ""}</div>
+    ${note ? `<div class="hint" style="margin:2px 0 0;opacity:.8">${note}</div>` : ""}</td></tr>`;
+}
+const pdTable = (title, rows) => `<div class="panel"><h2 style="margin:0 0 8px">${title}</h2><table>${rows.join("")}</table></div>`;
+
+function nounTables(w){
+  const nas = nasalFinal(w);
+  const top = nas ? w + "a" : w + "na", obj = nas ? w + " ni" : w + "ni";
+  return [
+    pdTable("Case", [
+      pdRow("bare", w, "unspecified for number — one or many", w),
+      pdRow("topic", top, nas ? "the nasal dissolves into an onset — <em>as for</em>" : "<em>as for</em> · persists across sentences", w),
+      pdRow("subject", w + "ba", "presentative with the existence verbs (§4.7a)", w),
+      pdRow("object", obj, nas ? "<em>ni</em> stays separate after a nasal-final noun (§1b.4)" : "", w),
+      pdRow("possessive", w + "pe", "also the general noun-to-noun link", w),
+      pdRow("location", J(w, "wa"), nasalFinal(w) ? "apostrophe: the nasal holds before a glide (Phonology §6)" : "place and time both", w),
+      pdRow("oblique", w + "di", "to, with, by, about — not <em>from</em>", w),
+      pdRow("source", w + " toma", "from · than — written separate", w),
+      pdRow("equative", w + " uan", "as … as", w)
+    ]),
+    pdTable("Number, size, count", [
+      pdRow("plural", w + "ta", "animates only — when it acts (§3.3). Never on plants or objects", w),
+      pdRow("plural subject", w + "taba", "", w),
+      pdRow("diminutive", w + "jo", "little; dear — names and kin terms", w),
+      pdRow("three, animate", "kire " + w, "counter and <em>-ta</em> never co-occur", null),
+      pdRow("three, inanimate", "kiko " + w, "", null),
+      pdRow("that", "na " + w, "demonstrative precedes; covers <em>the</em>", null)
+    ]),
+    pdTable("With existence", [
+      pdRow("there is (animate)", w + "ba hin", "introducing something that acts", null),
+      pdRow("there is (inanimate)", w + "ba yozu", "", null),
+      pdRow("it is here", top + " hin", "locating a known referent — topic, not <em>ba</em>", null)
+    ])
+  ].join("");
+}
+function pronTables(w){
+  const nas = nasalFinal(w);
+  return pdTable("Pronoun", [
+    pdRow("bare", w, "a whole answer — or said at all only for contrast (§2.3)", w),
+    pdRow("subject", w + "ba", "contrastive; a neutral sentence drops it", w),
+    pdRow("object", nas ? w + " ni" : w + "ni", nas ? "nasal-final, so <em>ni</em> stands separate" : "", w),
+    pdRow("possessive", w + "pe", "the most-said pronoun form", w),
+    pdRow("topic", nas ? w + "a" : w + "na", "", w),
+    pdRow("oblique", w + "di", "", w),
+    pdRow("location", J(w, "wa"), nasalFinal(w) ? "apostrophe: the nasal holds before a glide (Phonology §6)" : "", w),
+    pdRow("source", w + " toma", "", w),
+    pdRow("plural", w + "ta", "", w),
+    pdRow("plural subject", w + "taba", "", w),
+    pdRow("possessor + noun", w + "pe akyozana", "my/your name — as topic", null)
+  ]);
+}
+function verbTables(w){
+  const irr = nasalFinal(w);
+  return [
+    pdTable("Tense and aspect", [
+      pdRow("non-past", w, "present and future", w),
+      pdRow("past", w + "ze", irr ? "no theme vowel before <em>-ze</em> — the dissimilation watch item" : "", w),
+      pdRow("ongoing", w + "ri", "", w),
+      pdRow("ongoing, past", w + "rize", "", w),
+      pdRow("completed", w + " byon", "auxiliary verb takes the tense", w),
+      pdRow("completed, past", w + " byonze", "", w),
+      pdRow("habitual", w + "ri lon", "", w),
+      pdRow("used to", w + "ri lonze", "", w)
+    ]),
+    pdTable("Negation, mood, evidence", [
+      pdRow("negative", w + " hena", "neutral", w),
+      pdRow("negative, careful", "mi " + w + " hena", "<em>mi</em> leans onto the verb", null),
+      pdRow("past negative", w + "ze hena", "", w),
+      pdRow("question", w + " jin", "", w),
+      pdRow("past question", w + "ze jin", "answered by echo: <em>" + esc(w) + "ze</em> or <em>" + esc(w) + "ze hena</em>", w),
+      pdRow("command", w, "the bare verb", w),
+      pdRow("don't", "mi " + w + " hena", "", null),
+      pdRow("heard, not seen", w + "ze la", "direct non-visual", w),
+      pdRow("inferred", w + "ze po", "from evidence", w),
+      pdRow("assumed", w + "ze ke", "from what I generally know", w),
+      pdRow("… but", w + "ze noron", "clause-final coordinator", w)
+    ]),
+    pdTable("Before a noun or verb", [
+      pdRow("attributive", w + " helan", "before a noun — also the relative clause", null),
+      pdRow("adverbial", w + " sofou", "before a verb — no suffix", null),
+      pdRow("comparative", "lonjiba onankonzan toma " + w, "only meaningful on adjectival verbs (§5.4)", null)
+    ])
+  ].join("");
+}
+function paintParadigm(){
+  const w = $("pdWord").value.trim().toLowerCase();
+  if(!w){ $("pdOut").innerHTML = ""; return; }
+  const e = LEX[w];
+  let c = $("pdClass").value || (e && e.c) || "";
+  if(!["noun","verb","pron"].includes(c)){
+    $("pdOut").innerHTML = e
+      ? `<p class="hint">${esc(w)} is stored as a ${esc(e.c)}. Function words don't inflect, so there is no paradigm — choose a class above if the stored one is wrong.</p>`
+      : `<p class="hint">${esc(w)} isn't in the lexicon. Choose a class above to see its forms anyway.</p>`;
+    return;
+  }
+  const head = `<p class="hint">${esc(w)} · ${e ? esc(e.g) : "not in the lexicon"} · ${c === "pron" ? "pronoun" : c}${nasalFinal(w) ? " · nasal-final, so it alternates" : ""}</p>`;
+  const hadIt = !!e;
+  if(!hadIt) LEX[w] = {g:"(preview)", c, real:false};
+  try{
+    $("pdOut").innerHTML = head + (c === "noun" ? nounTables(w) : c === "verb" ? verbTables(w) : pronTables(w));
+  } finally { if(!hadIt) delete LEX[w]; }
+}
+function fillPdList(){
+  $("pdList").innerHTML = Object.keys(LEX).filter(w => ["noun","verb","pron"].includes(LEX[w].c)).sort()
+    .map(w => `<option value="${esc(w)}">`).join("");
+}
+$("pdWord").oninput = paintParadigm;
+$("pdClass").onchange = paintParadigm;
+document.querySelector('nav button[data-tab="paradigm"]').addEventListener("click", () => { fillPdList(); paintParadigm(); });
 
 /* ══════════ lexicon audit ══════════ */
 $("lxAudit").onclick = () => {
