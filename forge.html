@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-1300</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-1500</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -358,6 +358,12 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
     <label for="pbIO">Move the phrasebook, or copy it for review</label>
     <textarea id="pbIO" rows="3" spellcheck="false"></textarea>
     <div class="row" style="margin-top:8px">
+      <button class="btn" id="pbSaveFile">Save to a file</button>
+      <button class="btn ghost" id="pbOpenFile">Load from a file</button>
+      <input type="file" id="pbFile" accept=".txt,.json,text/plain,application/json" hidden>
+    </div>
+    <p class="hint" id="pbFileNote"></p>
+    <div class="row" style="margin-top:8px">
       <button class="btn ghost" id="pbExport">Export</button>
       <button class="btn ghost" id="pbImport">Import (replaces)</button>
       <button class="btn ghost" id="pbText">As plain text</button>
@@ -395,6 +401,12 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   <div class="panel">
     <label for="lxIO">Move the lexicon between devices or into the Composer</label>
     <textarea id="lxIO" rows="4" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="lxSaveFile">Save to a file</button>
+      <button class="btn ghost" id="lxOpenFile">Load from a file</button>
+      <input type="file" id="lxFile" accept=".txt,.json,text/plain,application/json" hidden>
+    </div>
+    <p class="hint" id="lxFileNote">Saves <em>lunaji-lexicon-YYYY-MM-DD.txt</em>. Loading shows the word count and asks before it replaces anything. Pasting still works below.</p>
     <div class="row" style="margin-top:8px">
       <button class="btn ghost" id="lxExport">Export</button>
       <button class="btn ghost" id="lxImport">Import (replaces)</button>
@@ -1049,7 +1061,9 @@ function loadWork(){
 }
 document.addEventListener("input", saveWork);
 document.addEventListener("change", saveWork);
-const stamp = () => new Date().toISOString().slice(0,10);
+// Local date, not UTC: an overnight session in Tennessee would otherwise be
+// stamped tomorrow from 8 pm on.
+const stamp = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 
 function takeRoot(i){
   const r = stock[i];
@@ -1884,6 +1898,56 @@ $("lxAdd").onclick = () => {
   $("lxWord").value = ""; $("lxGloss").value = ""; $("lxAdd").textContent = "Add";
 };
 $("lxExport").onclick = () => { $("lxIO").value = JSON.stringify(LEX); };
+
+/* ══════════ files ══════════
+   Browser storage is a working copy; the dated file is the record. The share
+   sheet is tried first on phones, since it is what reaches Files; a plain
+   download is the fallback everywhere else. */
+async function saveTextFile(name, text, note){
+  const blob = new Blob([text], {type: "text/plain"});
+  try{
+    const file = new File([blob], name, {type: "text/plain"});
+    if(navigator.canShare && navigator.canShare({files: [file]}) && /iphone|ipad|android/i.test(navigator.userAgent)){
+      await navigator.share({files: [file], title: name});
+      note.textContent = "Saved " + name + "."; return;
+    }
+  }catch(e){ if(e && e.name === "AbortError"){ note.textContent = "Save cancelled."; return; } }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  note.textContent = "Downloaded " + name + ".";
+}
+function readTextFile(input){
+  return new Promise((res, rej) => {
+    const f = input.files && input.files[0]; if(!f) return rej(new Error("no file"));
+    const r = new FileReader();
+    r.onload = () => res({name: f.name, text: String(r.result)});
+    r.onerror = () => rej(r.error);
+    r.readAsText(f);
+  });
+}
+$("lxSaveFile").onclick = () => {
+  saveTextFile(`lunaji-lexicon-${stamp()}.txt`, JSON.stringify(LEX), $("lxFileNote"));
+  logLine(`${stamp()}  saved the lexicon to a file · ${Object.keys(LEX).length} words`);
+};
+$("lxOpenFile").onclick = () => { $("lxFile").value = ""; $("lxFile").click(); };
+$("lxFile").onchange = async () => {
+  let f; try{ f = await readTextFile($("lxFile")); }catch(e){ return; }
+  let next;
+  try{ next = JSON.parse(f.text.trim()); }
+  catch(e){ $("lxFileNote").textContent = f.name + " is not JSON. Choose a file saved by the Forge, or one holding a pasted export."; return; }
+  if(next && next.LEX && typeof next.LEX === "object") next = next.LEX;     // raw storage format
+  const words = next && typeof next === "object" && !Array.isArray(next) ? Object.keys(next) : [];
+  if(!words.length || !words.every(w => next[w] && typeof next[w].g === "string")){
+    $("lxFileNote").textContent = f.name + " doesn't look like a lexicon export — is it the phrasebook file?"; return;
+  }
+  const now = Object.keys(LEX).length;
+  if(!confirm(`${f.name}\n\n${words.length} words in the file, ${now} in the Forge now.\nReplace the Forge's lexicon with the file?`)) return;
+  LEX = next; saveLex(); renderLex();
+  $("lxFileNote").textContent = `Loaded ${words.length} words from ${f.name}.`;
+  logLine(`${stamp()}  loaded the lexicon from ${f.name} · ${words.length} words (was ${now})`);
+};
 $("lxImport").onclick = () => {
   try{
     const next = JSON.parse($("lxIO").value);
@@ -2039,6 +2103,18 @@ $("pbStarter").onclick = () => {
 };
 $("pbFilter").onchange = paintPB;
 $("pbExport").onclick = () => { $("pbIO").value = JSON.stringify(PB); };
+$("pbSaveFile").onclick = () => saveTextFile(`lunaji-phrasebook-${stamp()}.txt`, JSON.stringify(PB), $("pbFileNote"));
+$("pbOpenFile").onclick = () => { $("pbFile").value = ""; $("pbFile").click(); };
+$("pbFile").onchange = async () => {
+  let f; try{ f = await readTextFile($("pbFile")); }catch(e){ return; }
+  let v; try{ v = JSON.parse(f.text.trim()); }catch(e){ $("pbFileNote").textContent = f.name + " is not JSON."; return; }
+  if(!Array.isArray(v) || !v.every(e => e && typeof e.en === "string")){
+    $("pbFileNote").textContent = f.name + " doesn't look like a phrasebook export — is it the lexicon file?"; return;
+  }
+  if(!confirm(`${f.name}\n\n${v.length} lines in the file, ${PB.length} in the Forge now.\nReplace the phrasebook with the file?`)) return;
+  PB = v; savePB(); paintPB();
+  $("pbFileNote").textContent = `Loaded ${v.length} lines from ${f.name}.`;
+};
 $("pbImport").onclick = () => {
   try{ const v = JSON.parse($("pbIO").value); if(Array.isArray(v)){ PB = v; savePB(); paintPB(); $("pbIO").value = "Imported."; } }
   catch(e){ $("pbIO").value = "That is not valid JSON."; }
