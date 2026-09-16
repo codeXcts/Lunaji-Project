@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-15-0930</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-0120</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -94,6 +94,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   <button role="tab" aria-selected="false" data-tab="derive">Derive</button>
   <button role="tab" aria-selected="false" data-tab="verify">Verify</button>
   <button role="tab" aria-selected="false" data-tab="borrow">Borrow</button>
+  <button role="tab" aria-selected="false" data-tab="phrases">Phrases</button>
   <button role="tab" aria-selected="false" data-tab="lexicon">Lexicon</button>
   <button role="tab" aria-selected="false" data-tab="log">Log</button>
 </nav>
@@ -121,6 +122,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
     <div class="toggles">
       <label><input type="checkbox" id="fParticle" checked><span>Reject a word that splits into a particle sequence <em>— ani is a + ni</em></span></label>
       <label><input type="checkbox" id="fNoGlide"><span>Reject any glide <em>— y or w before a vowel; ny is not a glide</em></span></label>
+      <label><input type="checkbox" id="fEnglish" checked><span>Reject a common English word <em>\u2014 Lunaji and English share an inventory, so some legal draws land on one</em></span></label>
       <label><input type="checkbox" id="fHead"><span>Reject a first syllable an existing word already has</span></label>
     </div>
     <div class="row" style="margin-top:8px">
@@ -135,7 +137,8 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
         <label for="fRhyme">Near-rhymes</label>
         <select id="fRhyme">
           <option value="">allow</option>
-          <option value="lex">reject any that rhymes with a word in the lexicon</option>
+          <option value="class" selected>reject rhymes within the same class — the default</option>
+          <option value="lex">reject rhymes anywhere in the lexicon — strict</option>
           <option value="list">reject rhymes with the words listed below</option>
         </select>
         <input id="fRhymeList" placeholder="kyonku, kominu" spellcheck="false" style="margin-top:6px">
@@ -268,12 +271,55 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   </div>
 </section>
 
+<!-- ───────────── PHRASES ───────────── -->
+<section id="phrases" hidden>
+  <p class="hint">Write what you actually say in a day first, then coin to fill it. Where a word is still missing, put its meaning in braces: <span class="lun">win ni {love}</span>. When you derive a word whose meaning matches a slot, that line appears in its frames — and keeping the word fills the slot.</p>
+  <div class="panel">
+    <label for="pbEn">What you'd say, in English</label>
+    <input id="pbEn" placeholder="I love you" spellcheck="false">
+    <label for="pbLu" style="margin-top:8px">Lunaji, if you have it — leave blank or use {slots}</label>
+    <input id="pbLu" class="lun" placeholder="win ni {love}" spellcheck="false" autocapitalize="off">
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="pbAdd">Add</button>
+      <button class="btn ghost" id="pbStarter">Add everyday starter lines</button>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <label for="pbFilter">Show</label>
+      <select id="pbFilter">
+        <option value="">everything</option>
+        <option value="blank">not written yet</option>
+        <option value="needs">needs a word</option>
+        <option value="ready">ready to say</option>
+        <option value="grates">grates</option>
+      </select>
+    </div>
+  </div>
+  <div id="pbCount" class="hint"></div>
+  <div id="pbList"></div>
+  <div class="panel">
+    <label for="pbIO">Move the phrasebook, or copy it for review</label>
+    <textarea id="pbIO" rows="3" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn ghost" id="pbExport">Export</button>
+      <button class="btn ghost" id="pbImport">Import (replaces)</button>
+      <button class="btn ghost" id="pbText">As plain text</button>
+    </div>
+  </div>
+</section>
+
 <!-- ───────────── LEXICON ───────────── -->
 <section id="lexicon" hidden>
   <p class="hint">One store, shared with the Composer. A word kept here appears in the Composer palette and Frames tab on the next refresh, and the collision check reads from the same list.</p>
   <div class="panel">
     <div id="lexCount" class="hint"></div>
     <div id="lexList"></div>
+  </div>
+  <div class="panel">
+    <button class="btn ghost" id="lxAudit">Audit the lexicon</button>
+    <p class="hint">Checks every stored word for what the Borrow tab and the hand-add box let through: <em>en</em>/<em>un</em> spellings, identical-vowel hiatus, nouns in <em>–u</em>, words that open on numeral + counter or split into particles, shared glosses, missing glosses.</p>
+    <div id="lxAuditOut"></div>
   </div>
   <div class="panel">
     <label for="lxWord">Add a word the Forge missed</label>
@@ -759,6 +805,8 @@ function readFilter(){
     moraMin: Number($("fMoraMin").value) || 0,
     moraMax: Number($("fMoraMax").value) || 99,
     rhyme:   $("fRhyme").value,
+    cls:     ($("cls") && $("cls").value) || "pnoun",
+    english: $("fEnglish") && $("fEnglish").checked,
     particle: $("fParticle") && $("fParticle").checked,
     head:     $("fHead") && $("fHead").checked,
     rhymeList: list("fRhymeList")
@@ -767,12 +815,14 @@ function readFilter(){
 function filterText(){
   const f = readFilter(), bits = [];
   if(f.banEnd.length)  bits.push("not ending " + f.banEnd.join("/"));
+  if(f.english)        bits.push("not an English word");
   if(f.banSeq.length)  bits.push("no " + f.banSeq.join("/"));
   if(f.noGlide)        bits.push("no glides");
   if(f.particle)       bits.push("not a particle sequence");
   if(f.head)           bits.push("no shared first syllable");
   if(f.onsets.length)  bits.push("theme onset in " + f.onsets.join(""));
   if(f.moraMin || f.moraMax < 99) bits.push(`${f.moraMin || 1}-${f.moraMax === 99 ? "any" : f.moraMax} moras`);
+  if(f.rhyme === "class") bits.push("no rhyme within the class");
   if(f.rhyme === "lex")  bits.push("no rhyme with any existing word");
   if(f.rhyme === "list" && f.rhymeList.length) bits.push("no rhyme with " + f.rhymeList.join("/"));
   return bits.join("; ");
@@ -799,6 +849,27 @@ function firstSyl(w){
   return m ? m[0] : w;
 }
 
+/* English and Lunaji share an inventory, so some legal outputs land on English
+   words by accident. That is what youno was, and it is a different problem from
+   texture — it wants a word list, not a deeper draw. Only words English can
+   actually say in Lunaji shapes are listed: open syllables, or a final nasal. */
+const ENGLISH = (
+ "man men can ban tan van fan pan ran than din pin win sin tin bin kin gin " +
+ "son ton won don con on an in un one none done sun run fun gun bun nun " +
+ "hen pen ten den when then ken " +
+ "mama papa baba dada nana papa mommy daddy nanny granny " +
+ "mono solo halo hero zero photo potato tomato piano radio video audio " +
+ "echo ego logo judo sumo taco kilo memo demo polo yoyo bingo mango tango " +
+ "koala banana cinema camera arena aroma drama llama karma coma soda sofa " +
+ "tuna yeti okay hello hola " +
+ "money honey funny sunny many any only holy lily silly jelly belly " +
+ "very bury hurry worry sorry lucky happy puppy copy body lady baby navy " +
+ "moon noon soon room boom zoom " +
+ "youno gonna wanna kinda gimme lemme dunno lotta outta " +
+ "bono nino nemo lima lola mimi coco dodo gaga momo yaya"
+).split(/\s+/);
+const englishHit = w => ENGLISH.includes(w);
+
 function passesFilter(res, f){
   const w = res.spelling;
   if(f.banEnd.some(e => w.endsWith(e))) return false;
@@ -823,9 +894,19 @@ function passesFilter(res, f){
     const against = Object.keys(LEX).filter(o => o.length > 2 || PRECEDES.includes(o));
     if(against.some(o => o !== w && firstSyl(o) === h)) return false;
   }
+  // Two words only collide when they share a class, a slot and enough meaning to
+  // be substitutable. Resemblance across classes is what a real lexicon is made
+  // of — English gl- for light, derivational families — and a lexicon with none
+  // of it reads as random. So the default compares within the class only, which
+  // also keeps the filter satisfiable as the lexicon grows past a thousand.
+  if(f.english && englishHit(w)) return false;
   if(f.rhyme){
     const t = rhymeTail(w);
-    const against = f.rhyme === "lex" ? Object.keys(LEX) : f.rhymeList;
+    const mine = CMAP[f.cls] || f.cls;
+    const against =
+      f.rhyme === "lex"   ? Object.keys(LEX) :
+      f.rhyme === "class" ? Object.keys(LEX).filter(o => LEX[o].c === mine) :
+                            f.rhymeList;
     if(against.some(o => o !== w && o.length >= 3 && rhymeTail(o) === t)) return false;
   }
   return true;
@@ -834,7 +915,7 @@ function passesFilter(res, f){
 function drawStock(cls, sylOpt, n, endReq, startReq){
   const out=[]; let guard=0;
   const F = readFilter();
-  const tight = endReq || startReq || F.banEnd.length || F.banSeq.length || F.head ||
+  const tight = endReq || startReq || F.banEnd.length || F.banSeq.length || F.head || F.english ||
                 F.noGlide || F.onsets.length || F.rhyme || F.moraMin;
   const cap = tight ? n*2000 : n*40;
   while(out.length<n && guard<cap){
@@ -860,7 +941,7 @@ const $ = id => document.getElementById(id);
 document.querySelectorAll("nav button").forEach(b=>{
   b.onclick = () => {
     document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["draw","derive","verify","borrow","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+    ["draw","derive","verify","borrow","phrases","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
   };
 });
 
@@ -879,7 +960,7 @@ function paintLog(){
    wrote and the whole log lived in memory only. The lexicon persisted; the work
    in progress did not, which is the half you would actually miss.            */
 const WORKKEY = "lunaji-forge-work";
-const WORKFIELDS = ["filter","fBanEnd","fBanSeq","fOnset","fMoraMin","fMoraMax","fRhyme","bwIn","bwGloss","bwLang","bwCls",
+const WORKFIELDS = ["filter","fBanEnd","fBanSeq","fOnset","fMoraMin","fMoraMax","fRhyme","fEnglish","bwIn","bwGloss","bwLang","bwCls",
                     "fRhymeList","rootIn","cls","cls2","kGloss","kRelated","kNote"];
 let restoring = false;
 function saveWork(){
@@ -994,6 +1075,7 @@ function renderDerivation(){
       <label for="kRelated">Related words, if any</label>
       <input id="kRelated" placeholder="nowireta, -ta" spellcheck="false">
       <div id="frames"></div>
+      <div id="pbFrames"></div>
       <label for="kNote">What you heard when you said it</label>
       <textarea id="kNote" rows="2" placeholder="Judged in a sentence, not in isolation — Lexicology §6 step 6."></textarea>
       <div class="row" style="margin-top:10px">
@@ -1005,6 +1087,8 @@ function renderDerivation(){
     </div>`;
 
   paintFrames(res.spelling, $("cls2").value);
+  paintPbFrames(res.spelling);
+  $("kGloss").addEventListener("input", () => paintPbFrames(res.spelling));
   $("keepWord") && ($("keepWord").onclick = () => keepWord(res, src));
   $("dropWord").onclick = () => {
     logLine(`${stamp()}  DISCARDED ${src.toUpperCase()} → ${res.spelling}${$("kNote").value.trim() ? "  — " + $("kNote").value.trim() : ""}`);
@@ -1081,7 +1165,7 @@ function stripSuffix(t){
 }
 
 function phrasesOf(line){
-  const toks = line.replace(/[.?]/g, "").split(/\s+/).filter(Boolean);
+  const toks = line.replace(/[.?,]/g, "").split(/\s+/).filter(Boolean);
   const ph = []; let cur = [];
   let verbAt = -1;
   // Named rather than inferred from class: the tail is a closed list, and the
@@ -1148,8 +1232,14 @@ function analyse(line){
   if(morasOfWord(lastTok) === 1)
     warn.push({lvl:"warn", t:"LIGHT CONTOUR SLOT — clause ends on \u00ab" + lastTok +
       "\u00bb, one mora. The contour has a single beat to turn on."});
+  // OVERT PRONOUN — Grammar §2.3: a neutral sentence has no pronoun in it.
+  line.toLowerCase().replace(/[.?,]/g,"").split(/\s+/).filter(Boolean).forEach(t=>{
+    const sc = splitClitic(t);
+    if(sc && sc.clitic === "ba" && LEX[sc.stem] && LEX[sc.stem].c === "pron")
+      warn.push({lvl:"warn", t:"OVERT PRONOUN \u2014 \u00ab" + t + "\u00bb. A neutral sentence drops the subject (Grammar \u00a72.3); keep it only for contrast or correction."});
+  });
   // THIN EDGE — Grammar §1b.5
-  const toks = line.replace(/[.?]/g,"").split(/\s+/).filter(Boolean);
+  const toks = line.replace(/[.?,]/g,"").split(/\s+/).filter(Boolean);
   toks.forEach((t,i)=>{
     if(morasOfWord(t) !== 1 || !LEX[t]) return;
     const L = i > 0 ? morasOfWord(toks[i-1]) : 99, R = i < toks.length-1 ? morasOfWord(toks[i+1]) : 99;
@@ -1337,6 +1427,9 @@ function keepWord(res, src){
     $("copyEntry").textContent = "Copied";
   };
   renderLex();
+  const filled = fillSlots(w, gloss);
+  if(filled) $("entryOut").insertAdjacentHTML("beforeend",
+    `<p class="hint">Filled ${filled} phrasebook slot${filled===1?"":"s"} with <span class="lun">${w}</span>. Say ${filled===1?"it":"them"} in the Phrases tab.</p>`);
 }
 $("rootIn").oninput = () => { lastDraw = null; renderDerivation(); };
 $("cls2").onchange = renderDerivation;
@@ -1468,6 +1561,45 @@ function nativize(raw, cls){
   if(cls === "noun") step(w.replace(/u$/,"o"), "nouns may never end in -u (Lexicology §1.1)");
   return {out: w, log};
 }
+/* Every check a drawn word gets, run on a word that was not drawn. Borrow used
+   to check only exact collisions and particle splits, so loans skipped the
+   rhyme, shared-head and clitic-seam checks entirely. Blocks are shapes a
+   ruling has already rejected; warnings are the ear's call. */
+function wordRisks(w, cls){
+  const block = [], warn = [], note = [];
+  const others = Object.keys(LEX).filter(o => o !== w);
+  // Scoped to the class: two words only collide when they share a class and a
+  // slot. Resemblance across classes is what a real lexicon is made of.
+  const mine = CMAP[cls] || cls || (LEX[w] && LEX[w].c) || "noun";
+  const t3 = w.length >= 4 ? w.slice(-3) : w;
+  const rhy = others.filter(o => LEX[o].c === mine && o.length > 2 &&
+                (o.length >= 4 ? o.slice(-3) : o) === t3);
+  if(rhy.length) warn.push("near-rhyme with " + rhy.join(", ") + " \u2014 same class, same slot");
+  if(englishHit(w)) warn.push("this is a common English word");
+  if(COINED.includes(w)) block.push("collides with " + w + " \u2014 " + LEX[w].g);
+  if(RETIRED.includes(w)) block.push("this shape was retired once already");
+  if(splitsIntoParticles(w)) block.push("splits into a particle sequence (Grammar \u00a78)");
+  const heads = ["zo","van","ki","ra","bai"].filter(n => LEX[n]).flatMap(n => [n+"re", n+"ko"]);
+  const h = heads.find(x => w.startsWith(x) && w !== x);
+  if(h) block.push("opens on " + h + " \u2014 numeral + counter, which stands directly before nouns");
+  if(/[eu]n(?![aeiouyw'])/.test(w)) block.push("spells a nasal vowel the language lacks \u2014 only an in on");
+  if(/([aeiou])\1/.test(w)) block.push("identical-vowel hiatus \u2014 unrecoverable without oral length");
+  // the fona failure: a clitic joined onto a word that already ends in it
+  const nas = /[aeiou]n$/.test(w);
+  [nas ? "a" : "na", "ba", "pe", "wa", "di"].concat(nas ? [] : ["ni"]).forEach(c => {
+    const j = w + c;
+    if(c.length === 2 && j.endsWith(c + c)) block.push(`stutters with its particle: ${j}`);
+  });
+  const tail = rhymeTail(w);
+  const rhOther = others.filter(o => o.length >= 3 && rhymeTail(o) === tail && LEX[o].c !== mine);
+  if(rhOther.length) note.push(`rhymes with ${rhOther.join(", ")}, but across classes \u2014 usually harmless`);
+  const fs = firstSyl(w);
+  // a bare-vowel head (a-, o-) is shared by half the vowel-initial lexicon and says nothing
+  const sh = /^[aeiou]n?$/.test(fs) ? [] : others.filter(o => (o.length > 2 || ["mi","na"].includes(o)) && firstSyl(o) === fs);
+  if(sh.length) warn.push(`shares its first syllable \u00ab${fs}\u00bb with ${sh.join(", ")}`);
+  return {block, warn, note};
+}
+
 function paintBorrow(){
   const raw = $("bwIn").value.trim();
   if(!raw){ $("bwOut").innerHTML = ""; return; }
@@ -1475,14 +1607,14 @@ function paintBorrow(){
   const t = translit(raw, lang);
   const r = nativize(t.out, $("bwCls").value);
   const w = r.out;
-  const clash = COINED.includes(w) ? "collides with " + w + " \u2014 " + LEX[w].g : null;
-  const split = splitsIntoParticles(w) ? "splits into a particle sequence (Grammar \u00a78)" : null;
+  const risk = wordRisks(w);
   let pros = ""; try{
     const hadIt = COINED.includes(w);
     if(!hadIt) LEX[w] = {g:"(candidate)", c:"noun", real:false};
-    const a = analyse(w + "na");
+    const top = /[aeiou]n$/.test(w) ? w + "a" : w + "na";
+    const a = analyse(top);
     if(!hadIt) delete LEX[w];
-    pros = `<div class="hint">topic-marked: ${w}na \u00b7 ${a.phrases[0].moras}m \u00b7 stress ${a.phrases[0].stress}</div>`;
+    pros = `<div class="hint">topic-marked: ${top} \u00b7 ${a.phrases[0].moras}m \u00b7 stress ${a.phrases[0].stress}</div>`;
   }catch(e){}
   $("bwOut").innerHTML = `
     ${t.changed ? `<div class="hint" style="margin-top:12px">${LANGNAME[lang]} spelling \u2192 sounds: <b>${t.out}</b></div>` : ``}
@@ -1492,16 +1624,17 @@ function paintBorrow(){
     ${r.log.length ? `<label style="display:block;margin-top:10px">What the rules forced</label>
       <ul class="hint" style="margin:4px 0 0 18px">${r.log.map(l=>`<li>${l}</li>`).join("")}</ul>`
       : `<p class="hint" style="margin-top:8px">Nothing changed \u2014 it already fits.</p>`}
-    ${clash ? `<p class="hint" style="color:#c77;margin-top:8px">${clash}</p>` : ``}
-    ${split ? `<p class="hint" style="color:#c77;margin-top:4px">${split}</p>` : ``}
+    ${risk.block.map(x => `<p class="hint" style="color:#c77;margin-top:6px">${x}</p>`).join("")}
+    ${risk.warn.map(x => `<p class="hint" style="color:var(--lamp);margin-top:6px">${x} \u2014 say them in one sentence before adding</p>`).join("")}
+    ${(risk.note||[]).map(x => `<p class="hint" style="opacity:.55;margin-top:4px">${x}</p>`).join("")}
     <label style="display:block;margin-top:12px">Loanword table row</label>
     <pre>| *${w}* | *${raw}* | ${LANGNAME[lang]} | ${r.log.length ? r.log.map(l=>l.split(":")[0]).join("; ") : "nothing changed"} |</pre>
-    <button class="btn" id="bwKeep" ${clash || split ? "disabled" : ""}>Add to the lexicon</button>`;
+    <button class="btn" id="bwKeep" ${risk.block.length ? "disabled" : ""}>Add to the lexicon</button>`;
   $("bwKeep") && ($("bwKeep").onclick = () => {
     LEX[w] = {g: $("bwGloss").value.trim() || "(no gloss yet)",
               c: $("bwCls").value === "noun" ? "noun" : "case", real: true};
     saveLex(); renderLex();
-    logLine(`${stamp()}  BORROWED ${raw} (${LANGNAME[lang]}) \u2192 ${w}  ${$("bwGloss").value.trim()}`);
+    logLine(`${stamp()}  BORROWED ${raw} (${LANGNAME[lang]}) \u2192 ${w}  ${$("bwGloss").value.trim()}${risk.warn.length ? "  [" + risk.warn.join("; ") + "]" : ""}`);
     $("bwKeep").textContent = "Added"; $("bwKeep").disabled = true;
   });
 }
@@ -1519,7 +1652,7 @@ function renderLex(){
   $("lexCount").textContent = words.length + " words";
   const groups = {};
   words.forEach(w=>{
-    const g = CLASSGROUP[LEX[w][1]] || "Other";
+    const g = CLASSGROUP[LEX[w].c] || "Other";
     (groups[g] = groups[g] || []).push(w);
   });
   $("lexList").innerHTML = Object.keys(groups).map(g=>
@@ -1575,11 +1708,211 @@ $("lxReset").onclick = () => {
 };
 renderLex();
 
+/* ══════════ phrasebook ══════════
+   The frames test a word in generic slots. These test it in the sentence it
+   was coined for — which is the order Lexicology §6 step 6 was reaching for. */
+const PBKEY = "lunaji-phrasebook";
+let PB = [], pbEditing = -1;
+const esc = t => String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+try{ PB = JSON.parse(localStorage.getItem(PBKEY) || "[]"); }catch(e){ PB = []; }
+const savePB = () => { try{ localStorage.setItem(PBKEY, JSON.stringify(PB)); }catch(e){} };
+const SLOT = /\{([^}]+)\}([a-z]*)/g;
+
+// A token is known if peeling suffixes and clitics off it reaches a stored word.
+const PEEL = ["ba","ni","pe","wa","di","na","a","ze","ri","ta","jo","re","ko"];
+function known(t){
+  t = t.replace(/^[a-z]'/, m => "");            // d'itsuze
+  if(LEX[t]) return true;
+  return PEEL.some(p => t.length > p.length && t.endsWith(p) && known(t.slice(0, -p.length)));
+}
+function unknownWords(lu){
+  return lu.replace(SLOT, "").toLowerCase().replace(/[.?!,]/g, "").split(/\s+/)
+    .filter(Boolean).filter(t => !known(t));
+}
+const slotsOf = lu => [...lu.matchAll(SLOT)].map(m => m[1].trim());
+function glossHas(gloss, slot){
+  const g = " " + gloss.toLowerCase().replace(/[;,/()]/g, " ") + " ";
+  return g.includes(" " + slot.toLowerCase() + " ");
+}
+function joinSuffix(w, suf){
+  const nas = /[aeiou]n$/.test(w);
+  if(!suf) return w;
+  if(nas && suf === "ni") return w + " ni";      // Grammar §1b.4 — the one exception
+  if(nas && suf === "na") return w + "a";
+  if(!nas && suf === "a") return w + "na";
+  return w + suf;
+}
+function substitute(lu, w, gloss){
+  return lu.replace(SLOT, (m, slot, suf) => glossHas(gloss, slot.trim()) ? joinSuffix(w, suf) : m);
+}
+function fillSlots(w, gloss){
+  if(!gloss) return 0;
+  let n = 0;
+  PB.forEach(e => {
+    const next = substitute(e.lu, w, gloss);
+    if(next !== e.lu){ n++; e.lu = next; e.verdict = ""; e.says = []; }
+  });
+  if(n){ savePB(); paintPB(); logLine(`${stamp()}  filled ${n} phrasebook slot${n===1?"":"s"} with ${w}`); }
+  return n;
+}
+function daysSaid(e){
+  const cut = Date.now() - 7*864e5;
+  return (e.says || []).filter(d => new Date(d).getTime() >= cut).length;
+}
+function statusOf(e){
+  if(!e.lu.trim()) return "blank";
+  if(slotsOf(e.lu).length || unknownWords(e.lu).length) return "needs";
+  return "ready";
+}
+function prosodyBlock(line){
+  let a; try{ a = analyse(line); }catch(err){ return ""; }
+  return `<div style="font-size:18px;margin:4px 0" class="lun">${esc(marked(a))}</div>` +
+    a.warn.filter(x => x.lvl !== "note").map(x =>
+      `<div class="hint" style="color:#c77">${esc(x.t)}</div>`).join("");
+}
+function paintPB(){
+  if(!$("pbList")) return;
+  const f = $("pbFilter").value;
+  const counts = {blank:0, needs:0, ready:0};
+  PB.forEach(e => counts[statusOf(e)]++);
+  $("pbCount").textContent = `${PB.length} lines · ${counts.ready} ready · ${counts.needs} need a word · ${counts.blank} not written`;
+  $("pbList").innerHTML = PB.map((e,i) => {
+    const st = statusOf(e);
+    if(f === "grates" ? e.verdict !== "grates" : (f && st !== f)) return "";
+    const slots = slotsOf(e.lu), unk = unknownWords(e.lu), said = daysSaid(e);
+    let body = "";
+    if(st === "blank") body = `<div class="hint">Not written yet.</div>`;
+    else if(st === "needs") body = `<div class="lun" style="font-size:18px;margin:4px 0">${esc(e.lu)}</div>` +
+      (slots.length ? `<div class="hint">needs a word for: ${slots.map(esc).join(", ")}</div>` : "") +
+      (unk.length ? `<div class="hint" style="color:#c77">not in the lexicon: ${unk.map(esc).join(", ")}</div>` : "");
+    else body = prosodyBlock(e.lu) + `<div class="row" style="margin:8px 0 0;align-items:center">
+        <button class="btn ghost" data-act="said" data-i="${i}">Said it today</button>
+        <span class="hint" style="margin:0">said on ${said} of the last 7 days</span></div>
+      <select data-act="verdict" data-i="${i}" style="margin-top:8px">
+        <option value="" ${!e.verdict?"selected":""}>untested</option>
+        <option value="right" ${e.verdict==="right"?"selected":""}>sounds right</option>
+        <option value="grates" ${e.verdict==="grates"?"selected":""}>grates</option>
+      </select>` +
+      (e.verdict === "grates" ? `<p class="hint">${said >= 7
+        ? "Said every day for a week and it still grates — it is probably the word, not the habit."
+        : "Keep saying it. Unfamiliarity and a bad word feel the same for the first few days."}</p>` : "");
+    return `<div class="panel">
+      <div style="display:flex;gap:8px;align-items:baseline">
+        <div style="flex:1;cursor:pointer" data-act="edit" data-i="${i}">${esc(e.en)}</div>
+        <button data-act="rm" data-i="${i}" aria-label="Remove" style="background:none;border:0;color:var(--dim);font-size:16px">×</button>
+      </div>${body}</div>`;
+  }).join("");
+}
+$("pbList").onclick = ev => {
+  const b = ev.target.closest("[data-act]"); if(!b) return;
+  const i = Number(b.dataset.i), e = PB[i];
+  if(b.dataset.act === "rm"){ if(confirm("Remove \u201c" + e.en + "\u201d?")){ PB.splice(i,1); savePB(); paintPB(); } }
+  if(b.dataset.act === "edit"){
+    $("pbEn").value = e.en; $("pbLu").value = e.lu; pbEditing = i;
+    $("pbAdd").textContent = "Update"; $("pbEn").scrollIntoView({behavior:"smooth", block:"center"});
+  }
+  if(b.dataset.act === "said"){
+    const d = stamp(); e.says = e.says || [];
+    if(!e.says.includes(d)) e.says.push(d);
+    savePB(); paintPB();
+  }
+};
+$("pbList").onchange = ev => {
+  const b = ev.target.closest('[data-act="verdict"]'); if(!b) return;
+  const e = PB[Number(b.dataset.i)]; e.verdict = b.value; savePB(); paintPB();
+  logLine(`${stamp()}  phrase \u201c${e.lu}\u201d judged ${b.value || "untested"}`);
+};
+$("pbAdd").onclick = () => {
+  const en = $("pbEn").value.trim(), lu = $("pbLu").value.trim();
+  if(!en) return;
+  if(pbEditing >= 0){
+    const e = PB[pbEditing];
+    if(e.lu !== lu){ e.verdict = ""; e.says = []; }   // a changed line starts its week over
+    e.en = en; e.lu = lu;
+  } else PB.push({en, lu, verdict:"", says:[]});
+  pbEditing = -1; $("pbAdd").textContent = "Add";
+  $("pbEn").value = ""; $("pbLu").value = "";
+  savePB(); paintPB();
+};
+const STARTER = ["Good morning","Good night","I love you","Are you tired?","Are you hungry?",
+  "Time for bed","Did you sleep well?","Come here","Let's go","I'm home","Where are you?",
+  "What's that?","Look!","Be careful","Thank you","I'm sorry","I miss you","I don't know",
+  "Wait","It's okay"];
+$("pbStarter").onclick = () => {
+  let n = 0;
+  STARTER.forEach(en => { if(!PB.some(e => e.en.toLowerCase() === en.toLowerCase())){ PB.push({en, lu:"", verdict:"", says:[]}); n++; } });
+  savePB(); paintPB();
+  $("pbStarter").textContent = n ? `Added ${n}` : "Already there";
+  setTimeout(() => $("pbStarter").textContent = "Add everyday starter lines", 1800);
+};
+$("pbFilter").onchange = paintPB;
+$("pbExport").onclick = () => { $("pbIO").value = JSON.stringify(PB); };
+$("pbImport").onclick = () => {
+  try{ const v = JSON.parse($("pbIO").value); if(Array.isArray(v)){ PB = v; savePB(); paintPB(); $("pbIO").value = "Imported."; } }
+  catch(e){ $("pbIO").value = "That is not valid JSON."; }
+};
+$("pbText").onclick = () => {
+  $("pbIO").value = PB.map(e => `${e.en} — ${e.lu || "(not written)"}${e.verdict ? " [" + e.verdict + "]" : ""}`).join("\n");
+};
+function paintPbFrames(w){
+  const box = $("pbFrames"); if(!box) return;
+  const gloss = ($("kGloss") && $("kGloss").value.trim()) || "";
+  const hits = gloss ? PB.filter(e => slotsOf(e.lu).some(sl => glossHas(gloss, sl))) : [];
+  if(!hits.length){
+    box.innerHTML = gloss && PB.length ? `<p class="hint" style="margin-top:14px">No phrasebook line has a slot for \u201c${esc(gloss)}\u201d. If this word is for something you would say, write that line first.</p>` : "";
+    return;
+  }
+  const hadIt = COINED.includes(w);
+  if(!hadIt) LEX[w] = {g:"(candidate)", c: CMAP[$("cls2").value] || "noun", real:false};
+  try{
+    box.innerHTML = `<label style="display:block;margin-top:16px">In the sentences it is for</label>` +
+      hits.map(e => { const line = substitute(e.lu, w, gloss);
+        return `<div style="margin:12px 0 0"><div class="hint" style="opacity:.7">${esc(e.en)}</div>` +
+          (slotsOf(line).length ? `<div class="lun" style="font-size:18px">${esc(line)}</div><div class="hint">other slots still open</div>` : prosodyBlock(line)) + `</div>`;
+      }).join("");
+  } finally { if(!hadIt) delete LEX[w]; }
+}
+paintPB();
+
+/* ══════════ lexicon audit ══════════ */
+$("lxAudit").onclick = () => {
+  const out = [], ear = [], content = w => ["noun","verb"].includes(LEX[w].c);
+  const glossMap = {};
+  const norm = g => g.toLowerCase().split(/[;,/]/).map(x => x.trim().replace(/^(to be |to |a |an |the )/, "").replace(/\s*\(.*\)$/, "")).filter(Boolean);
+  Object.keys(LEX).sort().forEach(w => {
+    const e = LEX[w], bits = [];
+    if(!e.g || e.g === "(no gloss yet)") bits.push("no gloss");
+    if(e.c === "noun" && /u$/.test(w)) bits.push("noun ends in \u2013u");
+    if(e.c === "verb" && !/(u|[aio]n)$/.test(w)) bits.push("class is verb, but no theme \u2013u or nasal final");
+    if(content(w) || e.c === "pron"){
+      // run the word as if it were new: lift it out so it does not collide with itself
+      delete LEX[w];
+      try{
+        const r = wordRisks(w);
+        r.block.filter(x => !x.startsWith("this shape was retired")).forEach(x => bits.push(x));
+        if(RETIRED.includes(w)) bits.push("on the retired list, but still in the lexicon");
+        if(["noun","verb"].includes(e.c) && r.warn.length) ear.push([w, r.warn]);
+      } finally { LEX[w] = e; }
+      norm(e.g || "").forEach(k => (glossMap[k] = glossMap[k] || []).push(w));
+    }
+    if(bits.length) out.push(`<tr><td class="lun">${esc(w)}</td><td>${bits.map(esc).join("; ")}</td></tr>`);
+  });
+  const shared = Object.entries(glossMap).filter(([k,v]) => v.length > 1)
+    .map(([k,v]) => `<tr><td>\u201c${esc(k)}\u201d</td><td class="lun">${v.map(esc).join(", ")}</td></tr>`);
+  $("lxAuditOut").innerHTML =
+    (out.length ? `<table><tr><th>Word</th><th>Problem</th></tr>${out.join("")}</table>` : `<p class="hint">No word problems found.</p>`) +
+    (shared.length ? `<label style="margin-top:14px;display:block">Glosses shared by more than one word</label><p class="hint">Not always wrong \u2014 but each needs a narrower meaning written down.</p><table>${shared.join("")}</table>` : "") +
+    (ear.length ? `<details style="margin-top:14px"><summary class="hint" style="cursor:pointer">For the ear: ${ear.length} words with near-rhymes or shared first syllables</summary>
+      <p class="hint">The checks the Draw tab runs and Borrow used to skip. These are not errors \u2014 say each pair in one sentence and keep what survives.</p>
+      <table>${ear.map(([w, ws]) => `<tr><td class="lun">${esc(w)}</td><td>${ws.map(esc).join("<br>")}</td></tr>`).join("")}</table></details>` : "");
+  logLine(`${stamp()}  audited lexicon: ${out.length} word${out.length===1?"":"s"} flagged, ${shared.length} shared gloss${shared.length===1?"":"es"}, ${ear.length} for the ear`);
+};
+
 /* ══════════ verify ══════════ */
 const TESTS = [
   ["KIN","kin"],["KUN","kon"],["KEN","kan"],["SATUNA","sana"],["TAPURA","tapra"],
   ["NOKURAN","nokuran"],["KANUTA","kanta"],["HIRUN","hin"],["KASI","kashi"],
-  ["SITU","shitsu"],["NOWIRETU","nowiretsu"],["NIURA","nyura"],["KARUA","karua"],
+  ["SITU","shitsu"],["NOWIRETU","nowiretsu"],["NIURA","niura"],["KARUA","karua"],
   ["KANUE","kanwe"],["HELAN","helan"],["HERUNA","hena"]
 ];
 $("runTest").onclick = () => {
@@ -1592,11 +1925,7 @@ $("runTest").onclick = () => {
   }).join("");
   $("testOut").innerHTML = `
     <p class="hint">${pass} of ${TESTS.length} match Proto §3.</p>
-    <table><tr><th>Proto</th><th>Documented</th><th>This engine</th><th></th></tr>${rows}</table>
-    <div class="warn">NIURA is expected to differ. Its <em>i</em> sits in the first
-    syllable, which proto stress protects, so R2 as written cannot glide it — yet
-    Proto §3 gives <em>nyura</em>. Either R2 needs an exception for a vowel directly
-    before another vowel, or that example is wrong.</div>`;
+    <table><tr><th>Proto</th><th>Documented</th><th>This engine</th><th></th></tr>${rows}</table>`;
 };
 
 $("copyLog").onclick = () => {
