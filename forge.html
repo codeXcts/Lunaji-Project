@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-0120</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-1300</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -101,6 +101,58 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 
 <!-- ───────────── DRAW ───────────── -->
 <section id="draw">
+  <div class="panel">
+    <div class="row">
+      <div>
+        <label for="pPreset">Preset</label>
+        <select id="pPreset">
+          <option value="">— none, set the fields by hand —</option>
+          <option value="verb">Ordinary verb</option>
+          <option value="adjv">Adjectival verb</option>
+          <option value="pnoun">Primary noun</option>
+          <option value="dnoun">Deverbal noun</option>
+          <option value="pron">Pronoun</option>
+          <option value="sufV">Bound suffix — verbal</option>
+          <option value="sufN">Bound suffix — nominal</option>
+          <option value="funcNew">Function word — recent (2 syllables)</option>
+          <option value="funcOld">Function word — ancient monosyllable</option>
+          <option value="num">Numeral</option>
+        </select>
+      </div>
+      <div>
+        <label for="pTier">How often it will be said</label>
+        <select id="pTier">
+          <option value="core">Core — daily, short, protected</option>
+          <option value="ord" selected>Ordinary</option>
+          <option value="rare">Rare or technical — longer, plainer</option>
+        </select>
+      </div>
+      <div>
+        <label for="fField">Semantic field</label>
+        <input id="fField" placeholder="kin, kitchen, night" spellcheck="false" autocapitalize="off">
+      </div>
+    </div>
+    <p class="hint" id="presetNote">A preset fills the fields below; change anything afterwards. Tier sets the mora range and, on verbs, whether the theme onset must be voiced. The field scopes near-rhymes to words that will share sentences.</p>
+    <details style="margin-top:10px">
+      <summary class="hint" style="cursor:pointer">Family first — does an existing skeleton already cover this meaning?</summary>
+      <div class="row" style="margin-top:8px">
+        <div><label for="famWord">Existing word or its proto-root</label>
+          <input id="famWord" placeholder="nowiretsu or NOWIRETU" spellcheck="false" autocapitalize="off"></div>
+        <div><label for="famEnd">Build the partner as</label>
+          <select id="famEnd">
+            <option value="a">deverbal noun (–a)</option>
+            <option value="u">verb (–u)</option>
+            <option value="un">verb, nasal final (–un)</option>
+            <option value="e">primary noun (–e)</option>
+            <option value="i">primary noun (–i)</option>
+            <option value="o">primary noun (–o)</option>
+          </select></div>
+      </div>
+      <button class="btn ghost" id="famGo">Derive the partner</button>
+      <div id="famOut"></div>
+    </details>
+  </div>
+
   <div class="panel">
     <label for="filter">Write the filter before you draw</label>
     <textarea id="filter" rows="2" placeholder="e.g. one mora, voiced non-nasal non-y onset, must not erode into ba"></textarea>
@@ -138,6 +190,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
         <select id="fRhyme">
           <option value="">allow</option>
           <option value="class" selected>reject rhymes within the same class — the default</option>
+          <option value="field">reject rhymes within the same class and field — scales past 2000</option>
           <option value="lex">reject rhymes anywhere in the lexicon — strict</option>
           <option value="list">reject rhymes with the words listed below</option>
         </select>
@@ -156,6 +209,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
         <option value="dnoun">Deverbal noun (–a)</option>
         <option value="pnoun">Primary noun (–a/e/i/o or nasal)</option>
         <option value="func">Function root (1–2 syllables)</option>
+        <option value="pron">Pronoun (oral or nasal final)</option>
       </select>
     </div>
     <div>
@@ -209,6 +263,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 
   <div id="shortWarn"></div>
   <div id="drawWarn"></div>
+  <div id="relaxWarn"></div>
   <ul class="stack" id="stack"></ul>
 </section>
 
@@ -228,6 +283,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
       <option value="dnoun">Deverbal noun (–a)</option>
       <option value="pnoun">Primary noun</option>
       <option value="func">Function root</option>
+      <option value="pron">Pronoun</option>
     </select>
   </div></div>
   <div id="derivation"></div>
@@ -680,6 +736,11 @@ function check(res, cls){
   t.push({ok:true, s: res.moras + " mora" + (res.moras===1?"":"s")});
   const sp = res.spelling;
   // a glide before its own vowel is inaudible — /yi/ and /wu/. ny + i is ɲi and is left alone.
+  // Phonology §4.1b — no oral length, so /o.o/ cannot be heard as two beats
+  if(/([aeiou])\1/.test(sp)) t.push({ok:false, s:"identical-vowel hiatus — unrecoverable without oral length"});
+  // Phonology §4.2 rule 3 — no nasal vowel before a nasal consonant inside a word
+  if(/[aeiou]n(?:n|m)/.test(sp) || /[aeiou]nny/.test(sp)) t.push({ok:false, s:"nasal vowel before a nasal consonant (Phonology §4.2.3)"});
+  if(/[yw][yw]/.test(sp.replace(/ny/g,"N"))) t.push({ok:false, s:"two glides in a row"});
   if(/(^|[^n])yi/.test(sp) || /wu/.test(sp))
     t.push({ok:false, s:"glide before its own vowel (/yi/, /wu/) — inaudible"});
   if(cls && cls!=="any" && cls!=="func"){
@@ -690,6 +751,7 @@ function check(res, cls){
                             : {ok:false,s:"not a verb: needs final –u or a nasal vowel"});
     if(cls==="irreg") t.push(endsNas ? {ok:true,s:"nasal-vowel irregular"} : {ok:false,s:"not a nasal-vowel irregular"});
     if(cls==="dnoun") t.push(endsA ? {ok:true,s:"deverbal –a"} : {ok:false,s:"not a deverbal noun: needs final –a"});
+    if(cls==="pron" && endsU) t.push({ok:false,s:"a pronoun may not end in –u"});
     if(cls==="pnoun") t.push(!endsU ? {ok:true,s:nasalEnd?"primary noun, nasal-final":"primary noun"}
                                     : {ok:false,s:"nouns may never end in –u"});
   }
@@ -758,7 +820,7 @@ function generateRoot(cls, nSyl){
   if(cls==="verb" || cls==="adjv") fin += (Math.random() < IRREG_RATE ? pick(["un","in","en"]) : "u");
   else if(cls==="irreg") fin += pick(["un","in","en"]);
   else if(cls==="dnoun") fin += "a";
-  else if(cls==="pnoun") fin += pick(["a","e","i","o"]) + (Math.random()<0.45 ? "n" : "");
+  else if(cls==="pnoun" || cls==="pron") fin += pick(["a","e","i","o"]) + (Math.random()<0.45 ? "n" : "");
   else                   fin += pick(VOW_W) + (Math.random()<0.4 ? "n" : "");
   return (body + fin).toUpperCase();
 }
@@ -809,7 +871,8 @@ function readFilter(){
     english: $("fEnglish") && $("fEnglish").checked,
     particle: $("fParticle") && $("fParticle").checked,
     head:     $("fHead") && $("fHead").checked,
-    rhymeList: list("fRhymeList")
+    rhymeList: list("fRhymeList"),
+    field:    ($("fField") && $("fField").value.trim().toLowerCase()) || ""
   };
 }
 function filterText(){
@@ -823,6 +886,7 @@ function filterText(){
   if(f.onsets.length)  bits.push("theme onset in " + f.onsets.join(""));
   if(f.moraMin || f.moraMax < 99) bits.push(`${f.moraMin || 1}-${f.moraMax === 99 ? "any" : f.moraMax} moras`);
   if(f.rhyme === "class") bits.push("no rhyme within the class");
+  if(f.rhyme === "field") bits.push(f.field ? "no rhyme within the class in field " + f.field : "no rhyme within the class (no field set)");
   if(f.rhyme === "lex")  bits.push("no rhyme with any existing word");
   if(f.rhyme === "list" && f.rhymeList.length) bits.push("no rhyme with " + f.rhymeList.join("/"));
   return bits.join("; ");
@@ -906,6 +970,7 @@ function passesFilter(res, f){
     const against =
       f.rhyme === "lex"   ? Object.keys(LEX) :
       f.rhyme === "class" ? Object.keys(LEX).filter(o => LEX[o].c === mine) :
+      f.rhyme === "field" ? Object.keys(LEX).filter(o => LEX[o].c === mine && (!f.field || (LEX[o].f || "") === f.field)) :
                             f.rhymeList;
     if(against.some(o => o !== w && o.length >= 3 && rhymeTail(o) === t)) return false;
   }
@@ -929,7 +994,7 @@ function drawStock(cls, sylOpt, n, endReq, startReq){
     if(!passesFilter(res, F)) continue;
     const bad = check(res, cls).some(t=>!t.ok);
     if(bad) continue;
-    if(out.some(o=>o.root===root)) continue;
+    if(out.some(o=>o.root===root || o.out===res.spelling)) continue;
     out.push({root, out:res.spelling, ipa:res.ipa,
               fired: res.steps.filter(x=>x.fired).map(x=>x.id).join(" ")});
   }
@@ -961,7 +1026,7 @@ function paintLog(){
    in progress did not, which is the half you would actually miss.            */
 const WORKKEY = "lunaji-forge-work";
 const WORKFIELDS = ["filter","fBanEnd","fBanSeq","fOnset","fMoraMin","fMoraMax","fRhyme","fEnglish","bwIn","bwGloss","bwLang","bwCls",
-                    "fRhymeList","rootIn","cls","cls2","kGloss","kRelated","kNote"];
+                    "fRhymeList","rootIn","cls","cls2","kGloss","kRelated","kNote","pPreset","pTier","fField","kField","famWord","famEnd","count","syls","ends","onset"];
 let restoring = false;
 function saveWork(){
   if(restoring) return;
@@ -1034,11 +1099,125 @@ function paintStack(){
     : slotDraws >= 1
     ? `<div class="warn">One batch already rejected for this slot. The next draw returns a single root and you take it.</div>` : "";
 }
+/* ══════════ presets ══════════
+   ForgeFilters.pdf §3, with two corrections: the ancient-monosyllable preset
+   does not offer an (a vowel-initial function word is the earned class of
+   Grammar §1b.2), and the -uze ending ban is gone, since no verb output can
+   end that way — the real hazard is theme onset z, excluded on the onset. */
+const VOICED_V = "b d g v r l w n m y";
+const PRESETS = {
+  verb:  {cls:"verb",  syls:"0", ends:"", onsetSel:"", onset:VOICED_V, banEnd:"onku", banSeq:"", rhyme:"field", head:false, glide:false,
+          note:"Theme onset voiced, z excluded — -zuze is the kazonze environment. Voiceless onsets are what killed miorisu and zonku."},
+  adjv:  {cls:"adjv",  syls:"0", ends:"", onsetSel:"", onset:"n m r l w y", banEnd:"onku", banSeq:"", rhyme:"field", head:false, glide:false,
+          note:"Sonorant theme onset: it stands directly before its head, the compression site."},
+  pnoun: {cls:"pnoun", syls:"0", ends:"", onsetSel:"", onset:"", banEnd:"", banSeq:"", rhyme:"field", head:false, glide:false,
+          note:"No onset constraint. Judge it in the topic and object frames, not bare — that is where fona failed."},
+  dnoun: {cls:"dnoun", syls:"0", ends:"", onsetSel:"", onset:"", banEnd:"", banSeq:"", rhyme:"field", head:false, glide:false,
+          note:"If a verb already has this meaning, use Family first instead of drawing."},
+  pron:  {cls:"pron",  syls:"2", ends:"ORAL", onsetSel:"", onset:"", banEnd:"", banSeq:"", rhyme:"lex", head:true, glide:false, mora:[2,3], tierless:true,
+          note:"Oral-final, so every particle joins and nothing alternates. Two syllables clears the particle space. Draw the whole set from one stack and choose the three together — pronouns are a paradigm, not three slots."},
+  sufV:  {cls:"func", syls:"1", ends:"ORAL", onsetSel:"", onset:"b d g v z r l w", banEnd:"", banSeq:"", rhyme:"lex", head:false, glide:true, mora:[1,1], tierless:true,
+          note:"Voiced, non-nasal, not y (Lexicology §4a). The glide ban keeps it one plain CV."},
+  sufN:  {cls:"func", syls:"1", ends:"ORAL", onsetSel:"", onset:"b d g v z r l", banEnd:"u zo wo", banSeq:"", rhyme:"lex", head:false, glide:true, mora:[1,1], tierless:true,
+          note:"No final -u, since the noun would then end in one; zo is the numeral and wo reads as the locative. -jo cannot be drawn: proto has no j."},
+  funcNew:{cls:"func", syls:"2", ends:"", onsetSel:"", onset:"", banEnd:"", banSeq:"", rhyme:"class", head:true, glide:false, mora:[2,4], tierless:true,
+          note:"Coin the source noun first. Consonant-initial, written separate — one syllable would mark it ancient (§1b.4)."},
+  funcOld:{cls:"func", syls:"1", ends:"an", onsetSel:"", onset:"b d g v z r l w m y h k s p t f", banEnd:"nan ran ban dan", banSeq:"", rhyme:"", head:false, glide:false, mora:[2,2], tierless:true,
+          note:"The õ space is exhausted; this draws in ã. Consonant-initial only."},
+  num:   {cls:"func", syls:"1", ends:"", onsetSel:"", onset:"", banEnd:"u", banSeq:"", rhyme:"lex", head:true, glide:false, mora:[1,2], tierless:true,
+          note:"No final -u — an adjectival verb also precedes the noun."}
+};
+const TIER = {core:[3,4], ord:[3,5], rare:[4,6]};
+function applyPreset(){
+  const k = $("pPreset").value, P = PRESETS[k];
+  if(!P){ $("presetNote").textContent = "Fields set by hand."; return; }
+  $("cls").value = P.cls; $("syls").value = P.syls; $("ends").value = P.ends; $("onset").value = P.onsetSel;
+  $("fBanEnd").value = P.banEnd; $("fBanSeq").value = P.banSeq; $("fRhyme").value = P.rhyme;
+  $("fHead").checked = P.head; $("fNoGlide").checked = P.glide; $("fParticle").checked = true;
+  let onset = P.onset, mora = P.mora;
+  if(!P.tierless){
+    const tier = $("pTier").value;
+    mora = TIER[tier];
+    // Zipf: rare words may be long and plain, so the voicing armour relaxes there only
+    if(tier === "rare" && (k === "verb" || k === "adjv")) onset = "";
+  }
+  $("fOnset").value = onset;
+  $("fMoraMin").value = mora ? mora[0] : ""; $("fMoraMax").value = mora ? mora[1] : "";
+  $("presetNote").textContent = P.note + (P.rhyme === "field" && !$("fField").value.trim()
+    ? " Set a field, or rhymes are checked against the whole class." : "");
+  saveWork();
+}
+$("pPreset").onchange = applyPreset;
+$("pTier").onchange = () => { if($("pPreset").value) applyPreset(); };
+
+/* ForgeFilters §5, walked by the tool. Never relaxed: the particle check, and
+   the voiced onset on a core verb. Each step edits the visible field, so what
+   was relaxed stays on the screen and in the log. */
+function relaxSteps(){
+  return [
+    ["turned off shared first syllable", () => $("fHead").checked && ($("fHead").checked = false, true)],
+    ["widened moras by one each way", () => {
+      const a = Number($("fMoraMin").value), b = Number($("fMoraMax").value);
+      if(!a && !b) return false;
+      if(a > 1) $("fMoraMin").value = a - 1;
+      if(b) $("fMoraMax").value = b + 1;
+      return true; }],
+    ["narrowed near-rhymes from the lexicon to the class", () => $("fRhyme").value === "lex" && ($("fRhyme").value = "class", true)],
+    ["narrowed near-rhymes from the class to the field", () => $("fRhyme").value === "class" && $("fField").value.trim() && ($("fRhyme").value = "field", true)],
+    ["added the voiced theme onsets left out for taste", () => {
+      const cur = $("fOnset").value.split(/[,\s]+/).filter(Boolean);
+      if(!cur.length) return false;
+      const add = VOICED_V.split(" ").filter(c => !cur.includes(c));
+      if(!add.length) return false;
+      $("fOnset").value = cur.concat(add).join(" "); return true; }]
+  ];
+}
+
+/* Family first: Lexicology §2 — one skeleton, a second proto-root. */
+function protoOf(word){
+  const w = word.trim().toLowerCase();
+  if(/^[A-Z]+$/.test(word.trim())) return word.trim();
+  for(let i = LOG.length - 1; i >= 0; i--){
+    const m = LOG[i].match(/(?:KEPT|UPDATED|TOOK) ([A-Z]+) \u2192 ([a-z']+)/);
+    if(m && m[2] === w) return m[1];
+  }
+  return null;
+}
+$("famGo").onclick = () => {
+  const raw = $("famWord").value.trim();
+  if(!raw) return;
+  const root = protoOf(raw) || (/^[A-Z]+$/.test(raw) ? raw : null);
+  if(!root){
+    $("famOut").innerHTML = `<p class="hint">No proto-root for <span class="lun">${raw}</span> in this device's log. Type the root in caps — it is in its Dictionary entry.</p>`;
+    return;
+  }
+  const skel = root.replace(/[AEIOU]N?$/, "");
+  const next = skel + $("famEnd").value.toUpperCase();
+  const end = $("famEnd").value;
+  $("cls2").value = end === "a" ? "dnoun" : (end === "u" || end === "un") ? "verb" : "pnoun";
+  $("rootIn").value = next;
+  lastDraw = `Built as a second proto-root off the ${skel}- skeleton of ${root} (Lexicology §2).`;
+  logLine(`${stamp()}  FAMILY ${root} → skeleton ${skel}- → ${next}`);
+  renderDerivation();
+  document.querySelector('nav button[data-tab="derive"]').click();
+};
+
 $("gen").onclick = () => {
   const cls = $("cls").value;
   forced = slotDraws >= 1;
   const n = forced ? 1 : Number($("count").value);
   stock = drawStock(cls, Number($("syls").value), n, $("ends").value, $("onset").value);
+  const want = forced ? 1 : Math.min(4, n), relaxed = [];
+  for(const [what, act] of relaxSteps()){
+    if(stock.length >= want) break;
+    if(!act()) continue;
+    relaxed.push(what);
+    stock = drawStock(cls, Number($("syls").value), n, $("ends").value, $("onset").value);
+  }
+  if(relaxed.length){
+    logLine(`${stamp()}  relaxed: ${relaxed.join("; ")}`);
+    $("relaxWarn").innerHTML = `<div class="warn">The stack came back short, so the Forge relaxed the filter in order: ${relaxed.join("; ")}. The fields above show what is now in force.</div>`;
+  } else $("relaxWarn").innerHTML = "";
   slotDraws++;
   logLine(`${stamp()}  drew ${stock.length} ${cls} root${stock.length===1?"":"s"}${$("ends").value?" ending "+$("ends").value:""}${forced?" · FORCED":""} · filter: ${[filterText(), $("filter").value.trim()].filter(Boolean).join(" | ") || "(none written)"}`);
   paintStack();
@@ -1072,6 +1251,8 @@ function renderDerivation(){
     <div class="panel">
       <label for="kGloss">Meaning</label>
       <input id="kGloss" placeholder="to be tired" spellcheck="false">
+      <label for="kField">Semantic field</label>
+      <input id="kField" placeholder="kin, kitchen, night" spellcheck="false" autocapitalize="off">
       <label for="kRelated">Related words, if any</label>
       <input id="kRelated" placeholder="nowireta, -ta" spellcheck="false">
       <div id="frames"></div>
@@ -1297,6 +1478,15 @@ function framesFor(w, cls){
     put("Counted", "rako " + w, "numeral plus inanimate counter");
     put("Full clause", "Lonjiwa " + withNi(w) + " sofouze hena.", "against the benchmark");
     F.push({l:"Bare", line:w, why:"legality only", legality:true});
+  } else if(cls === "pron"){
+    // A pronoun is spoken only when it is doing contrastive work (Grammar §2.3),
+    // so the OVERT PRONOUN warning is expected on the subject frame.
+    put("Subject, contrastive", w + "ba sainkowa kazonze.", "the only place a subject pronoun is said — the warning is expected here");
+    put("Object", withNi(w) + " kyonkuze", nasEnd(w) ? "nasal-final, so ni stays separate" : "ni joins");
+    put("Possessor", w + "pe akyozana", "my/your name — the most-said pronoun form");
+    put("Topic", withTop(w) + " kominu", nasEnd(w) ? "the nasal dissolves, the stress moves" : "");
+    put("Plural", w + "ta", "-ta, as every pronoun takes");
+    put("Answer to monzo", w, "a bare pronoun as a whole reply");
   } else {
     put("After the negator", "sofouze hena " + w, "its commonest left neighbour");
     put("Joined to a long noun", "onankonzan" + w, "if it cliticizes");
@@ -1388,7 +1578,7 @@ function rulePhrases(res, src){
 }
 
 const CLASSLABEL = {verb:"verb", adjv:"verb — adjectival", irreg:"verb — irregular (nasal-vowel class)",
-  dnoun:"deverbal noun", pnoun:"primary noun", func:"function word", any:"class"};
+  dnoun:"deverbal noun", pnoun:"primary noun", func:"function word", pron:"pronoun", any:"class"};
 
 function keepWord(res, src){
   const w = res.spelling;
@@ -1402,7 +1592,9 @@ function keepWord(res, src){
   const rel = $("kRelated").value.trim();
   const note = $("kNote").value.trim();
 
+  const field = ($("kField").value.trim() || $("fField").value.trim()).toLowerCase();
   LEX[w] = {g: gloss || "(no gloss yet)", c: CMAP[cls] || "noun", real: true};
+  if(field) LEX[w].f = field;
   saveLex();
   logLine(`${stamp()}  ${existed ? "UPDATED" : "KEPT"} ${src.toUpperCase()} → ${w} /${res.ipa}/  ${gloss}`);
 
