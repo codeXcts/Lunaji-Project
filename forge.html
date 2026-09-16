@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-1700</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-1800</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -1371,8 +1371,10 @@ function ipaWord(w){
 function splitClitic(tok){
   if(LEX[tok]) return null;                       // a whole word, no clitic
   for(const c of ENCL.slice().sort((a,b)=>b.length-a.length)){
-    if(tok.length > c.length && tok.endsWith(c) && LEX[tok.slice(0, -c.length)])
-      return {stem: tok.slice(0, -c.length), clitic: c};
+    // helan'ni, aoyan'wa — the apostrophe belongs to the seam, not the stem
+    const stem = tok.slice(0, -c.length).replace(/'$/, "");
+    if(tok.length > c.length && tok.endsWith(c) && LEX[stem])
+      return {stem, clitic: c};
   }
   return null;
 }
@@ -1482,7 +1484,9 @@ const analyse = Prosody.analyse, marked = Prosody.marked;
    only coined words, and the seam comes first: hena loman failed there while
    sounding fine in isolation. */
 const nasEnd = w => /[aeiou]n$/.test(w);
-const withNi = w => nasEnd(w) ? w + " ni" : w + "ni";
+// Ruled 2026-09-16: ni joins everywhere; after a nasal-final word the
+// apostrophe keeps the nasal vowel from being read as an onset n.
+const withNi = w => nasEnd(w) ? w + "'ni" : w + "ni";
 const withTop = w => nasEnd(w) ? w + "a" : w + "na";
 
 function framesFor(w, cls){
@@ -1509,7 +1513,7 @@ function framesFor(w, cls){
     F.push({l:"Bare", line:w, why:"legality only", legality:true});
   } else if(cls === "pnoun" || cls === "dnoun"){
     put("Topic-marked", withTop(w), nasEnd(w) ? "the nasal dissolves, the stress moves" : "");
-    put("Object before the verb", withNi(w) + " sofouze", nasEnd(w) ? "ni stays separate" : "the compression site");
+    put("Object before the verb", withNi(w) + " sofouze", nasEnd(w) ? "the apostrophe holds the nasal before ni" : "the compression site");
     put("Clause in front of it", "nialipu " + w, "the shape it wears as a head noun");
     put("Modified", "kominu " + w, "an adjectival verb in front");
     put("Counted", "rako " + w, "numeral plus inanimate counter");
@@ -1519,7 +1523,7 @@ function framesFor(w, cls){
     // A pronoun is spoken only when it is doing contrastive work (Grammar §2.3),
     // so the OVERT PRONOUN warning is expected on the subject frame.
     put("Subject, contrastive", w + "ba sainkowa kazonze.", "the only place a subject pronoun is said — the warning is expected here");
-    put("Object", withNi(w) + " kyonkuze", nasEnd(w) ? "nasal-final, so ni stays separate" : "ni joins");
+    put("Object", withNi(w) + " kyonkuze", nasEnd(w) ? "nasal-final, so the apostrophe holds the nasal" : "ni joins");
     put("Possessor", w + "pe akyozana", "my/your name — the most-said pronoun form");
     put("Topic", withTop(w) + " kominu", nasEnd(w) ? "the nasal dissolves, the stress moves" : "");
     put("Plural", w + "ta", "-ta, as every pronoun takes");
@@ -2002,6 +2006,7 @@ const PEEL = ["ba","ni","pe","wa","di","na","a","ze","ri","ta","jo","re","ko"];
 function known(t){
   t = t.replace(/^[a-z]'/, m => "");            // d'itsuze
   if(LEX[t]) return true;
+  if(t.endsWith("'")) return known(t.slice(0, -1));
   return PEEL.some(p => t.length > p.length && t.endsWith(p) && known(t.slice(0, -p.length)));
 }
 function unknownWords(lu){
@@ -2016,7 +2021,7 @@ function glossHas(gloss, slot){
 function joinSuffix(w, suf){
   const nas = /[aeiou]n$/.test(w);
   if(!suf) return w;
-  if(nas && suf === "ni") return w + " ni";      // Grammar §1b.4 — the one exception
+  if(nas && /^[nyw]/.test(suf)) return w + "'" + suf;   // the nasal holds before n, y, w
   if(nas && suf === "na") return w + "a";
   if(!nas && suf === "a") return w + "na";
   return w + suf;
@@ -2169,7 +2174,7 @@ paintPB();
 const nasalFinal = w => /[aio]n$/.test(w);
 // Phonology §6: a nasal vowel before a bare glide takes the apostrophe, or
 // aoyanwa would read /a.o.ja.nwa/ — the n taken as an onset before w.
-const J = (w, p) => nasalFinal(w) && /^[yw]/.test(p) ? w + "'" + p : w + p;
+const J = (w, p) => nasalFinal(w) && /^[nyw]/.test(p) ? w + "'" + p : w + p;
 function pdRow(label, form, note, base){
   const toks = form.split(" ");
   const ipa = toks.map(t => { try{ return (LEX[t] && Prosody.sylsOf(t).length === 1) ? t : Prosody.ipaWord(t); }catch(e){ return t; } }).join(" ");
@@ -2191,13 +2196,13 @@ const pdTable = (title, rows) => `<div class="panel"><h2 style="margin:0 0 8px">
 
 function nounTables(w){
   const nas = nasalFinal(w);
-  const top = nas ? w + "a" : w + "na", obj = nas ? w + " ni" : w + "ni";
+  const top = nas ? w + "a" : w + "na", obj = J(w, "ni");
   return [
     pdTable("Case", [
       pdRow("bare", w, "unspecified for number — one or many", w),
       pdRow("topic", top, nas ? "the nasal dissolves into an onset — <em>as for</em>" : "<em>as for</em> · persists across sentences", w),
       pdRow("subject", w + "ba", "presentative with the existence verbs (§4.7a)", w),
-      pdRow("object", obj, nas ? "<em>ni</em> stays separate after a nasal-final noun (§1b.4)" : "", w),
+      pdRow("object", obj, nas ? "apostrophe: the nasal holds before <em>ni</em>" : "", w),
       pdRow("possessive", w + "pe", "also the general noun-to-noun link", w),
       pdRow("location", J(w, "wa"), nasalFinal(w) ? "apostrophe: the nasal holds before a glide (Phonology §6)" : "place and time both", w),
       pdRow("oblique", w + "di", "to, with, by, about — not <em>from</em>", w),
@@ -2224,7 +2229,7 @@ function pronTables(w){
   return pdTable("Pronoun", [
     pdRow("bare", w, "a whole answer — or said at all only for contrast (§2.3)", w),
     pdRow("subject", w + "ba", "contrastive; a neutral sentence drops it", w),
-    pdRow("object", nas ? w + " ni" : w + "ni", nas ? "nasal-final, so <em>ni</em> stands separate" : "", w),
+    pdRow("object", J(w, "ni"), nas ? "apostrophe: the nasal holds before <em>ni</em>" : "", w),
     pdRow("possessive", w + "pe", "the most-said pronoun form", w),
     pdRow("topic", nas ? w + "a" : w + "na", "", w),
     pdRow("oblique", w + "di", "", w),
