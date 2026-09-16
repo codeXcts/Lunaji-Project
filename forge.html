@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-1800</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-2100</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -96,6 +96,8 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   <button role="tab" aria-selected="false" data-tab="borrow">Borrow</button>
   <button role="tab" aria-selected="false" data-tab="phrases">Phrases</button>
   <button role="tab" aria-selected="false" data-tab="paradigm">Paradigm</button>
+  <button role="tab" aria-selected="false" data-tab="review">Review</button>
+  <button role="tab" aria-selected="false" data-tab="drift">Drift</button>
   <button role="tab" aria-selected="false" data-tab="lexicon">Lexicon</button>
   <button role="tab" aria-selected="false" data-tab="log">Log</button>
 </nav>
@@ -394,9 +396,41 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   <div id="pdOut"></div>
 </section>
 
+<!-- ───────────── REVIEW ───────────── -->
+<section id="review" hidden>
+  <p class="hint">Spaced repetition from your own lexicon and your ready phrasebook lines. Say the answer aloud before you reveal it. Progress is saved in the lexicon file.</p>
+  <div class="row">
+    <div><label for="rvDir">Direction</label>
+      <select id="rvDir"><option value="both">both ways</option><option value="en">English → Lunaji</option><option value="lu">Lunaji → English</option></select></div>
+    <div><label for="rvPool">Cards from</label>
+      <select id="rvPool"><option value="both">words and phrases</option><option value="w">words only</option><option value="p">phrases only</option></select></div>
+    <div><label for="rvNew">New cards a day</label>
+      <input id="rvNew" type="number" min="0" max="100" value="15"></div>
+  </div>
+  <div id="rvStats" class="hint"></div>
+  <div id="rvCard"></div>
+</section>
+
+<!-- ───────────── DRIFT ───────────── -->
+<section id="drift" hidden>
+  <p class="hint">What is said is the data. Tap the variant you actually produced, in the environment named. Counts, not memory, decide which form is winning.</p>
+  <div id="drList"></div>
+  <div class="panel">
+    <label for="drName">Watch a new item</label>
+    <input id="drName" placeholder="kazonze in fast speech" spellcheck="false">
+    <label for="drVars" style="margin-top:8px">Variants, comma-separated</label>
+    <input id="drVars" placeholder="kazonze, kazonse" spellcheck="false">
+    <button class="btn ghost" id="drAdd" style="margin-top:10px">Add item</button>
+  </div>
+</section>
+
 <!-- ───────────── LEXICON ───────────── -->
 <section id="lexicon" hidden>
-  <p class="hint">One store, shared with the Composer. A word kept here appears in the Composer palette and Frames tab on the next refresh, and the collision check reads from the same list.</p>
+  <div class="panel">
+    <label for="lxSearch">Search — Lunaji or English, gloss, field or proto-root</label>
+    <input id="lxSearch" placeholder="night, lon, kin, NOWIRETU" spellcheck="false" autocapitalize="off">
+    <div id="lxResults"></div>
+  </div>
   <div class="panel">
     <div id="lexCount" class="hint"></div>
     <div id="lexList"></div>
@@ -419,7 +453,22 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
         <option value="aux">auxiliary</option><option value="num">numeral</option>
       </select>
       <button class="btn" id="lxAdd">Add</button>
+      <button class="btn ghost" id="lxRetire">Retire</button>
     </div>
+    <p class="hint">Tap a word above to load it here. Retire removes it, keeps the shape and reason, and blocks the shape in Draw and Borrow.</p>
+    <div id="lxRetOut"></div>
+    <details style="margin-top:10px"><summary class="hint" style="cursor:pointer" id="lxRetSum">Retired shapes</summary><div id="lxRetList"></div></details>
+  </div>
+  <div class="panel">
+    <label>Dictionary one-liners</label>
+    <p class="hint">Headword, stress, class, gloss, proto-root or source, date — the default tier of the recording plan. Words kept before this build have no root or date stored until you update them.</p>
+    <div class="row">
+      <div><label for="dlSince">Coined on or after</label><input id="dlSince" type="date"></div>
+    </div>
+    <button class="btn ghost" id="dlMake">Make lines</button>
+    <button class="btn ghost" id="dlSave">Save to a file</button>
+    <p class="hint" id="dlNote"></p>
+    <pre id="dlOut" hidden></pre>
   </div>
   <div class="panel">
     <label for="lxIO">Move the lexicon between devices or into the Composer</label>
@@ -726,7 +775,19 @@ const RETIRED = ["vwetsu","vweta","sen","lomen","loman","ga","wi","gawi","gata",
   "tsunoman","helimon","ivelan","sonurema","peduran","imon","solan","weseru","lebru",
   "nyobru","soblu","moturon","tapra","hira","mira","nemu","isha","kwanshi","numu","kyiso"];
 
-const LEXKEY = "lunaji-lex";   // shared with the Composer
+const RETKEY = "lunaji-retired", DIRTYKEY = "lunaji-dirty";
+let RET = {};
+try{ RET = JSON.parse(localStorage.getItem(RETKEY) || "{}"); }catch(e){ RET = {}; }
+const isRetired = w => RETIRED.includes(w) || Object.prototype.hasOwnProperty.call(RET, w);
+let DIRTY = {};
+try{ DIRTY = JSON.parse(localStorage.getItem(DIRTYKEY) || "{}"); }catch(e){ DIRTY = {}; }
+function setDirty(k, v){
+  DIRTY[k] = v;
+  try{ localStorage.setItem(DIRTYKEY, JSON.stringify(DIRTY)); }catch(e){}
+  if(typeof paintDirty === "function") paintDirty();
+}
+const saveRet = () => { try{ localStorage.setItem(RETKEY, JSON.stringify(RET)); }catch(e){} setDirty("lex", true); };
+const LEXKEY = "lunaji-lex";
 let LEX = {}, SUFFIX = null;
 // the Composer's class vocabulary is canonical, since both tools now read one store
 const CMAP = {pnoun:"noun", dnoun:"noun", verb:"verb", adjv:"verb", irreg:"verb", aux:"aux",
@@ -745,7 +806,7 @@ function loadLex(){
   }catch(e){ LEX = seedObj(); }
 }
 function saveLex(){
-  try{ localStorage.setItem(LEXKEY, JSON.stringify(SUFFIX ? {LEX, SUFFIX} : {LEX})); }
+  try{ localStorage.setItem(LEXKEY, JSON.stringify(SUFFIX ? {LEX, SUFFIX} : {LEX})); setDirty("lex", true); }
   catch(e){ /* storage unavailable — the export box is the fallback */ }
 }
 loadLex();
@@ -791,7 +852,7 @@ function check(res, cls){
                                     : {ok:false,s:"nouns may never end in –u"});
   }
   if(COINED.includes(sp)) t.push({ok:false, s:"collides with " + sp + " — " + LEX[sp].g});
-  else if(RETIRED.includes(sp)) t.push({ok:false, s:"this shape was retired once already"});
+  else if(isRetired(sp)) t.push({ok:false, s:"this shape was retired once already"});
   return t;
 }
 
@@ -1041,7 +1102,7 @@ const $ = id => document.getElementById(id);
 document.querySelectorAll("nav button").forEach(b=>{
   b.onclick = () => {
     document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["draw","derive","verify","borrow","phrases","paradigm","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+    ["draw","derive","verify","borrow","phrases","paradigm","review","drift","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
   };
 });
 
@@ -1214,6 +1275,7 @@ function relaxSteps(){
 function protoOf(word){
   const w = word.trim().toLowerCase();
   if(/^[A-Z]+$/.test(word.trim())) return word.trim();
+  if(LEX[w] && LEX[w].p) return LEX[w].p;
   for(let i = LOG.length - 1; i >= 0; i--){
     const m = LOG[i].match(/(?:KEPT|UPDATED|TOOK) ([A-Z]+) \u2192 ([a-z']+)/);
     if(m && m[2] === w) return m[1];
@@ -1634,8 +1696,10 @@ function keepWord(res, src){
   const note = $("kNote").value.trim();
 
   const field = ($("kField").value.trim() || $("fField").value.trim()).toLowerCase();
-  LEX[w] = {g: gloss || "(no gloss yet)", c: CMAP[cls] || "noun", real: true};
-  if(field) LEX[w].f = field;
+  const prev = LEX[w] || {};
+  LEX[w] = {g: gloss || "(no gloss yet)", c: CMAP[cls] || "noun", real: true,
+            p: src.toUpperCase(), d: prev.d || stamp(), how: lastDraw || prev.how || "", k: cls};
+  if(field) LEX[w].f = field; else if(prev.f) LEX[w].f = prev.f;
   saveLex();
   logLine(`${stamp()}  ${existed ? "UPDATED" : "KEPT"} ${src.toUpperCase()} → ${w} /${res.ipa}/  ${gloss}`);
 
@@ -1810,7 +1874,7 @@ function wordRisks(w, cls){
   if(rhy.length) warn.push("near-rhyme with " + rhy.join(", ") + " \u2014 same class, same slot");
   if(englishHit(w)) warn.push("this is a common English word");
   if(COINED.includes(w)) block.push("collides with " + w + " \u2014 " + LEX[w].g);
-  if(RETIRED.includes(w)) block.push("this shape was retired once already");
+  if(isRetired(w)) block.push("this shape was retired once already" + (RET[w] ? " \u2014 " + RET[w].r : ""));
   if(splitsIntoParticles(w)) block.push("splits into a particle sequence (Grammar \u00a78)");
   const heads = ["zo","van","ki","ra","bai"].filter(n => LEX[n]).flatMap(n => [n+"re", n+"ko"]);
   const h = heads.find(x => w.startsWith(x) && w !== x);
@@ -1865,7 +1929,8 @@ function paintBorrow(){
     <button class="btn" id="bwKeep" ${risk.block.length ? "disabled" : ""}>Add to the lexicon</button>`;
   $("bwKeep") && ($("bwKeep").onclick = () => {
     LEX[w] = {g: $("bwGloss").value.trim() || "(no gloss yet)",
-              c: $("bwCls").value === "noun" ? "noun" : "case", real: true};
+              c: $("bwCls").value === "noun" ? "noun" : "case", real: true,
+              src: raw, lang: LANGNAME[lang], d: stamp(), how: "borrowed"};
     saveLex(); renderLex();
     logLine(`${stamp()}  BORROWED ${raw} (${LANGNAME[lang]}) \u2192 ${w}  ${$("bwGloss").value.trim()}${risk.warn.length ? "  [" + risk.warn.join("; ") + "]" : ""}`);
     $("bwKeep").textContent = "Added"; $("bwKeep").disabled = true;
@@ -1919,7 +1984,7 @@ $("lexList").onclick = e => {
 $("lxAdd").onclick = () => {
   const w = $("lxWord").value.trim().toLowerCase();
   if(!w) return;
-  LEX[w] = {g: $("lxGloss").value.trim() || "(no gloss yet)", c: $("lxClass").value, real: true};
+  LEX[w] = Object.assign({d: stamp()}, LEX[w] || {}, {g: $("lxGloss").value.trim() || "(no gloss yet)", c: $("lxClass").value, real: true});
   saveLex(); renderLex();
   logLine(`${stamp()}  added ${w} to the lexicon by hand`);
   $("lxWord").value = ""; $("lxGloss").value = ""; $("lxAdd").textContent = "Add";
@@ -1936,14 +2001,15 @@ async function saveTextFile(name, text, note){
     const file = new File([blob], name, {type: "text/plain"});
     if(navigator.canShare && navigator.canShare({files: [file]}) && /iphone|ipad|android/i.test(navigator.userAgent)){
       await navigator.share({files: [file], title: name});
-      note.textContent = "Saved " + name + "."; return;
+      note.textContent = "Saved " + name + "."; return true;
     }
-  }catch(e){ if(e && e.name === "AbortError"){ note.textContent = "Save cancelled."; return; } }
+  }catch(e){ if(e && e.name === "AbortError"){ note.textContent = "Save cancelled."; return false; } }
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   note.textContent = "Downloaded " + name + ".";
+  return true;
 }
 function readTextFile(input){
   return new Promise((res, rej) => {
@@ -1954,8 +2020,9 @@ function readTextFile(input){
     r.readAsText(f);
   });
 }
-$("lxSaveFile").onclick = () => {
-  saveTextFile(`lunaji-lexicon-${stamp()}.txt`, JSON.stringify(LEX), $("lxFileNote"));
+$("lxSaveFile").onclick = async () => {
+  const body = JSON.stringify({v:2, LEX, RETIRED: RET, REVIEW: REV, DRIFT});
+  if(await saveTextFile(`lunaji-lexicon-${stamp()}.txt`, body, $("lxFileNote"))) setDirty("lex", false);
   logLine(`${stamp()}  saved the lexicon to a file · ${Object.keys(LEX).length} words`);
 };
 $("lxOpenFile").onclick = () => { $("lxFile").value = ""; $("lxFile").click(); };
@@ -1964,14 +2031,23 @@ $("lxFile").onchange = async () => {
   let next;
   try{ next = JSON.parse(f.text.trim()); }
   catch(e){ $("lxFileNote").textContent = f.name + " is not JSON. Choose a file saved by the Forge, or one holding a pasted export."; return; }
-  if(next && next.LEX && typeof next.LEX === "object") next = next.LEX;     // raw storage format
+  let extra = null;
+  if(next && next.LEX && typeof next.LEX === "object"){ extra = next; next = next.LEX; }   // v2 file or raw storage
   const words = next && typeof next === "object" && !Array.isArray(next) ? Object.keys(next) : [];
   if(!words.length || !words.every(w => next[w] && typeof next[w].g === "string")){
     $("lxFileNote").textContent = f.name + " doesn't look like a lexicon export — is it the phrasebook file?"; return;
   }
   const now = Object.keys(LEX).length;
-  if(!confirm(`${f.name}\n\n${words.length} words in the file, ${now} in the Forge now.\nReplace the Forge's lexicon with the file?`)) return;
+  const more = extra && extra.RETIRED ? `\nAlso in the file: ${Object.keys(extra.RETIRED).length} retired shapes, review progress and drift counts.` : "";
+  if(!confirm(`${f.name}\n\n${words.length} words in the file, ${now} in the Forge now.${more}\nReplace the Forge's copy with the file?`)) return;
   LEX = next; saveLex(); renderLex();
+  if(extra){
+    if(extra.RETIRED){ RET = extra.RETIRED; saveRet(); }
+    if(extra.REVIEW){ REV = extra.REVIEW; saveRev(); }
+    if(Array.isArray(extra.DRIFT)){ DRIFT = extra.DRIFT; saveDrift(); }
+    paintRetired(); paintDrift(); paintReview();
+  }
+  setDirty("lex", false);
   $("lxFileNote").textContent = `Loaded ${words.length} words from ${f.name}.`;
   logLine(`${stamp()}  loaded the lexicon from ${f.name} · ${words.length} words (was ${now})`);
 };
@@ -1998,7 +2074,7 @@ const PBKEY = "lunaji-phrasebook";
 let PB = [], pbEditing = -1;
 const esc = t => String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 try{ PB = JSON.parse(localStorage.getItem(PBKEY) || "[]"); }catch(e){ PB = []; }
-const savePB = () => { try{ localStorage.setItem(PBKEY, JSON.stringify(PB)); }catch(e){} };
+const savePB = () => { try{ localStorage.setItem(PBKEY, JSON.stringify(PB)); }catch(e){} setDirty("pb", true); };
 const SLOT = /\{([^}]+)\}([a-z]*)/g;
 
 // A token is known if peeling suffixes and clitics off it reaches a stored word.
@@ -2131,7 +2207,7 @@ $("pbStarter").onclick = () => {
 };
 $("pbFilter").onchange = paintPB;
 $("pbExport").onclick = () => { $("pbIO").value = JSON.stringify(PB); };
-$("pbSaveFile").onclick = () => saveTextFile(`lunaji-phrasebook-${stamp()}.txt`, JSON.stringify(PB), $("pbFileNote"));
+$("pbSaveFile").onclick = async () => { if(await saveTextFile(`lunaji-phrasebook-${stamp()}.txt`, JSON.stringify(PB), $("pbFileNote"))) setDirty("pb", false); };
 $("pbOpenFile").onclick = () => { $("pbFile").value = ""; $("pbFile").click(); };
 $("pbFile").onchange = async () => {
   let f; try{ f = await readTextFile($("pbFile")); }catch(e){ return; }
@@ -2142,6 +2218,7 @@ $("pbFile").onchange = async () => {
   if(!confirm(`${f.name}\n\n${v.length} lines in the file, ${PB.length} in the Forge now.\nReplace the phrasebook with the file?`)) return;
   PB = v; savePB(); paintPB();
   $("pbFileNote").textContent = `Loaded ${v.length} lines from ${f.name}.`;
+  setDirty("pb", false);
 };
 $("pbImport").onclick = () => {
   try{ const v = JSON.parse($("pbIO").value); if(Array.isArray(v)){ PB = v; savePB(); paintPB(); $("pbIO").value = "Imported."; } }
@@ -2299,6 +2376,235 @@ $("pdWord").oninput = paintParadigm;
 $("pdClass").onchange = paintParadigm;
 document.querySelector('nav button[data-tab="paradigm"]').addEventListener("click", () => { fillPdList(); paintParadigm(); });
 
+/* ══════════ search ══════════ */
+function paintSearch(){
+  const q = $("lxSearch").value.trim().toLowerCase();
+  if(!q){ $("lxResults").innerHTML = ""; return; }
+  const score = w => {
+    const e = LEX[w], g = (e.g || "").toLowerCase();
+    if(w === q || (e.p || "").toLowerCase() === q) return 0;
+    if((e.f || "") === q) return 1;
+    if(new RegExp("(^|[^a-z])" + q.replace(/[^a-z']/g, "") + "([^a-z]|$)").test(g)) return 1;
+    if(w.startsWith(q)) return 2;
+    if(g.includes(q)) return 3;
+    if(w.includes(q)) return 4;
+    return 9;
+  };
+  const hits = Object.keys(LEX).map(w => [w, score(w)]).filter(x => x[1] < 9)
+    .sort((a,b) => a[1] - b[1] || a[0].localeCompare(b[0])).slice(0, 40);
+  const ret = Object.keys(RET).filter(w => w.includes(q) || (RET[w].g || "").toLowerCase().includes(q));
+  $("lxResults").innerHTML = (hits.length ? `<table>${hits.map(([w]) => { const e = LEX[w];
+      return `<tr data-open="${esc(w)}" style="cursor:pointer"><td class="lun" style="font-size:17px">${esc(w)}</td>
+        <td>${esc(e.g)}<div class="hint" style="margin:0">${esc(e.c)}${e.f ? " · " + esc(e.f) : ""}${e.p ? " · &lt; " + esc(e.p) : e.src ? " · &lt; " + esc(e.src) : ""}</div></td></tr>`; }).join("")}</table>`
+    : `<p class="hint">Nothing in the lexicon matches.</p>`) +
+    (ret.length ? `<p class="hint" style="margin-top:8px">Retired: ${ret.map(w => `<span class="lun">${esc(w)}</span> (${esc(RET[w].r)})`).join(", ")}</p>` : "");
+}
+$("lxSearch").oninput = paintSearch;
+$("lxResults").onclick = ev => {
+  const r = ev.target.closest("[data-open]"); if(!r) return;
+  const w = r.dataset.open;
+  document.querySelector('nav button[data-tab="paradigm"]').click();
+  $("pdWord").value = w; $("pdClass").value = ""; paintParadigm();
+  if(!["noun","verb","pron"].includes(LEX[w].c)){
+    $("lxWord").value = w; $("lxGloss").value = LEX[w].g; $("lxClass").value = LEX[w].c;
+  }
+};
+
+/* ══════════ retire ══════════ */
+function paintRetired(){
+  const ws = Object.keys(RET).sort();
+  $("lxRetSum").textContent = `Retired shapes (${ws.length} stored, plus ${RETIRED.length} built in)`;
+  $("lxRetList").innerHTML = ws.length ? `<table>${ws.map(w => `<tr><td class="lun">${esc(w)}</td>
+      <td>${esc(RET[w].r)}<div class="hint" style="margin:0">${esc(RET[w].g || "")} · ${esc(RET[w].d)}</div></td>
+      <td><button class="btn ghost" data-unret="${esc(w)}" style="padding:4px 8px">Unretire</button></td></tr>`).join("")}</table>`
+    : `<p class="hint">None retired from here yet.</p>`;
+}
+$("lxRetire").onclick = () => {
+  const w = $("lxWord").value.trim().toLowerCase();
+  if(!w){ $("lxRetOut").innerHTML = `<p class="hint">Tap a word above first.</p>`; return; }
+  const reason = prompt(`Retire ${w}. Why? This goes in the Retired table.`, "");
+  if(reason === null) return;
+  const e = LEX[w];
+  RET[w] = {r: reason.trim() || "(no reason written)", d: stamp(), g: e ? e.g : "", p: e && e.p || ""};
+  saveRet();
+  if(e){ delete LEX[w]; saveLex(); renderLex(); }
+  logLine(`${stamp()}  RETIRED ${w} — ${RET[w].r}`);
+  const row = `| *${w}* | ${RET[w].r} |`;
+  $("lxRetOut").innerHTML = `<label style="display:block;margin-top:10px">Retired table row</label><pre>${esc(row)}</pre>`;
+  $("lxWord").value = ""; $("lxGloss").value = ""; $("lxAdd").textContent = "Add";
+  paintRetired();
+};
+$("lxRetList").onclick = ev => {
+  const b = ev.target.closest("[data-unret]"); if(!b) return;
+  const w = b.dataset.unret;
+  if(!confirm(`Unretire ${w}? The shape becomes drawable again. The word itself is not restored to the lexicon.`)) return;
+  delete RET[w]; saveRet(); paintRetired();
+  logLine(`${stamp()}  unretired ${w}`);
+};
+
+/* ══════════ dictionary one-liners ══════════ */
+function dictLines(){
+  const since = $("dlSince").value;
+  return Object.keys(LEX).sort().filter(w => ["noun","verb","pron"].includes(LEX[w].c))
+    .filter(w => !since || (LEX[w].d && LEX[w].d >= since))
+    .map(w => {
+      const e = LEX[w];
+      let stress = w; try{ stress = Prosody.ipaWord(w); }catch(err){}
+      const cls = e.k ? (CLASSLABEL[e.k] || e.c) : e.c;
+      const origin = e.p ? "< " + e.p : e.src ? `< ${e.lang || ""} *${e.src}*`.replace("<  ", "< ") : "";
+      return `**${w}** /${stress}/ · *${cls}* · ${e.g}${origin ? " · " + origin : ""}${e.d ? " · [" + e.d + "]" : ""}`;
+    });
+}
+$("dlMake").onclick = () => { const L = dictLines(); $("dlOut").hidden = false; $("dlOut").textContent = L.length ? L.join("\n") : "No words match."; };
+$("dlSave").onclick = () => saveTextFile(`lunaji-dictionary-lines-${stamp()}.md`, dictLines().join("\n"), $("dlNote"));
+
+/* ══════════ review ══════════ */
+const REVKEY = "lunaji-review", IVL = [0, 1, 3, 7, 16, 35, 90];
+let REV = {};
+try{ REV = JSON.parse(localStorage.getItem(REVKEY) || "{}"); }catch(e){ REV = {}; }
+function saveRev(){ try{ localStorage.setItem(REVKEY, JSON.stringify(REV)); }catch(e){} setDirty("lex", true); }
+const addDays = (d, n) => { const x = new Date(d + "T12:00:00"); x.setDate(x.getDate() + n);
+  return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`; };
+function reviewPool(){
+  const dir = $("rvDir").value, pool = $("rvPool").value, cards = [];
+  const dirs = dir === "both" ? ["en","lu"] : [dir];
+  if(pool !== "p") Object.keys(LEX).sort().forEach(w => {
+    const e = LEX[w];
+    if(!["noun","verb","pron"].includes(e.c) || !e.g || e.g === "(no gloss yet)") return;
+    dirs.forEach(d => cards.push({id: `w:${w}:${d}`, dir: d, lu: w, en: e.g, kind: e.c}));
+  });
+  if(pool !== "w") PB.forEach(e => {
+    if(statusOf(e) !== "ready") return;
+    dirs.forEach(d => cards.push({id: `p:${e.en}:${d}`, dir: d, lu: e.lu, en: e.en, kind: "phrase"}));
+  });
+  return cards;
+}
+let rvQueue = [], rvCur = null, rvShown = false;
+function reviewStats(){
+  const today = stamp(), all = reviewPool();
+  if(!REV._meta || REV._meta.date !== today) REV._meta = {date: today, fresh: 0};
+  const due = all.filter(c => REV[c.id] && REV[c.id].due <= today);
+  const room = Math.max(0, (Number($("rvNew").value) || 0) - REV._meta.fresh);
+  // shuffled by word, so a new word's two directions don't arrive back to back
+  const seed = today.replace(/-/g, "");
+  const h = t => { let x = 0; for(const ch of t + seed) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x; };
+  const fresh = all.filter(c => !REV[c.id]).sort((a,b) => h(a.id) - h(b.id)).slice(0, room);
+  return {all, due, fresh, seen: all.filter(c => REV[c.id]).length};
+}
+function buildQueue(){
+  const st = reviewStats();
+  rvQueue = st.due.sort((a,b) => REV[a.id].due.localeCompare(REV[b.id].due)).concat(st.fresh);
+  return st;
+}
+const statText = st => `${st.due.length} due · ${st.fresh.length} new left today · ${st.seen} of ${st.all.length} cards started`;
+function paintReview(){
+  if(!$("rvCard")) return;
+  $("rvStats").textContent = statText(buildQueue());
+  rvCur = rvQueue[0] || null; rvShown = false;
+  paintCard();
+}
+function paintCard(){
+  if(!rvCur){
+    $("rvCard").innerHTML = `<div class="panel"><p style="margin:0">Nothing due. ${reviewPool().length ? "Come back tomorrow, or raise the new-card limit." : "Add glosses to the lexicon, or finish a phrasebook line, to make cards."}</p></div>`;
+    return;
+  }
+  const c = rvCur, prompt = c.dir === "en" ? c.en : c.lu, answer = c.dir === "en" ? c.lu : c.en;
+  const isNew = !REV[c.id];
+  let extra = "";
+  if(rvShown && c.kind !== "phrase"){ try{ extra = `<div class="hint">${esc(Prosody.ipaWord(c.lu))} · ${esc(c.kind)}</div>`; }catch(e){} }
+  if(rvShown && c.kind === "phrase"){ try{ extra = prosodyBlock(c.lu); }catch(e){} }
+  $("rvCard").innerHTML = `<div class="panel">
+    <div class="hint">${c.dir === "en" ? "Say it in Lunaji" : "What does it mean"}${isNew ? " · new" : ""} · ${rvQueue.length} left</div>
+    <div class="${c.dir === "en" ? "" : "lun"}" style="font-size:26px;margin:10px 0">${esc(prompt)}</div>
+    ${rvShown ? `<div class="${c.dir === "en" ? "lun" : ""}" style="font-size:22px;color:var(--lamp)">${esc(answer)}</div>${extra}
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost" data-grade="0">Again</button>
+        <button class="btn" data-grade="1">Good</button>
+        <button class="btn ghost" data-grade="2">Easy</button>
+      </div>` : `<button class="btn" id="rvShow">Show</button>`}
+    ${c.kind !== "phrase" && rvShown ? `<button class="btn ghost" data-pd="${esc(c.lu)}" style="margin-top:8px">Open in Paradigm</button>` : ""}
+  </div>`;
+}
+$("rvCard").onclick = ev => {
+  if(ev.target.id === "rvShow"){ rvShown = true; paintCard(); return; }
+  const pd = ev.target.closest("[data-pd]");
+  if(pd){ document.querySelector('nav button[data-tab="paradigm"]').click(); $("pdWord").value = pd.dataset.pd; $("pdClass").value = ""; paintParadigm(); return; }
+  const g = ev.target.closest("[data-grade]"); if(!g || !rvCur) return;
+  const grade = Number(g.dataset.grade), c = rvCur, today = stamp();
+  const prev = REV[c.id];
+  if(!prev) REV._meta.fresh++;
+  let box = prev ? prev.box : 0;
+  box = grade === 0 ? 0 : Math.min(IVL.length - 1, box + grade);
+  REV[c.id] = {box, due: addDays(today, IVL[box])};
+  saveRev();
+  rvQueue.shift();
+  if(grade === 0) rvQueue.push(c);          // see it again this session
+  rvCur = rvQueue[0] || null; rvShown = false;
+  $("rvStats").textContent = statText(reviewStats());
+  paintCard();
+};
+["rvDir","rvPool","rvNew"].forEach(id => $(id).onchange = paintReview);
+document.querySelector('nav button[data-tab="review"]').addEventListener("click", paintReview);
+
+/* ══════════ drift ══════════ */
+const DRIFTKEY = "lunaji-drift";
+const DRIFT_SEED = [
+  {name:"hena after a light syllable", env:"sofouze hena — nothing heavy to launch the /h/ from", v:[["hena",0],["ena",0]]},
+  {name:"hena after a heavy nasal", env:"kazon hena — the environment that kept /h/", v:[["hena",0],["ena",0]]},
+  {name:"kazonze", env:"two /z/ two syllables apart, no theme vowel", v:[["kazonze",0],["kazonse",0]]},
+  {name:"nasal before ni", env:"helan'ni — the stress system rides on this mora", v:[["held, two beats",0],["shortened",0]]},
+  {name:"mi in ordinary speech", env:"negation without emphasis", v:[["said",0],["dropped",0]]},
+  {name:"final –u after a voiceless consonant", env:"a verb ending -ku, -pu, -su", v:[["voiced",0],["whispered",0]]},
+  {name:"/ĩ/ in inku, sainko", env:"the hardest sound for its only speaker", v:[["open vowel",0],["[ŋ] closure",0]]},
+  {name:"intervocalic /h/ in ohari", env:"after light material", v:[["/h/ held",0],["weakened",0]]}
+];
+let DRIFT;
+try{ DRIFT = JSON.parse(localStorage.getItem(DRIFTKEY) || "null"); }catch(e){ DRIFT = null; }
+if(!Array.isArray(DRIFT)) DRIFT = DRIFT_SEED.map(x => ({name:x.name, env:x.env, v:x.v.map(([l,n]) => ({l, n})), last:""}));
+function saveDrift(){ try{ localStorage.setItem(DRIFTKEY, JSON.stringify(DRIFT)); }catch(e){} setDirty("lex", true); }
+function paintDrift(){
+  $("drList").innerHTML = DRIFT.map((it, i) => {
+    const tot = it.v.reduce((a, x) => a + x.n, 0);
+    return `<div class="panel">
+      <div style="display:flex;gap:8px"><div style="flex:1"><b>${esc(it.name)}</b><div class="hint" style="margin:0">${esc(it.env || "")}</div></div>
+        <button data-drrm="${i}" aria-label="Remove" style="background:none;border:0;color:var(--dim);font-size:16px">×</button></div>
+      <div class="row" style="margin-top:10px">${it.v.map((x, j) => `<button class="btn ghost" data-dr="${i}" data-v="${j}" style="flex:1 1 120px">
+        ${esc(x.l)} <b>${x.n}</b>${tot ? ` <span style="opacity:.6">${Math.round(100 * x.n / tot)}%</span>` : ""}</button>`).join("")}</div>
+      <div class="hint">${tot} heard${it.last ? " · last " + esc(it.last) : ""}${tot ? ` · <a href="#" data-drundo="${i}" style="color:var(--cool)">undo last</a>` : ""}</div>
+    </div>`;
+  }).join("");
+}
+$("drList").onclick = ev => {
+  const b = ev.target.closest("[data-dr]"), rm = ev.target.closest("[data-drrm]"), un = ev.target.closest("[data-drundo]");
+  if(b){
+    const it = DRIFT[Number(b.dataset.dr)], x = it.v[Number(b.dataset.v)];
+    x.n++; it.last = stamp(); it.undo = Number(b.dataset.v);
+    saveDrift(); paintDrift();
+    logLine(`${stamp()}  drift · ${it.name} → ${x.l}`);
+  } else if(un){
+    ev.preventDefault();
+    const it = DRIFT[Number(un.dataset.drundo)];
+    if(it.undo !== undefined && it.v[it.undo].n > 0){ it.v[it.undo].n--; delete it.undo; saveDrift(); paintDrift(); }
+  } else if(rm){
+    const i = Number(rm.dataset.drrm);
+    if(confirm(`Stop watching “${DRIFT[i].name}”? Its counts are deleted.`)){ DRIFT.splice(i, 1); saveDrift(); paintDrift(); }
+  }
+};
+$("drAdd").onclick = () => {
+  const name = $("drName").value.trim(), vs = $("drVars").value.split(",").map(x => x.trim()).filter(Boolean);
+  if(!name || vs.length < 2){ $("drVars").placeholder = "at least two variants"; return; }
+  DRIFT.push({name, env:"", v: vs.map(l => ({l, n:0})), last:""});
+  saveDrift(); paintDrift(); $("drName").value = ""; $("drVars").value = "";
+};
+
+/* ══════════ unsaved marker ══════════ */
+function paintDirty(){
+  const lx = document.querySelector('nav button[data-tab="lexicon"]'), pb = document.querySelector('nav button[data-tab="phrases"]');
+  if(lx) lx.innerHTML = "Lexicon" + (DIRTY.lex ? ' <span style="color:var(--lamp)" title="changed since the last file save">●</span>' : "");
+  if(pb) pb.innerHTML = "Phrases" + (DIRTY.pb ? ' <span style="color:var(--lamp)" title="changed since the last file save">●</span>' : "");
+}
+paintRetired(); paintDrift(); paintDirty();
+
 /* ══════════ lexicon audit ══════════ */
 $("lxAudit").onclick = () => {
   const out = [], ear = [], content = w => ["noun","verb"].includes(LEX[w].c);
@@ -2315,7 +2621,7 @@ $("lxAudit").onclick = () => {
       try{
         const r = wordRisks(w);
         r.block.filter(x => !x.startsWith("this shape was retired")).forEach(x => bits.push(x));
-        if(RETIRED.includes(w)) bits.push("on the retired list, but still in the lexicon");
+        if(isRetired(w)) bits.push("on the retired list, but still in the lexicon");
         if(["noun","verb"].includes(e.c) && r.warn.length) ear.push([w, r.warn]);
       } finally { LEX[w] = e; }
       norm(e.g || "").forEach(k => (glossMap[k] = glossMap[k] || []).push(w));
