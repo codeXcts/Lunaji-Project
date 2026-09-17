@@ -35,8 +35,8 @@ mark{background:none;color:var(--accent)}
 </style>
 
 <header>
-  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-10-b</div>
-  <p class="sub">Where things live, not what they say. Current to 2026-09-10.</p>
+  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16</div>
+  <p class="sub">Where things live, not what they say. Current to 2026-09-16.</p>
   <input id="q" placeholder="flower, plural, negation, stress…" autocomplete="off">
   <div class="tags" id="tags"></div>
 </header>
@@ -47,7 +47,7 @@ mark{background:none;color:var(--accent)}
 <ul id="out"></ul>
 
 <footer>
-  <b>Files:</b> Grammar · Phonology · Lexicology · Dictionary · Proto &amp; Sound Changes.<br>
+  <b>Files:</b> Grammar · Phonology · Lexicology · Dictionary · Proto &amp; Sound Changes · Tooling (the Forge and ForgeFilters).<br>
   Section numbers are the stable layer — they survive rewrites of the text inside them.<br>
   <span class="open">Orange</span> marks something still open.
 </footer>
@@ -64,7 +64,7 @@ const D = [
 ["where and when are one word","Grammar","§3.6","Because wa covers place and time both.","when where wa"],
 ["how and why are one word","Grammar","§3.6","Because di covers instrument and cause.","how why di because"],
 ["Animate is the interrogative default","Grammar","§3.6","If something acted it passes the animacy test whether or not you can name it. what is the marked form.","who what animacy unknown"],
-["Answering a question","Grammar","§6.3","Echo the verb. hin yes, hin hena no. No word for yes.","yes no answer echo"],
+["Answering a question","Grammar","§6.3","Echo the verb to answer a verb question: hin yes, hin hena no. dan covers agreement and acknowledgement.","yes no answer echo dan"],
 ["Topic vs ba with existence","Grammar","§4.7a","ba is presentative and new; the topic locates a known referent. Falls out of topics being definite.","there is ga wa existence hin yozu"],
 
 ["Flower — ani","Dictionary","Nouns › ani","AKUNI → ani. Inanimate; demonstrates the animacy rule in all four places at once.","ani akuni plant"],
@@ -85,15 +85,15 @@ const D = [
 
 ["Subordination — the construction","Grammar","§6.1","Clause before a noun. Relative, adverbial and complement all use it.","embedding clause"],
 ["Adverbial clauses","Grammar","§6.1","Nominalized clause plus a case particle. wa = when, toma = since, di = because.","when because since"],
-["Complement clauses","Grammar","§6.1","Needs a nominalizer — not yet coined.","the fact that",1],
+["Complement clauses","Grammar","§6.1","clause + yeti + case particle. yeti bleached from nonyeti, written separate.","the fact that yeti nominalizer"],
 ["Relative clauses","Grammar","§5.1, §6.1","Same construction as attributive adjectives. Gap strategy, no relativizer.","who that which"],
 ["Topic inside a subordinate clause","Grammar","§6.2","Not allowed. Topic is discourse-level. Subjects inside relatives take ba.","na a topic"],
 ["Tail is matrix-only","Grammar","§6.2","Evidentials and jin cannot sit in an embedded clause. Negation can.","scope jin evidential"],
-["Subordinate tense","Grammar","§6.2","Anterior or absolute — undecided.","-ze embedded",1],
+["Subordinate tense","Grammar","§6.2","Absolute — anterior to speech time. Settled 2026-09-11.","-ze embedded absolute"],
 
 ["Comparison — than","Grammar","§5.4","A ba B toma [adjectival verb]. Separative comparative, no morphology.","bigger than toma comparative"],
 ["Superlative","Grammar","§5.4","Not encoded. Implicature from a universal standard.","biggest most"],
-["Equative — as X as","Grammar","§5.4","Open. di rejected as overloaded.","as as same",1],
+["Equative — as X as","Grammar","§5.4","uan, bleached from puan \"a likeness\". Written separate.","as as same uan equative"],
 
 ["Coordination — noron","Grammar","§6","Clause-final, on the end of the first clause. Outside the §4.8 tail.","but noron loman kedo"],
 ["noron — the entry","Dictionary","Function words › noron","Replaced loman 2026-09-10 after the hena loman seam failed.","but coordinator"],
@@ -101,28 +101,29 @@ const D = [
 ["Word order","Grammar","§1","SOV, head-final, agglutinative.","typology sov head-final"],
 ["Head-finality — consequences","Grammar","§1","Postpositions, modifiers precede, suffixes not prefixes, topic-first.","order modifiers"],
 ["Case particles — the seven","Grammar","§2.2","a/na topic, ba, ni, pe, wa, di, toma.","ba ni pe wa di particles"],
-["Which particles join in writing","Grammar","§1b.4","The six ancient ones join. toma and mi stay separate.","joined spacing clitic"],
-["helan ni — the exception","Grammar","§1b.4","Nasal-final noun keeps a nasal-initial particle separate.","ni doubled"],
+["Which particles join in writing","Grammar","§1b.4","All six ancient ones join, everywhere. toma, yeti, uan and mi stay separate.","joined spacing clitic"],
+["Clitic apostrophe — helan'ni","Grammar","§1b.4","After a nasal-final word, n-, y-, w-initial particles join with an apostrophe: helan'ni, aoyan'wa. No exception remains. Ruled 2026-09-16.","ni wa doubled exception apostrophe helan ni"],
+["Apostrophe — its two uses","Phonology","§6","The nasal seam (helan'ni, shin'yu, kan'i) and elision (d'itsuze).","apostrophe seam elision"],
 ["Topic particle a ~ na","Dictionary","Function words › a ~ na","Two shapes by the noun's final segment. Persists across sentences.","topic wa marker"],
 ["Topic vs demonstrative na","Dictionary","Function words › na","Position distinguishes them: na helan against helana.","that the demonstrative"],
 ["Subject drop","Grammar","§2.3","Once a topic stands, naming the subject again is marked.","pronoun omission"],
 ["Definiteness","Grammar","§2.4","None. No articles.","the a"],
 ["Gender","Grammar","§2.5","None.","masculine feminine"],
 
-["Pronouns — the grid","Grammar","§3.1","gan, win, ishin. All nasal-final so they attract stress.","i you he she"],
+["Pronouns — reopened","Grammar","§3.1","gan, win, ishin grate in speech; to be redrawn as a set — two syllables, oral-final. Reopened 2026-09-16.","i you he she gan win ishin",1],
 ["Inclusive vs exclusive we","Grammar","§3.2","ganwin inclusive (compound), ganta exclusive (regular -ta).","ganwin ganta we"],
 ["Third person is animate-only","Grammar","§3.3","Demonstratives cover everything else. Inanimate form on a person is contempt.","ishin it"],
 ["Formality","Grammar","§3.4","None. Door left open in the verb suffix stack.","polite tu vous",1],
 
 ["Tense","Grammar","§4.1","Two-way, past -ze. Goes on the last verb.","-ze past future"],
 ["Aspect","Grammar","§4.2","-ri ongoing; byon and lon are auxiliary verbs, and nasal-vowel irregulars.","byon lon habitual ongoing bu zu"],
-["-ri — the ongoing suffix","Dictionary","Coining queue","Still a placeholder.","ongoing aspect",1],
+["-ri — the ongoing suffix","Dictionary","Coining queue","Redrawn 2026-09-10 against a written filter and kept.","ongoing aspect"],
 ["Evidentials","Grammar","§4.4","la direct non-visual, po inference, ke assumption. Optional.","la po ke evidence"],
 ["Mood — question, command","Grammar","§4.5","jin final particle; bare verb for commands.","jin question imperative"],
 ["Might / maybe — oyan","Grammar","§5.3","Adverb, not grammatical. Sits at the outer edge of what it scopes.","oyan possibility might"],
 ["Copula","Grammar","§4.6","Zero in non-past; gu → guze in the past only.","is was gu"],
 ["Post-verbal order","Grammar","§4.8","Auxiliary → hena → evidential → question. Scope: narrow closest.","tail order"],
-["Adjectives are verbs","Grammar","§5.1","No adjective class. nemu = to be tired.","adjective attributive"],
+["Adjectives are verbs","Grammar","§5.1","No adjective class. kominu = to be tired.","adjective attributive nemu"],
 ["Adverbs","Grammar","§5.2","No adverb class either. Bare verb before a verb.","manner adverb"],
 ["Verbs stay short","Grammar","§4","No extra slots. Split into free words instead.","length constraint"],
 
@@ -140,12 +141,12 @@ const D = [
 ["Vowel sequences","Phonology","§4.1b","Legal, two syllables each. No diphthongs.","pai koi hiatus diphthong"],
 ["No doubled consonants","Phonology","§4.2 r1","A geminate would close a syllable.","geminate"],
 ["si / zi / tu do not occur","Phonology","§4.2 r2","Coronal obstruents change before a high vowel. Productive.","shi ji tsu palatalization"],
-["Nasal vowel before nasal consonant","Phonology","§4.2 r3","Banned word-internally only. Legal across a word boundary.","helan ni ban"],
+["Nasal vowel before nasal consonant","Phonology","§4.2 r3","Banned within the stem. A clitic seam is exempt and takes the apostrophe. Rescoped 2026-09-16.","helan ni ban seam"],
 ["Suffix shapes unavailable","Phonology","§4.2 r4","-ma, -na, -nya, -ya, -ha.","suffix onset forbidden"],
 ["No w after velar, labiodental, r","Phonology","§4.2 r5","kw gw vw fw rw banned. Coronals and labials keep Cw.","vw kw cluster w"],
 ["Obstruent + liquid onsets","Phonology","§4.2 r6","pr br kl fl etc. Produced by syncope, never coined.","cluster pra bl"],
-["No glide before its own vowel","Phonology","§4.2 r7a","yi and wu banned. nyi left legal.","yi wu kyiso glide"],
-["nyi — legal or not","Phonology","§7","/ɲi/ against /ni/. Undecided.","ny palatal",1],
+["No glide before its own vowel","Phonology","§4.2 r7a","yi, wu and nyi banned.","yi wu nyi kyiso glide"],
+["nyi — banned","Phonology","§7","Closed 2026-09-11. A contrast one speaker cannot hold reliably.","ny palatal"],
 ["Cluster + nasal vowel","Phonology","§4.2 r7","Never in the same syllable. Enforced upstream in R3.","krãː nokran"],
 ["Mora timing","Phonology","§5","Oral vowel 1 mora, nasal 2. Glides and clusters add nothing.","beats rhythm mora"],
 ["Stress rule","Phonology","§5","Last nasal syllable, else the final syllable. Non-reducing.","accent prominence"],
@@ -154,7 +155,7 @@ const D = [
 ["The nasal reading rule","Phonology","§6","A nasal letter is read by what follows it.","kana kan kanta"],
 ["Elision","Phonology","§6","Monosyllabic particle before an identical vowel. d'itsuze.","apostrophe r10 d'"],
 ["Native script","Phonology","§7","Not decided.","writing system",1],
-["d before u","Phonology","§7","Whether it parallels t → ts. Decide before any d-final verb root.","du zu",1],
+["d before u","Phonology","§7","Closed 2026-09-11: no change. /du/ is legal.","du zu"],
 
 ["Word classes by final vowel","Lexicology","§1","-u verb, -a deverbal noun, -a/e/i/o or nasal primary noun.","class theme vowel"],
 ["Nouns never end in -u","Lexicology","§1","The only hard ban the class system creates.","-u ban"],
@@ -162,10 +163,10 @@ const D = [
 ["Derivation","Lexicology","§2","Two proto-roots off one skeleton. Never a nominalizing suffix.","noun verb pair"],
 ["Why no nominalizer","Lexicology","§2.2","R3 + R4 collapse three verbs into one noun.","suffix -na fails"],
 ["Compounding","Lexicology","§2.3","Proto compounds survive only if the first element doesn't end in -u.","ganwin compound"],
-["Loanwords","Lexicology","§4","Fix the syllables, not the ending. A loan in -u must be reshaped.","borrowing french zero"],
+["Loanwords","Lexicology","§4","Fix the syllables, not the ending. Borrow the technology, keep the experience. A loan in -u is reshaped.","borrowing french zero telefon principle"],
 ["Suffix shape filter","Lexicology","§4a","One mora; verbal suffixes need a voiced non-nasal onset.","safe onsets b d g v z r l w"],
 ["Coining procedure","Lexicology","§6","Seven steps. Draw from blind stock, never invent at the point of need.","how to coin draw"],
-["Generator spec","Lexicology","§6","3–4 syllables, sonorant-weighted, vowel bias to o and u.","forge settings stock"],
+["Generator spec","Lexicology","§6","3–4 syllables, sonorant-weighted, vowel bias to o and u. Presets in the Forge set the rest.","forge settings stock preset"],
 ["Blind vs shortlist","Lexicology","§6","Both honest. Neither lets you tune toward an output.","discard take"],
 ["Say it in a sentence","Lexicology","§6 step 6","And the other words must be coined, or the test proves nothing.","test ear placeholder"],
 ["Drift — final -u devoicing","Lexicology","§5.1","Watch k p s f sh finals.","erosion whisper"],
@@ -180,35 +181,52 @@ const D = [
 ["Worked examples","Proto","Part 3","Every rule with a root that shows it.","table examples"],
 ["Root shape","Proto","§1.5","Content 3–4 syllables; function 1, or 2 for a recent recruit.","length syllables"],
 
-["Reference sentence","Dictionary","top","Lonjiwa uwiki ni sofouze hena. The benchmark by ear, and the first built entirely from coined words.","benchmark test moon night"],
+["Reference sentence","Dictionary","top","Lonjiwa uwikini sofouze hena. The benchmark by ear, and the first built entirely from coined words.","benchmark test moon night"],
 ["Provisional words — cleared","Dictionary","Provisional","All fifteen coined by 2026-09-10. Nothing provisional remains.","placeholder nokuran kanuwan"],
-["Retired words","Dictionary","Retired","loman, sen, vwetsu, lomen, bu, zu, melu, rivu, the old pronouns.","dead removed"],
+["Retired words","Dictionary","Retired","The table, with reasons. The Forge's Retire button writes new rows and blocks the shapes.","dead removed loman sen vwetsu bu zu melu rivu"],
 ["Coining queue","Dictionary","Coining queue","What still needs a word.","todo next",1],
 ["Watch items","Grammar","§8","Legal constructions expected to be avoided, and live drift risks.","irregularities log"],
 ["Endonym — heni","Dictionary","Nouns › heni","The hushed tongue. Lunaji is the exonym.","name language heni"],
+
+["Yes — dan","Grammar","§6.3","Affirmative particle for agreement and acknowledgement. The echo still answers verb questions.","yes affirmative dan"],
+["Diminutive — -jo","Grammar","§2.1a","One suffix, diminutive and affectionate. Names and kin terms.","little dear -jo diminutive"],
+["Vocative","Grammar","§2.4a","None. A bare noun is a complete utterance.","calling address"],
+["Animacy — boundary cases","Grammar","§3.3","River and recorded voice animate. The dead left open.","river recording dead",1],
+["Complement nominalizer — yeti","Dictionary","Function words › yeti","Bleached from nonyeti \"a thing\". Homophone with English yeti logged.","the fact that yeti"],
+["Equative — uan","Dictionary","Function words › uan","Bleached from puan. helan uan liaises — watch item.","as as uan"],
+["Past copula — gu","Dictionary","Function words › gu","A function word, not a verb. Surfaces only as guze.","was were guze"],
+["Loanword — telefon","Dictionary","Loanwords › telefon","Entered untouched. Animate when it rings.","phone loan"],
+["Overt pronoun subjects","Grammar","§2.3","A neutral sentence drops the subject. The Forge warns on pronoun + ba.","ganba winba pronoun drop"],
+["Comparative — the test sentence","Grammar","§5.4","howeru makes it runnable: Onankonzanba lonji toma howeru. Not yet confirmed by ear.","comparative test howeru",1],
+["Onomatopoeia","Grammar","§0","Agreed as its own class with reduplication; not yet written up.","sound words reduplication",1],
+["Forge — where coining happens","Tooling","Forge","Draw, Derive, Borrow, Phrases, Paradigm, Review, Drift, Lexicon. The Composer is retired.","forge composer tool app"],
+["Forge filter reference","Tooling","ForgeFilters","Session order, presets table, relax order, field ban lists, the four filter-box lines.","filters presets ban list"],
+["Session routine","Tooling","Forge","Load both files at the start, save both at the end. Browser storage is a working copy.","export import backup save"],
 ];
 
-const FILES = ["Grammar","Phonology","Lexicology","Dictionary","Proto"];
+const FILES = ["Grammar","Phonology","Lexicology","Dictionary","Proto","Tooling"];
 
 /* Coining constraints, keyed by class. These exist because the two-syllable rule
    for new function words is stated in five places and headed in none of them —
    you had to know where to look before you could look it up.                  */
-const CLASSES = ["verb","noun","function word","suffix","numeral"];
+const CLASSES = ["verb","noun","pronoun","function word","suffix","numeral"];
 const C = [
- [["verb","noun","function word","suffix","numeral"],"Draw blind. Take the first legal root off a batch you did not shape.","Lexicology §6"],
- [["verb","noun","function word","suffix","numeral"],"Write the filter before you see the stack. Rejecting until something feels right is shortlist drift with extra steps.","Dictionary, standing note"],
- [["verb","noun","function word","suffix","numeral"],"Say it in a sentence before you keep it. Isolated words were judged fine for two days while the language was judged characterless.","Lexicology §6 step 6"],
- [["verb","noun","function word","suffix","numeral"],"Open syllables only, ends in a vowel, no si/zi/tu, no doubled consonants, no w after a velar, labiodental or r, no cluster in the same syllable as a nasal vowel.","Lexicology §6 step 5"],
- [["verb","noun","function word","suffix","numeral"],"A content word should not be homophonous with a particle sequence.","Grammar §8"],
+ [["verb","noun","pronoun","function word","suffix","numeral"],"Start from the Forge preset for the class, set the tier and field, and check Family first before drawing.","ForgeFilters §1"],
+ [["verb","noun","pronoun","function word","suffix","numeral"],"Draw blind. Take the first legal root off a batch you did not shape.","Lexicology §6"],
+ [["verb","noun","pronoun","function word","suffix","numeral"],"Write the filter before you see the stack. Rejecting until something feels right is shortlist drift with extra steps.","Dictionary, standing note"],
+ [["verb","noun","pronoun","function word","suffix","numeral"],"Say it in a sentence before you keep it — ideally the phrasebook line it was coined for. Isolated words were judged fine for two days while the language was judged characterless.","Lexicology §6 step 6"],
+ [["verb","noun","pronoun","function word","suffix","numeral"],"Open syllables only, ends in a vowel, no si/zi/tu, no doubled consonants, no w after a velar, labiodental or r, no cluster in the same syllable as a nasal vowel.","Lexicology §6 step 5"],
+ [["verb","noun","pronoun","function word","suffix","numeral"],"A content word should not be homophonous with a particle sequence.","Grammar §8"],
 
  [["verb","noun"],"Three to four syllables at proto. A two-syllable word cannot have a run-up. Short is legitimate only when syncope earned it.","Proto §1.5"],
  [["verb"],"Theme vowel -u, which never drops. Nouns may never end in -u.","Lexicology §1.1"],
  [["verb"],"A proto root ending -un, -in or -en surfaces as a nasal-vowel irregular instead. The draw decides this, not you.","Lexicology §1.2"],
  [["verb"],"Watch what stacks behind the theme vowel: -uze, -uri, and a following bare verb in the adverbial construction.","Lexicology §4a"],
+ [["verb"],"Voiced theme onset on anything said daily — b d g v r l w n m y. No z: -zuze is the kazonze environment.","Lexicology §5.1, ForgeFilters §2"],
 
  [["noun"],"Class vowel -a for deverbal, -a/e/i/o or a nasal vowel for primary.","Lexicology §1"],
  [["noun"],"A noun and its verb are two separate proto-roots off one skeleton. Never a nominalizing suffix — it destroys a consonant on every derived noun.","Lexicology §2, §2.2"],
- [["noun"],"Nasal-final nouns liaise: the particle grabs the nasal and the stress moves with it. Test both shapes.","Grammar §1a"],
+ [["noun"],"Nasal-final nouns liaise: a vowel-initial particle grabs the nasal and the stress moves with it; n-, y-, w-initial particles take the apostrophe. Check all of it in the Forge's Paradigm tab.","Grammar §1a, §1b.4"],
  [["noun"],"Check it against the topic particle. fona was redrawn because fonana stuttered.","Dictionary › akyoza"],
 
  [["function word"],"TWO SYLLABLES if it is a recent grammaticalisation, ONE if it is ancient. Syllable count encodes age, and the orthography follows it: two syllables are written separate, one cliticizes and joins.","Grammar §1b.4, §6.1, §5.4"],
@@ -221,6 +239,9 @@ const C = [
  [["suffix"],"Unavailable shapes: -ma, -na, -nya, -ya, -ha.","Lexicology §4a, Phonology §4.2 rule 4"],
  [["suffix"],"Verbal suffixes need a voiced onset, not nasal, not y. Safe: b d g v z r l w.","Lexicology §4a"],
 
+ [["pronoun"],"Draw the set together, not three slots. Two syllables, oral-final, so every particle joins plainly.","Grammar §3.1 (reopened)"],
+ [["pronoun"],"Check each candidate's whole paradigm in the Forge before choosing — ba, the object, pe, the topic, -ta.","Forge › Paradigm"],
+ [["pronoun"],"No English homophone. win was one.","Grammar §3.1"],
  [["numeral"],"No final -u — adjectival verbs also precede nouns, so X-u helan would be ambiguous.","Dictionary › numerals"],
  [["numeral"],"No minimal pairs inside the set, or against particles and pronouns that stand next to nouns.","Dictionary › numerals"]
 ];
