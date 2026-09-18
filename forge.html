@@ -86,7 +86,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16-2100</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-17-1100</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -376,7 +376,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
 
 <!-- ───────────── PARADIGM ───────────── -->
 <section id="paradigm" hidden>
-  <p class="hint">Every form a word takes, split into syllables with the stress marked (ˈ) and the mora count. Built from Grammar §1a, §2, §3 and §4 — not from the Composer.</p>
+  <p class="hint">Every form a word takes, in IPA with the stress marked (ˈ), and its mora count. Built from Grammar §1a, §2, §3 and §4 — not from the Composer.</p>
   <div class="row">
     <div style="flex:2 1 180px">
       <label for="pdWord">Word</label>
@@ -2248,13 +2248,37 @@ function paintPbFrames(w){
 paintPB();
 
 /* ══════════ paradigm ══════════ */
+// True IPA where it is shown in slashes. The orthography is not the phonology:
+// y is /j/, r is /ɾ/, ny is /ɲ/, tu is /tsu/, si is /ʃi/, zi is /ʒi/, and a
+// nasal vowel is written Vn but held: /ãː/.
+const NASV = {a:"ãː", e:"ẽː", i:"ĩː", o:"õː", u:"ũː"};
+function ipaSyl(t, nasal){
+  const m = t.match(/^([^aeiou]*)([aeiou])(n?)$/);
+  if(!m) return t;
+  let [, ons, v] = m, out = "";
+  if(ons === "ts" || (ons === "t" && v === "u" && !nasal)) out = "ts";
+  else if(ons === "ny") out = "ɲ";
+  else if(ons === "sh" || (ons === "s" && v === "i")) out = "ʃ";
+  else if(ons === "j" || (ons === "z" && v === "i")) out = "ʒ";
+  else out = ons.split("").map(c => c === "r" ? "ɾ" : c === "y" ? "j" : c).join("");
+  return out + (nasal ? NASV[v] : v);
+}
+function ipaOf(w){
+  try{
+    const sy = Prosody.sylsOf(w), st = Prosody.stressIdx(w);
+    if(!sy.length) throw 0;
+    return sy.map((s, i) => (i === st ? "ˈ" : "") + ipaSyl(s.t, s.nasal)).join(".");
+  }catch(e){
+    try{ return Prosody.ipaWord(w); }catch(e2){ return w; }
+  }
+}
 const nasalFinal = w => /[aio]n$/.test(w);
 // Phonology §6: a nasal vowel before a bare glide takes the apostrophe, or
 // aoyanwa would read /a.o.ja.nwa/ — the n taken as an onset before w.
 const J = (w, p) => nasalFinal(w) && /^[nyw]/.test(p) ? w + "'" + p : w + p;
 function pdRow(label, form, note, base){
   const toks = form.split(" ");
-  const ipa = toks.map(t => { try{ return (LEX[t] && Prosody.sylsOf(t).length === 1) ? t : Prosody.ipaWord(t); }catch(e){ return t; } }).join(" ");
+  const phon = toks.map(t => (LEX[t] && t.length <= 3 && !/[aeiou]n$/.test(t)) ? t : ipaOf(t)).join(" ");
   const m = toks.reduce((a,t) => { try{ return a + Prosody.morasOfWord(t); }catch(e){ return a; } }, 0);
   let moved = false;
   if(base && toks[0] !== base){
@@ -2266,7 +2290,7 @@ function pdRow(label, form, note, base){
   }
   return `<tr><td style="color:var(--dim);font-size:13px">${label}</td>
     <td><div class="lun" style="font-size:18px">${esc(form)}</div>
-    <div class="hint" style="margin:0">${esc(ipa)} · ${m}m${moved ? ' · <span style="color:var(--lamp)">stress moves</span>' : ""}</div>
+    <div class="hint" style="margin:0">/${esc(phon)}/ · ${m}m${moved ? ' · <span style="color:var(--lamp)">stress moves</span>' : ""}</div>
     ${note ? `<div class="hint" style="margin:2px 0 0;opacity:.8">${note}</div>` : ""}</td></tr>`;
 }
 const pdTable = (title, rows) => `<div class="panel"><h2 style="margin:0 0 8px">${title}</h2><table>${rows.join("")}</table></div>`;
@@ -2416,15 +2440,17 @@ function paintRetired(){
   $("lxRetSum").textContent = `Retired shapes (${ws.length} stored, plus ${RETIRED.length} built in)`;
   $("lxRetList").innerHTML = ws.length ? `<table>${ws.map(w => `<tr><td class="lun">${esc(w)}</td>
       <td>${esc(RET[w].r)}<div class="hint" style="margin:0">${esc(RET[w].g || "")} · ${esc(RET[w].d)}</div></td>
-      <td><button class="btn ghost" data-unret="${esc(w)}" style="padding:4px 8px">Unretire</button></td></tr>`).join("")}</table>`
+      <td><button class="btn ghost" data-unret="${esc(w)}" style="padding:4px 8px">${RET[w].g ? "Unretire" : "Remove"}</button></td></tr>`).join("")}</table>`
     : `<p class="hint">None retired from here yet.</p>`;
 }
 $("lxRetire").onclick = () => {
   const w = $("lxWord").value.trim().toLowerCase();
   if(!w){ $("lxRetOut").innerHTML = `<p class="hint">Tap a word above first.</p>`; return; }
+  const e = LEX[w];
+  // A word not in the lexicon is usually a typo, not a shape you meant to block
+  if(!e && !confirm(`${w} is not in the lexicon. Retiring it only blocks the shape from future draws — check the spelling first.\n\nBlock ${w} anyway?`)) return;
   const reason = prompt(`Retire ${w}. Why? This goes in the Retired table.`, "");
   if(reason === null) return;
-  const e = LEX[w];
   RET[w] = {r: reason.trim() || "(no reason written)", d: stamp(), g: e ? e.g : "", p: e && e.p || ""};
   saveRet();
   if(e){ delete LEX[w]; saveLex(); renderLex(); }
@@ -2433,11 +2459,14 @@ $("lxRetire").onclick = () => {
   $("lxRetOut").innerHTML = `<label style="display:block;margin-top:10px">Retired table row</label><pre>${esc(row)}</pre>`;
   $("lxWord").value = ""; $("lxGloss").value = ""; $("lxAdd").textContent = "Add";
   paintRetired();
+  const d = $("lxRetList").closest("details"); if(d) d.open = true;   // so the row is visible at once
 };
 $("lxRetList").onclick = ev => {
   const b = ev.target.closest("[data-unret]"); if(!b) return;
   const w = b.dataset.unret;
-  if(!confirm(`Unretire ${w}? The shape becomes drawable again. The word itself is not restored to the lexicon.`)) return;
+  if(!confirm(RET[w].g
+      ? `Unretire ${w}? The shape becomes drawable again. The word itself is not restored to the lexicon.`
+      : `Remove ${w} from the retired list? Nothing else changes — it was never a word in the lexicon.`)) return;
   delete RET[w]; saveRet(); paintRetired();
   logLine(`${stamp()}  unretired ${w}`);
 };
@@ -2449,7 +2478,7 @@ function dictLines(){
     .filter(w => !since || (LEX[w].d && LEX[w].d >= since))
     .map(w => {
       const e = LEX[w];
-      let stress = w; try{ stress = Prosody.ipaWord(w); }catch(err){}
+      const stress = ipaOf(w);
       const cls = e.k ? (CLASSLABEL[e.k] || e.c) : e.c;
       const origin = e.p ? "< " + e.p : e.src ? `< ${e.lang || ""} *${e.src}*`.replace("<  ", "< ") : "";
       return `**${w}** /${stress}/ · *${cls}* · ${e.g}${origin ? " · " + origin : ""}${e.d ? " · [" + e.d + "]" : ""}`;
@@ -2511,7 +2540,7 @@ function paintCard(){
   const c = rvCur, prompt = c.dir === "en" ? c.en : c.lu, answer = c.dir === "en" ? c.lu : c.en;
   const isNew = !REV[c.id];
   let extra = "";
-  if(rvShown && c.kind !== "phrase"){ try{ extra = `<div class="hint">${esc(Prosody.ipaWord(c.lu))} · ${esc(c.kind)}</div>`; }catch(e){} }
+  if(rvShown && c.kind !== "phrase"){ try{ extra = `<div class="hint">/${esc(ipaOf(c.lu))}/ · ${esc(c.kind)}</div>`; }catch(e){} }
   if(rvShown && c.kind === "phrase"){ try{ extra = prosodyBlock(c.lu); }catch(e){} }
   $("rvCard").innerHTML = `<div class="panel">
     <div class="hint">${c.dir === "en" ? "Say it in Lunaji" : "What does it mean"}${isNew ? " · new" : ""} · ${rvQueue.length} left</div>

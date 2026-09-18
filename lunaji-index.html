@@ -35,8 +35,8 @@ mark{background:none;color:var(--accent)}
 </style>
 
 <header>
-  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-16</div>
-  <p class="sub">Where things live, not what they say. Current to 2026-09-16.</p>
+  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-18-b</div>
+  <p class="sub">Where things live, not what they say. Current to 2026-09-17.</p>
   <input id="q" placeholder="flower, plural, negation, stress…" autocomplete="off">
   <div class="tags" id="tags"></div>
 </header>
@@ -69,7 +69,15 @@ const D = [
 
 ["Flower — ani","Dictionary","Nouns › ani","AKUNI → ani. Inanimate; demonstrates the animacy rule in all four places at once.","ani akuni plant"],
 ["Animacy — the definition","Grammar","§3.3","Animate = it moves or makes sound on its own. Contextual, not lexical.","self-acting alive animate inanimate"],
-["Animacy — where it applies","Grammar","§2.1, §3.3, §4.7, §7","Four sites: plural, pronoun, existence verb, counters. One category, cannot differ between them.","four places"],
+["Animacy — the sites","Grammar","§3.3b","Pronoun, plural, existence, counters, interrogatives, possession settled; love/like, knowing, taking along, ending, fear adopted. No ceiling on the number.","four places sites where it applies"],
+["Animacy — where it came from","Grammar","§3.3a","A night-people's survival question — did it just act? — built into the grammar and later softened into meaning and attitude.","history origin night-people why"],
+["Crossing the animacy line","Grammar","§3.3c","Up elevates or personifies; down distances or dismisses. Same meaning at every site.","antamu contempt personify respect"],
+["Adding an animacy site","Grammar","§3.3d","Same test, same crossing meanings, a frequent domain, recorded in the table. Coin both verbs together.","new site criteria"],
+["Possession — have","Grammar","§3.3b","X-pe Y-ba hin for animates, yozu for things. Nothing new to coin.","have own possession hin yozu"],
+["Politeness through animacy","Grammar","§3.4","No formality ranking. Warmth, reserve and contempt come from treating someone as acting or not.","polite respect formality honorific"],
+["Object marking by animacy","Grammar","§3.3b","Obligatory ni on animate objects — proposed, not ruled.","differential object marking ni",1],
+["Animacy-site verbs to coin","Dictionary","Coining queue","to like, to know a person, bring along / carry, die / stop, fear / dread. Coin each pair together.","like know bring carry die fear queue",1],
+["here / there","Dictionary","Coining queue","No locative pair yet.","here there locative",1],
 ["Plural — animates only","Grammar","§2.1","-ta marks animates. Plants and objects can never take it.","-ta number plural"],
 ["Plural of an inanimate","Grammar","§2.1","There isn't one. Bare form is unspecified; count with a numeral if it matters.","flowers many"],
 ["Bare noun = unspecified","Grammar","§2.1","Not singular. The question of how many simply isn't asked.","number singular"],
@@ -110,12 +118,13 @@ const D = [
 ["Definiteness","Grammar","§2.4","None. No articles.","the a"],
 ["Gender","Grammar","§2.5","None.","masculine feminine"],
 
-["Pronouns — reopened","Grammar","§3.1","gan, win, ishin grate in speech; to be redrawn as a set — two syllables, oral-final. Reopened 2026-09-16.","i you he she gan win ishin",1],
-["Inclusive vs exclusive we","Grammar","§3.2","ganwin inclusive (compound), ganta exclusive (regular -ta).","ganwin ganta we"],
+["Pronouns — the grid","Grammar","§3.1","nuswa, lwaji, nwoli. Two syllables, oral-final, so every particle joins and the stress falls on the particle. Redrawn 2026-09-18.","i you he she nuswa lwaji nwoli gan win ishin"],
+["Inclusive vs exclusive we","Grammar","§3.2","luswazo inclusive (1+2, a fused form) and nuswata exclusive (regular -ta). Redrawn 2026-09-18.","ganwin ganta luswazo nuswata we"],
 ["Third person is animate-only","Grammar","§3.3","Demonstratives cover everything else. Inanimate form on a person is contempt.","ishin it"],
-["Formality","Grammar","§3.4","None. Door left open in the verb suffix stack.","polite tu vous",1],
+["Formality","Grammar","§3.4","No tu/vous ranking. Politeness lives in animacy instead.","polite tu vous"],
 
 ["Tense","Grammar","§4.1","Two-way, past -ze. Goes on the last verb.","-ze past future"],
+["-ri on statives — the temporary","Grammar","§4.2","hinri, yozuri are legal: the state holds for now. The ser/estar contrast, carried by aspect. Ruled 2026-09-17.","hinri yozuri temporary stative ser estar"],
 ["Aspect","Grammar","§4.2","-ri ongoing; byon and lon are auxiliary verbs, and nasal-vowel irregulars.","byon lon habitual ongoing bu zu"],
 ["-ri — the ongoing suffix","Dictionary","Coining queue","Redrawn 2026-09-10 against a written filter and kept.","ongoing aspect"],
 ["Evidentials","Grammar","§4.4","la direct non-visual, po inference, ke assumption. Optional.","la po ke evidence"],
@@ -162,7 +171,7 @@ const D = [
 ["Nasal-vowel irregular verbs","Lexicology","§1.2","KATUN → kan. hin is the first member.","irregular hin class"],
 ["Derivation","Lexicology","§2","Two proto-roots off one skeleton. Never a nominalizing suffix.","noun verb pair"],
 ["Why no nominalizer","Lexicology","§2.2","R3 + R4 collapse three verbs into one noun.","suffix -na fails"],
-["Compounding","Lexicology","§2.3","Proto compounds survive only if the first element doesn't end in -u.","ganwin compound"],
+["Compounding","Lexicology","§2.3","Proto compounds survive only if the first element doesn't end in -u. No attested member since ganwin retired — luswazo is fused, not compounded.","ganwin luswazo compound"],
 ["Loanwords","Lexicology","§4","Fix the syllables, not the ending. Borrow the technology, keep the experience. A loan in -u is reshaped.","borrowing french zero telefon principle"],
 ["Suffix shape filter","Lexicology","§4a","One mora; verbal suffixes need a voiced non-nasal onset.","safe onsets b d g v z r l w"],
 ["Coining procedure","Lexicology","§6","Seven steps. Draw from blind stock, never invent at the point of need.","how to coin draw"],
@@ -183,9 +192,14 @@ const D = [
 
 ["Reference sentence","Dictionary","top","Lonjiwa uwikini sofouze hena. The benchmark by ear, and the first built entirely from coined words.","benchmark test moon night"],
 ["Provisional words — cleared","Dictionary","Provisional","All fifteen coined by 2026-09-10. Nothing provisional remains.","placeholder nokuran kanuwan"],
-["Retired words","Dictionary","Retired","The table, with reasons. The Forge's Retire button writes new rows and blocks the shapes.","dead removed loman sen vwetsu bu zu melu rivu"],
+["Retired words","Dictionary","Retired","Includes the old pronoun set — gan, win, ishin, ganwin, ganta, retired 2026-09-18. The table, with reasons. The Forge's Retire button writes new rows and blocks the shapes.","dead removed loman sen vwetsu bu zu melu rivu"],
 ["Coining queue","Dictionary","Coining queue","What still needs a word.","todo next",1],
 ["Watch items","Grammar","§8","Legal constructions expected to be avoided, and live drift risks.","irregularities log"],
+["I love you — nowiretsu","Dictionary","Nouns › nowiretsu","The everyday phrase, not antamu. retsu is the clipped casual form, observed in use 2026-09-18.","love antamu retsu nowiretsu"],
+["Falling out of love — the idiom","Dictionary","Nouns › nowiretsu","Lonjiwa nowiretsu hena. A daytime version is planned.","idiom love ended awake in the day"],
+["Spouse — hotori vs naiza / kanagoa","Dictionary","Nouns › hotori","hotori is the default; the gendered pair is kept for when the sex is the point.","wife husband spouse gender"],
+["jura vs wokonya","Dictionary","Forge rulings","jura is the calendar unit; wokonya is daylight.","day daytime 24 hours"],
+["First observed change — retsu","Phonology","§4.2 r3","Clipping of nowiretsu by the second speaker. Not predicted, not ruled.","drift clipping retsu observed"],
 ["Endonym — heni","Dictionary","Nouns › heni","The hushed tongue. Lunaji is the exonym.","name language heni"],
 
 ["Yes — dan","Grammar","§6.3","Affirmative particle for agreement and acknowledgement. The echo still answers verb questions.","yes affirmative dan"],
@@ -219,6 +233,7 @@ const C = [
  [["verb","noun","pronoun","function word","suffix","numeral"],"A content word should not be homophonous with a particle sequence.","Grammar §8"],
 
  [["verb","noun"],"Three to four syllables at proto. A two-syllable word cannot have a run-up. Short is legitimate only when syncope earned it.","Proto §1.5"],
+ [["verb"],"If the meaning is on an animacy site — love, knowing, taking along, ending, fear — coin both verbs of the pair together, as separate roots.","Grammar §3.3b, Lexicology §6 step 2"],
  [["verb"],"Theme vowel -u, which never drops. Nouns may never end in -u.","Lexicology §1.1"],
  [["verb"],"A proto root ending -un, -in or -en surfaces as a nasal-vowel irregular instead. The draw decides this, not you.","Lexicology §1.2"],
  [["verb"],"Watch what stacks behind the theme vowel: -uze, -uri, and a following bare verb in the adverbial construction.","Lexicology §4a"],
