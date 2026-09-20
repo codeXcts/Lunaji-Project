@@ -82,11 +82,22 @@ th{color:var(--dim); font-weight:500; font-size:12px}
 td.f{color:var(--bad)} td.p{color:var(--ok)}
 pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:12px; overflow:auto; font-size:13px; white-space:pre-wrap}
 .hint{font-size:13px; color:var(--dim); margin:6px 0 0}
+.lnvals{list-style:none; padding:0; margin:10px 0 0}
+.lnvals li{display:flex; gap:8px; align-items:baseline; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px}
+.lnvals li span{flex:1}
+.lnvals button,.lnx{background:none; border:0; color:var(--dim); font-size:16px; cursor:pointer}
+.lnnode{padding:8px 0 2px}
+.lnkids{margin:6px 0 0 6px; padding-left:14px; border-left:2px solid var(--line)}
+.lnform{font-size:18px; margin-top:3px}
+.lnform .proto{font-size:13px; color:var(--dim); margin-left:6px}
+.lnacts{font-size:13px; margin-top:5px; display:flex; gap:16px; flex-wrap:wrap}
+.lnacts a{color:var(--cool)}
+details.panel>summary{cursor:pointer}
 </style>
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-17-1100</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-19-1000</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -98,6 +109,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   <button role="tab" aria-selected="false" data-tab="paradigm">Paradigm</button>
   <button role="tab" aria-selected="false" data-tab="review">Review</button>
   <button role="tab" aria-selected="false" data-tab="drift">Drift</button>
+  <button role="tab" aria-selected="false" data-tab="lineage">Lineage</button>
   <button role="tab" aria-selected="false" data-tab="lexicon">Lexicon</button>
   <button role="tab" aria-selected="false" data-tab="log">Log</button>
 </nav>
@@ -424,6 +436,83 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   </div>
 </section>
 
+<!-- ───────────── LINEAGE ───────────── -->
+<section id="lineage" hidden>
+  <p class="hint">Follow one proto-root as its meaning moves. Every branch needs a reason from the world Lunaji comes from. If the only reason is that English does it, the branch doesn't save.</p>
+  <details class="panel">
+    <summary><b>The setting</b> <span class="hint" style="display:inline">· what every branch is checked against</span></summary>
+    <div id="lnValues"></div>
+    <div class="row" style="margin:10px 0 0">
+      <div style="flex:1 1 220px"><label for="lnValNew">Add a value the culture lives by</label><input id="lnValNew" placeholder="A guest is never left at the door in winter."></div>
+      <div style="flex:0 0 auto;align-self:flex-end"><button class="btn ghost" id="lnValAdd">Add</button></div>
+    </div>
+  </details>
+  <div class="panel">
+    <label for="lnPick">Lineage</label>
+    <select id="lnPick"></select>
+    <div class="row" style="margin-top:12px">
+      <div><label for="lnRoot">Proto-root, in caps</label><input id="lnRoot" class="proto" spellcheck="false" placeholder="empty until drawn"></div>
+      <div><label for="lnSense">Literal meaning</label><input id="lnSense" placeholder="to feed the fire"></div>
+    </div>
+    <div class="row" style="margin:0">
+      <button class="btn ghost" id="lnNew">Start a new lineage</button>
+      <button class="btn ghost" id="lnDel">Delete this lineage</button>
+    </div>
+  </div>
+  <div id="lnTree"></div>
+  <div class="panel" id="lnForm">
+    <h2 style="margin-top:0" id="lnFormTitle">Add a branch</h2>
+    <div class="row">
+      <div><label for="lnFrom">Grows from</label><select id="lnFrom"></select></div>
+      <div><label for="lnHow">How it moved</label>
+        <select id="lnHow">
+          <option value="widen">widened</option>
+          <option value="metaphor">jumped by likeness</option>
+          <option value="along">slid to what goes with it</option>
+          <option value="narrow">narrowed</option>
+        </select></div>
+    </div>
+    <p class="hint" id="lnHowNote" style="margin:-4px 0 12px"></p>
+    <label for="lnNewSense">The new meaning</label>
+    <input id="lnNewSense" placeholder="to look after someone">
+    <label for="lnWhy" style="margin-top:10px">Why it moved: what in their life pushed the word here</label>
+    <textarea id="lnWhy" rows="3" placeholder="Warmth is life here, so keeping a person going is the same act as keeping a fire going."></textarea>
+    <div class="toggles"><label><input type="checkbox" id="lnEng"><span>English makes this same move<em>Tick it honestly. You'll be asked why Lunaji would make it anyway.</em></span></label></div>
+    <div id="lnEngBox" hidden>
+      <label for="lnWhyStill">Why Lunaji makes it too, from its own world</label>
+      <textarea id="lnWhyStill" rows="2"></textarea>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div><label for="lnEnd">The word it rides on</label>
+        <select id="lnEnd">
+          <option value="">the same word, one more meaning</option>
+          <option value="a">root skeleton + –a (deverbal noun)</option>
+          <option value="u">root skeleton + –u (verb)</option>
+          <option value="un">root skeleton + –un (verb, nasal final)</option>
+          <option value="e">root skeleton + –e (noun)</option>
+          <option value="i">root skeleton + –i (noun)</option>
+          <option value="o">root skeleton + –o (noun)</option>
+          <option value="custom">a proto-shape I type</option>
+        </select></div>
+      <div><label for="lnCls">Class</label>
+        <select id="lnCls">
+          <option value="verb">verb</option>
+          <option value="irreg">irregular verb (–on)</option>
+          <option value="dnoun">deverbal noun</option>
+          <option value="pnoun">primary noun</option>
+          <option value="func">function word</option>
+        </select></div>
+    </div>
+    <div id="lnProtoBox" hidden><label for="lnProto">Branch proto-shape, in caps</label><input id="lnProto" class="proto" spellcheck="false" placeholder="root plus a suffix or a second root"></div>
+    <div id="lnPreview"></div>
+    <div id="lnErr"></div>
+    <div class="row" style="margin:12px 0 0">
+      <button class="btn" id="lnSave">Save branch</button>
+      <button class="btn ghost" id="lnCancel" hidden>Cancel edit</button>
+    </div>
+  </div>
+</section>
+
 <!-- ───────────── LEXICON ───────────── -->
 <section id="lexicon" hidden>
   <div class="panel">
@@ -437,7 +526,7 @@ pre{background:var(--panel2); border:1px solid var(--line); border-radius:4px; p
   </div>
   <div class="panel">
     <button class="btn ghost" id="lxAudit">Audit the lexicon</button>
-    <p class="hint">Checks every stored word for what the Borrow tab and the hand-add box let through: <em>en</em>/<em>un</em> spellings, identical-vowel hiatus, nouns in <em>–u</em>, words that open on numeral + counter or split into particles, shared glosses, missing glosses.</p>
+    <p class="hint">Checks every stored word for what the Borrow tab and the hand-add box let through: <em>en</em>/<em>un</em> spellings, identical-vowel and back-rounded (R11) hiatus, nouns in <em>–u</em>, words that open on numeral + counter or split into particles, shared glosses, missing glosses.</p>
     <div id="lxAuditOut"></div>
   </div>
   <div class="panel">
@@ -834,6 +923,9 @@ function check(res, cls){
   // a glide before its own vowel is inaudible — /yi/ and /wu/. ny + i is ɲi and is left alone.
   // Phonology §4.1b — no oral length, so /o.o/ cannot be heard as two beats
   if(/([aeiou])\1/.test(sp)) t.push({ok:false, s:"identical-vowel hiatus — unrecoverable without oral length"});
+  // R11, running since 2026-09-18: /o.u/ and /u.o/ collapse in speech, so a word
+  // coined with one would be undone the moment it was said.
+  if(/ou|uo/.test(sp)) t.push({ok:false, s:"back-rounded hiatus (ou/uo) — R11 collapses it: sofou → sofu"});
   // Phonology §4.2 rule 3 — no nasal vowel before a nasal consonant inside a word
   if(/[aeiou]n(?:n|m)/.test(sp) || /[aeiou]nny/.test(sp)) t.push({ok:false, s:"nasal vowel before a nasal consonant (Phonology §4.2.3)"});
   if(/[yw][yw]/.test(sp.replace(/ny/g,"N"))) t.push({ok:false, s:"two glides in a row"});
@@ -1102,7 +1194,7 @@ const $ = id => document.getElementById(id);
 document.querySelectorAll("nav button").forEach(b=>{
   b.onclick = () => {
     document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["draw","derive","verify","borrow","phrases","paradigm","review","drift","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+    ["draw","derive","verify","borrow","phrases","paradigm","review","drift","lineage","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
   };
 });
 
@@ -1881,6 +1973,7 @@ function wordRisks(w, cls){
   if(h) block.push("opens on " + h + " \u2014 numeral + counter, which stands directly before nouns");
   if(/[eu]n(?![aeiouyw'])/.test(w)) block.push("spells a nasal vowel the language lacks \u2014 only an in on");
   if(/([aeiou])\1/.test(w)) block.push("identical-vowel hiatus \u2014 unrecoverable without oral length");
+  if(/ou|uo/.test(w)) block.push("back-rounded hiatus (ou/uo) \u2014 R11 collapses it: sofou \u2192 sofu");
   // the fona failure: a clitic joined onto a word that already ends in it
   const nas = /[aeiou]n$/.test(w);
   [nas ? "a" : "na", "ba", "pe", "wa", "di"].concat(nas ? [] : ["ni"]).forEach(c => {
@@ -2021,7 +2114,7 @@ function readTextFile(input){
   });
 }
 $("lxSaveFile").onclick = async () => {
-  const body = JSON.stringify({v:2, LEX, RETIRED: RET, REVIEW: REV, DRIFT});
+  const body = JSON.stringify({v:2, LEX, RETIRED: RET, REVIEW: REV, DRIFT, LINEAGE: LN});
   if(await saveTextFile(`lunaji-lexicon-${stamp()}.txt`, body, $("lxFileNote"))) setDirty("lex", false);
   logLine(`${stamp()}  saved the lexicon to a file · ${Object.keys(LEX).length} words`);
 };
@@ -2045,7 +2138,8 @@ $("lxFile").onchange = async () => {
     if(extra.RETIRED){ RET = extra.RETIRED; saveRet(); }
     if(extra.REVIEW){ REV = extra.REVIEW; saveRev(); }
     if(Array.isArray(extra.DRIFT)){ DRIFT = extra.DRIFT; saveDrift(); }
-    paintRetired(); paintDrift(); paintReview();
+    if(extra.LINEAGE && Array.isArray(extra.LINEAGE.trees)){ LN = extra.LINEAGE; if(!Array.isArray(LN.values)) LN.values = []; saveLn(); }
+    paintRetired(); paintDrift(); paintReview(); paintLineage();
   }
   setDirty("lex", false);
   $("lxFileNote").textContent = `Loaded ${words.length} words from ${f.name}.`;
@@ -2625,6 +2719,286 @@ $("drAdd").onclick = () => {
   DRIFT.push({name, env:"", v: vs.map(l => ({l, n:0})), last:""});
   saveDrift(); paintDrift(); $("drName").value = ""; $("drVars").value = "";
 };
+
+/* ══════════ lineage ══════════
+   One proto-root followed as its meaning moves. Every branch carries the
+   in-world reason it moved; a branch that copies an English move needs a
+   second reason before it saves. Branches that ride on their own proto-shape
+   go through derive(), so they wear apart under the same R-rules as
+   everything else, and can be sent to Derive to be kept. */
+const LNKEY = "lunaji-lineage";
+const LN_HOW = {
+  widen:    ["widened", "The word keeps its core and stops caring what it applies to. Feeding a fire becomes keeping anything alive."],
+  metaphor: ["jumped by likeness", "The word crosses to a different kind of thing that works the same way. Keeping a fire alive becomes keeping a person alive."],
+  along:    ["slid to what goes with it", "The word moves to something that usually happens at the same time or place. Looking after a neighbor in winter means sitting by their stove, so the word comes to mean visiting."],
+  narrow:   ["narrowed", "The word shrinks to one special use, often in ritual or a trade. Feeding the fire becomes feeding it for the dead."]
+};
+function lnId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function lnSeed(){
+  const b = (id, from, how, sense, why, cls) => ({id, from, how, sense, why, eng:false, still:"", end:"", proto:"", cls});
+  return {
+    cur: 0,
+    values: [
+      "A fire has to be tended or it dies.",
+      "Warmth is shared, not owned.",
+      "The dark is moved through slowly, not fought.",
+      "The year swings between a still dark and a restless light."
+    ],
+    trees: [{id: lnId(), root: "", sense: "to feed the fire (example: edit or delete)", branches: [
+      b("s1", "root", "widen", "to keep something alive",
+        "Through the weeks without sun it is said about everything that would die if left alone: the lamp, the calf, a neighbor's stove.", "verb"),
+      b("s2", "s1", "metaphor", "to look after someone",
+        "Warmth is life here, so keeping a person going is the same act as keeping a fire going.", "verb"),
+      b("s3", "s2", "along", "to visit",
+        "Looking after someone in winter means going to their house and sitting by their fire.", "verb"),
+      b("s4", "root", "narrow", "to honor the dead",
+        "Food is put in the fire before a meal as an offering, so feeding the fire narrows to feeding it for the ancestors.", "verb")
+    ]}]
+  };
+}
+let LN;
+try{ LN = JSON.parse(localStorage.getItem(LNKEY) || "null"); }catch(e){ LN = null; }
+if(!LN || !Array.isArray(LN.trees)) LN = lnSeed();
+if(!Array.isArray(LN.values)) LN.values = [];
+function saveLn(){ try{ localStorage.setItem(LNKEY, JSON.stringify(LN)); }catch(e){} setDirty("lex", true); }
+const lnTree = () => LN.trees[LN.cur] || null;
+let lnEdit = null;   // id of the branch being edited, or null when adding
+
+const lnSkel = root => root.replace(/[AEIOU]N?$/, "");
+const lnSenseOf = (t, id) => id === "root" ? (t.sense || "the literal meaning") : ((t.branches.find(x => x.id === id) || {}).sense || "?");
+const lnKept = p => p ? Object.keys(LEX).find(w => LEX[w].p === p) : null;
+function lnProtoOf(t, end, typed){
+  if(!end) return null;
+  if(end === "custom") return (typed || "").trim().toUpperCase() || null;
+  return t.root ? lnSkel(t.root) + end.toUpperCase() : null;
+}
+/* The surface form a meaning is carried by. A branch with no shape of its own
+   is the same word as the meaning it grew from. */
+function lnForm(t, id, depth = 0){
+  if(depth > 40) return {};
+  if(id === "root"){
+    if(!t.root) return {};
+    try{ const r = derive(t.root); return {proto: t.root, word: r.spelling, bad: check(r, "any").filter(x => !x.ok)}; }
+    catch(e){ return {proto: t.root, err: e.message}; }
+  }
+  const b = t.branches.find(x => x.id === id); if(!b) return {};
+  if(!b.end) return {...lnForm(t, b.from, depth + 1), same: true};
+  const proto = lnProtoOf(t, b.end, b.proto);
+  if(!proto) return {pending: true};
+  try{ const r = derive(proto); return {proto, word: r.spelling, bad: check(r, b.cls).filter(x => !x.ok)}; }
+  catch(e){ return {proto, err: e.message}; }
+}
+function lnFormHtml(f, isRoot){
+  if(f.err) return `<span class="tag bad">${esc(f.err)}</span>`;
+  if(!f.word){
+    if(f.same) return `<span class="hint">same word as the meaning above · no form until the root is drawn</span>`;
+    return `<span class="hint">${isRoot ? "no root yet · draw one in Draw and type it above" : "its own word · no form until the root is drawn"}</span>`;
+  }
+  const kept = !f.same && lnKept(f.proto);
+  return `<span class="lun">${esc(f.word)}</span><span class="proto">${esc(f.proto)}</span>` +
+    (f.same ? ` <span class="hint" style="display:inline">· same word as above</span>` : "") +
+    (f.bad && f.bad.length ? ` <span class="tag bad">${esc(f.bad[0].s)}</span>` : "") +
+    (kept ? ` <span class="tag ok">in the lexicon</span>` : "");
+}
+function lnDescendants(t, id){
+  const out = [id];
+  t.branches.filter(b => b.from === id).forEach(b => out.push(...lnDescendants(t, b.id)));
+  return out;
+}
+
+function paintLineage(){
+  $("lnValues").innerHTML = LN.values.length
+    ? `<ul class="lnvals">${LN.values.map((v, i) => `<li><span>${esc(v)}</span><button data-lnval="${i}" aria-label="Remove this value">×</button></li>`).join("")}</ul>`
+    : `<p class="hint">No values written yet. Add the few things this culture lives by.</p>`;
+  $("lnPick").innerHTML = LN.trees.length
+    ? LN.trees.map((t, i) => `<option value="${i}"${i === LN.cur ? " selected" : ""}>${esc(t.sense || "(no meaning yet)")}${t.root ? " · " + esc(t.root) : ""}</option>`).join("")
+    : `<option>no lineages yet</option>`;
+  const t = lnTree();
+  $("lnRoot").disabled = $("lnSense").disabled = $("lnDel").disabled = !t;
+  $("lnForm").hidden = !t;
+  if(!t){
+    $("lnRoot").value = $("lnSense").value = "";
+    $("lnTree").innerHTML = `<p class="hint">Start a lineage with one proto-root and its literal meaning.</p>`;
+    return;
+  }
+  if(document.activeElement !== $("lnRoot")) $("lnRoot").value = t.root || "";
+  if(document.activeElement !== $("lnSense")) $("lnSense").value = t.sense || "";
+
+  const kids = id => t.branches.filter(b => b.from === id);
+  const node = b => {
+    const f = lnForm(t, b.id);
+    const own = !!b.end && f.proto && f.word;
+    return `<div class="lnnode">
+      <div><span class="tag">${esc(LN_HOW[b.how] ? LN_HOW[b.how][0] : b.how)}</span> <b>${esc(b.sense)}</b></div>
+      <div class="lnform">${lnFormHtml(f, false)}</div>
+      <p class="hint" style="margin:4px 0 0">${esc(b.why)}</p>
+      ${b.eng ? `<p class="hint" style="margin:4px 0 0">English makes this move too. Lunaji makes it anyway: ${esc(b.still)}</p>` : ""}
+      <div class="lnacts">
+        <a href="#" data-lnfrom="${b.id}">Branch from here</a>
+        <a href="#" data-lnedit="${b.id}">Edit</a>
+        ${own ? `<a href="#" data-lnderive="${b.id}">Open in Derive</a>` : ""}
+        <a href="#" data-lndel="${b.id}">Delete</a>
+      </div>
+      ${kids(b.id).length ? `<div class="lnkids">${kids(b.id).map(node).join("")}</div>` : ""}
+    </div>`;
+  };
+  const words = new Set([lnForm(t, "root").word, ...t.branches.map(b => lnForm(t, b.id).word)].filter(Boolean));
+  const own = t.branches.filter(b => b.end).length;
+  $("lnTree").innerHTML = `<div class="panel">
+    <p class="hint" style="margin:0 0 6px">${t.branches.length + 1} meaning${t.branches.length ? "s" : ""}. ${own ? `${own} ride${own === 1 ? "s" : ""} on a shape of ${own === 1 ? "its" : "their"} own${words.size ? `, ${words.size} distinct word${words.size === 1 ? "" : "s"} so far` : ""}.` : "All on one word so far, like English <em>throw</em>."}</p>
+    <div class="lnnode">
+      <div><span class="tag">literal</span> <b>${esc(t.sense || "(no meaning yet)")}</b></div>
+      <div class="lnform">${lnFormHtml(lnForm(t, "root"), true)}</div>
+      <div class="lnacts"><a href="#" data-lnfrom="root">Branch from here</a></div>
+      ${kids("root").length ? `<div class="lnkids">${kids("root").map(node).join("")}</div>` : ""}
+    </div>
+  </div>`;
+  lnFillFrom();
+  lnPreview();
+}
+function lnFillFrom(keep){
+  const t = lnTree(); if(!t) return;
+  const cur = keep || $("lnFrom").value || "root";
+  const banned = lnEdit ? lnDescendants(t, lnEdit) : [];
+  $("lnFrom").innerHTML = [["root", t.sense || "the literal meaning"], ...t.branches.filter(b => !banned.includes(b.id)).map(b => [b.id, b.sense])]
+    .map(([id, s]) => `<option value="${id}">${esc(s)}</option>`).join("");
+  $("lnFrom").value = [...$("lnFrom").options].some(o => o.value === cur) ? cur : "root";
+}
+function lnPreview(){
+  const t = lnTree(); if(!t) return;
+  $("lnHowNote").textContent = (LN_HOW[$("lnHow").value] || ["", ""])[1];
+  $("lnEngBox").hidden = !$("lnEng").checked;
+  const end = $("lnEnd").value;
+  $("lnProtoBox").hidden = end !== "custom";
+  if(!end){
+    $("lnPreview").innerHTML = `<p class="hint">Same word, one more meaning. Speakers hear the link directly, the way English <em>throw a ball</em> and <em>throw a party</em> share a word.</p>`;
+    return;
+  }
+  const proto = lnProtoOf(t, end, $("lnProto").value);
+  if(!proto){
+    $("lnPreview").innerHTML = `<p class="hint">${end === "custom" ? "Type the shape above to see where the rules take it." : "Give the lineage a proto-root first. The rules can't wear down a shape that doesn't exist yet."}</p>`;
+    return;
+  }
+  let r;
+  try{ r = derive(proto); }catch(e){ $("lnPreview").innerHTML = `<div class="warn">${esc(e.message)}. Check the shape against Phonology §4.1.</div>`; return; }
+  const bad = check(r, $("lnCls").value).filter(x => !x.ok);
+  const fired = r.steps.filter(s => s.fired).map(s => s.id);
+  $("lnPreview").innerHTML = `<div class="panel" style="background:var(--panel2);margin:10px 0 0">
+    <span class="proto">${esc(proto)}</span> → <span class="lun" style="font-size:20px">${esc(r.spelling)}</span> <span class="ipa">${esc(r.ipa)}</span>
+    <p class="hint" style="margin:4px 0 0">${fired.length ? "Rules that fired: " + fired.join(", ") + "." : "No rules fired on this shape."}</p>
+    ${bad.map(x => `<span class="tag bad">${esc(x.s)}</span>`).join(" ")}
+  </div>`;
+}
+function lnResetForm(){
+  lnEdit = null;
+  $("lnFormTitle").textContent = "Add a branch";
+  $("lnSave").textContent = "Save branch";
+  $("lnCancel").hidden = true;
+  ["lnNewSense","lnWhy","lnWhyStill","lnProto"].forEach(id => $(id).value = "");
+  $("lnEng").checked = false; $("lnEnd").value = ""; $("lnHow").value = "widen"; $("lnCls").value = "verb";
+  $("lnErr").innerHTML = "";
+  lnFillFrom("root"); lnPreview();
+}
+
+["lnHow","lnEng","lnCls"].forEach(id => $(id).addEventListener("change", lnPreview));
+$("lnEnd").addEventListener("change", () => {
+  const e = $("lnEnd").value;
+  if(e === "a") $("lnCls").value = "dnoun";
+  else if(e === "u" || e === "un") $("lnCls").value = "verb";
+  else if(["e","i","o"].includes(e)) $("lnCls").value = "pnoun";
+  lnPreview();
+});
+$("lnProto").addEventListener("input", lnPreview);
+$("lnPick").onchange = () => { LN.cur = Number($("lnPick").value) || 0; saveLn(); lnResetForm(); paintLineage(); };
+$("lnRoot").onchange = () => {
+  const t = lnTree(); if(!t) return;
+  const v = $("lnRoot").value.trim().toUpperCase();
+  if(v && !/^[A-Z']+$/.test(v)){ $("lnRoot").value = t.root || ""; return; }
+  t.root = v; saveLn();
+  if(v) logLine(`${stamp()}  LINEAGE root set · ${v} “${t.sense}”`);
+  paintLineage();
+};
+$("lnSense").onchange = () => { const t = lnTree(); if(!t) return; t.sense = $("lnSense").value.trim(); saveLn(); paintLineage(); };
+$("lnNew").onclick = () => {
+  LN.trees.push({id: lnId(), root: "", sense: "", branches: []});
+  LN.cur = LN.trees.length - 1; saveLn(); lnResetForm(); paintLineage(); $("lnSense").focus();
+};
+$("lnDel").onclick = () => {
+  const t = lnTree(); if(!t) return;
+  if(!confirm(`Delete the lineage “${t.sense || t.root || "untitled"}” and its ${t.branches.length} branch${t.branches.length === 1 ? "" : "es"}? Words already kept stay in the lexicon.`)) return;
+  LN.trees.splice(LN.cur, 1); LN.cur = 0; saveLn(); lnResetForm(); paintLineage();
+};
+$("lnValAdd").onclick = () => {
+  const v = $("lnValNew").value.trim(); if(!v) return;
+  LN.values.push(v); $("lnValNew").value = ""; saveLn(); paintLineage();
+};
+$("lnValues").onclick = ev => {
+  const b = ev.target.closest("[data-lnval]"); if(!b) return;
+  LN.values.splice(Number(b.dataset.lnval), 1); saveLn(); paintLineage();
+};
+$("lnCancel").onclick = () => lnResetForm();
+$("lnSave").onclick = () => {
+  const t = lnTree(); if(!t) return;
+  const sense = $("lnNewSense").value.trim(), why = $("lnWhy").value.trim();
+  const eng = $("lnEng").checked, still = $("lnWhyStill").value.trim();
+  const end = $("lnEnd").value, typed = $("lnProto").value.trim().toUpperCase();
+  const err = [];
+  if(!sense) err.push("Write the new meaning.");
+  if(why.split(/\s+/).filter(Boolean).length < 5) err.push("Write why it moved: what in their life pushed the word here. A branch without a reason doesn't save.");
+  if(eng && still.split(/\s+/).filter(Boolean).length < 5) err.push("English makes this move too, so say why Lunaji would make it anyway, from its own world.");
+  if(end === "custom" && !/^[A-Z']+$/.test(typed)) err.push("Type the branch proto-shape in caps.");
+  if(err.length){ $("lnErr").innerHTML = `<div class="warn">${err.map(esc).join("<br>")}</div>`; return; }
+  const data = {from: $("lnFrom").value, how: $("lnHow").value, sense, why, eng, still: eng ? still : "",
+                end, proto: end === "custom" ? typed : "", cls: $("lnCls").value};
+  if(lnEdit){
+    Object.assign(t.branches.find(b => b.id === lnEdit), data);
+    logLine(`${stamp()}  LINEAGE ${t.root || "(no root)"} · edited “${sense}”`);
+  } else {
+    t.branches.push({id: lnId(), ...data});
+    logLine(`${stamp()}  LINEAGE ${t.root || "(no root)"} · “${lnSenseOf(t, data.from)}” ${LN_HOW[data.how][0]} → “${sense}”${eng ? " (English parallel, justified)" : ""}`);
+  }
+  saveLn(); lnResetForm(); paintLineage();
+};
+$("lnTree").onclick = ev => {
+  const a = ev.target.closest("[data-lnfrom],[data-lnedit],[data-lnderive],[data-lndel]"); if(!a) return;
+  ev.preventDefault();
+  const t = lnTree(); if(!t) return;
+  if(a.dataset.lnfrom){
+    if(lnEdit) lnResetForm();
+    lnFillFrom(a.dataset.lnfrom);
+    $("lnForm").scrollIntoView({behavior: "smooth", block: "start"}); $("lnNewSense").focus({preventScroll: true});
+  } else if(a.dataset.lnedit){
+    const b = t.branches.find(x => x.id === a.dataset.lnedit); if(!b) return;
+    lnEdit = b.id;
+    $("lnFormTitle").textContent = "Edit branch"; $("lnSave").textContent = "Save changes"; $("lnCancel").hidden = false;
+    lnFillFrom(b.from);
+    $("lnHow").value = b.how; $("lnNewSense").value = b.sense; $("lnWhy").value = b.why;
+    $("lnEng").checked = !!b.eng; $("lnWhyStill").value = b.still || "";
+    $("lnEnd").value = b.end || ""; $("lnProto").value = b.proto || ""; $("lnCls").value = b.cls || "verb";
+    $("lnErr").innerHTML = ""; lnPreview();
+    $("lnForm").scrollIntoView({behavior: "smooth", block: "start"});
+  } else if(a.dataset.lndel){
+    const ids = lnDescendants(t, a.dataset.lndel);
+    const b = t.branches.find(x => x.id === a.dataset.lndel);
+    if(!confirm(`Delete “${b.sense}”${ids.length > 1 ? ` and the ${ids.length - 1} meaning${ids.length === 2 ? "" : "s"} that grew from it` : ""}?`)) return;
+    t.branches = t.branches.filter(x => !ids.includes(x.id));
+    if(ids.includes(lnEdit)) lnResetForm();
+    saveLn(); paintLineage();
+  } else if(a.dataset.lnderive){
+    const b = t.branches.find(x => x.id === a.dataset.lnderive), f = lnForm(t, b.id);
+    if(!f.proto) return;
+    $("rootIn").value = f.proto;
+    $("cls2").value = [...$("cls2").options].some(o => o.value === b.cls) ? b.cls : "any";
+    lastDraw = `From the ${t.root} lineage (“${t.sense}”): ${LN_HOW[b.how][0]} from “${lnSenseOf(t, b.from)}”. ${b.why}`;
+    renderDerivation();
+    if($("kGloss")) $("kGloss").value = b.sense;
+    logLine(`${stamp()}  LINEAGE → Derive · ${f.proto} “${b.sense}”`);
+    document.querySelector('nav button[data-tab="derive"]').click();
+    window.scrollTo(0, 0);
+  }
+};
+document.querySelector('nav button[data-tab="lineage"]').addEventListener("click", paintLineage);
+paintLineage();
 
 /* ══════════ unsaved marker ══════════ */
 function paintDirty(){
