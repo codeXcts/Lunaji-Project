@@ -97,7 +97,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-19-1700</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-19-1800</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -324,8 +324,8 @@ details.panel>summary{cursor:pointer}
   </div>
   <div class="panel">
     <label for="qIn">Add words, one per line: meaning | class | field | family | tier</label>
-    <textarea id="qIn" rows="6" spellcheck="false" placeholder="a cup | noun | kitchen&#10;ice | noun | water | ice root | core&#10;water | noun | water | ice&#10;to melt | verb | water | ice"></textarea>
-    <p class="hint">Class: verb, adj, noun, dnoun, func, pron, num. Field and tier are optional (tier: core, ord, rare). Leave family empty for a plain coinage; write <em>ice root</em> for the word that starts the family and <em>ice</em> for its daughters.</p>
+    <textarea id="qIn" rows="6" spellcheck="false" placeholder="a cup | noun | kitchen | ord&#10;ice | noun | water | ice root | core&#10;water | noun | water | ice | core&#10;to melt | verb | water | ice | ord"></textarea>
+    <p class="hint">Class: verb, adj, noun, dnoun, func, pron, num. The tier is required and always goes last: core, ord or rare. Field and family are optional, and you can simply leave them out, since the queue reads the last column as the tier wherever it lands. Write <em>ice root</em> for the word that starts a family and <em>ice</em> for its daughters.</p>
     <button class="btn" id="qAdd" style="margin-top:8px">Add to the queue</button>
     <div id="qMsg"></div>
   </div>
@@ -3099,14 +3099,22 @@ function qReady(it){
 }
 function qParse(text){
   const out = [], bad = [];
+  const TIERS = {core:"core", ord:"ord", ordinary:"ord", rare:"rare"};
   text.split(/\n/).map(l => l.trim()).filter(Boolean).forEach(line => {
-    const [g, c, f, fam, tier] = line.split("|").map(x => (x || "").trim());
+    // The tier is always the last column, so field and family can be left out
+    // without empty slots: "a cup | noun | kitchen | ord" and "a cup | noun | ord".
+    const parts = line.split("|").map(x => (x || "").trim());
+    while(parts.length && !parts[parts.length - 1]) parts.pop();
+    const tier = TIERS[(parts[parts.length - 1] || "").toLowerCase()];
+    if(!tier){ bad.push(line + "  (no tier at the end)"); return; }
+    parts.pop();
+    const [g, c, f, fam] = parts;
     const preset = Q_CLS[(c || "").toLowerCase()];
-    if(!g || !preset){ bad.push(line); return; }
+    if(!g || !preset){ bad.push(line + "  (meaning or class missing)"); return; }
     let family = "", root = false;
     const m = (fam || "").match(/^(.*?)\s+root$/i);
     if(m){ family = m[1].trim().toLowerCase(); root = true; } else family = (fam || "").toLowerCase();
-    const t = ["core","ord","rare"].includes((tier || "").toLowerCase()) ? tier.toLowerCase() : "ord";
+    const t = tier;
     out.push({id: lnId(), gloss: g, preset, field: (f || "").toLowerCase(), family, root, tier: t, done: false, word: ""});
   });
   return {out, bad};
@@ -3212,7 +3220,7 @@ $("qAdd").onclick = () => {
   // A family whose root is not in the queue can still be served by a lineage you started by hand.
   const orphan = [...new Set(out.filter(x => x.family && !x.root && !qRootOf(x.family) && !lnTreeOfFamily(x.family)).map(x => x.family))];
   $("qMsg").innerHTML = (out.length ? `<p class="hint">Added ${out.length}.</p>` : "") +
-    (bad.length ? `<div class="warn">Couldn't read ${bad.length} line${bad.length === 1 ? "" : "s"}: ${bad.map(esc).join("; ")}. The class must be one of verb, adj, noun, dnoun, func, pron, num.</div>` : "") +
+    (bad.length ? `<div class="warn">Couldn't read ${bad.length} line${bad.length === 1 ? "" : "s"}: ${bad.map(esc).join("; ")}. Each line needs a meaning, a class (verb, adj, noun, dnoun, func, pron, num) and a tier at the end.</div>` : "") +
     (orphan.length ? `<div class="warn">No root in the queue for: ${orphan.map(esc).join(", ")}. Add a line like <em>ice | noun | water | ice root</em>, or name an existing lineage's family in the Lineage tab.</div>` : "");
   if(out.length) $("qIn").value = "";
   logLine(`${stamp()}  QUEUE added ${out.length}`);
