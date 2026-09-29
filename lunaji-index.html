@@ -35,8 +35,8 @@ mark{background:none;color:var(--accent)}
 </style>
 
 <header>
-  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-28-2015</div>
-  <p class="sub">Where things live, not what they say. Current to 2026-09-28.</p>
+  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-29-1611</div>
+  <p class="sub">Where things live, not what they say. Current to 2026-09-29.</p>
   <input id="q" placeholder="flower, plural, negation, stress…" autocomplete="off">
   <div class="tags" id="tags"></div>
 </header>
@@ -47,7 +47,7 @@ mark{background:none;color:var(--accent)}
 <ul id="out"></ul>
 
 <footer>
-  <b>Files:</b> Grammar · Phonology · Lexicology · Dictionary · Proto &amp; Sound Changes · Tooling (the Forge and ForgeFilters).<br>
+  <b>Files:</b> Grammar · Phonology · Lexicology · Dictionary · Proto &amp; Sound Changes · Script · Tooling (the Forge, ForgeFilters and Lunaji Brush).<br>
   Section numbers are the stable layer — they survive rewrites of the text inside them.<br>
   <span class="open">Orange</span> marks something still open.
 </footer>
@@ -175,10 +175,11 @@ const D = [
 ["Accent rule","Phonology","§5","The last HEAVY syllable of the PHRASE, else its final syllable. Heavy = nasal vowel, closed syllable, or long consonant. Moved from the word to the phrase 2026-09-28.","accent prominence stress phrase groupe rythmique"],
 ["Why the accent moved to the phrase","Phonology","§5","Neither parent accents the word: French has the groupe rythmique, Tokyo Japanese the accentual phrase. Grammar §8 had logged the beat after ni as unexplained.","phrase accent french japanese"],
 ["Run-up","Phonology","§5","Why content roots are 3–4 syllables.","approach length"],
-["Orthography","Phonology","§6","sh j ts ny y r; nasality is a tilde — ã ĩ õ. Long consonants written double. Ruled 2026-09-28.","spelling letters tilde"],
+["Orthography","Phonology","§6","sh j ts ny y r; nasality is a tilde — ã ĩ õ. Long consonants written double. Ruled 2026-09-28. Since 2026-09-29 this is the romanization, kept one-to-one with the native script.","spelling letters tilde romanization latin"],
 ["The tilde","Phonology","§6","Nasality sits on the vowel. This is what freed the letter n to be a real coda — the orthography change is the precondition for the structural one.","kana kan kanta tilde nasal spelling"],
-["Elision","Phonology","§6","Monosyllabic particle before an identical vowel. d'itsuze.","apostrophe r10 d'"],
-["Native script","Phonology","§7","Not decided.","writing system",1],
+["Elision","Phonology","§6","Monosyllabic particle before an identical vowel. d'itsuze. The apostrophe is romanization only — the native script writes di + itsuze.","apostrophe r10 d'"],
+["Native script — closed","Phonology","§7","Closed 2026-09-29. Designed and specified in Script.md; the Latin spelling of §6 stays as its romanization.","writing system script abugida"],
+["Particle table — apostrophe row","Phonology","§6","The table of particle shapes still says n-, y-, w-initial particles take an apostrophe; the text above it says the apostrophe was dropped 2026-09-28. Left for review.","apostrophe table inconsistency helãni",1],
 ["d before u","Phonology","§7","Closed 2026-09-11: no change. /du/ is legal.","du zu"],
 
 ["Word classes by final vowel","Lexicology","§1","-u verb, -a deverbal noun, -a/e/i/o or nasal primary noun.","class theme vowel"],
@@ -232,12 +233,30 @@ const D = [
 ["Overt pronoun subjects","Grammar","§2.3","A neutral sentence drops the subject. The Forge warns on pronoun + ba.","ganba winba pronoun drop"],
 ["Comparative — the test sentence","Grammar","§5.4","howeru makes it runnable: Onankonzanba lonji toma howeru. Not yet confirmed by ear.","comparative test howeru",1],
 ["Onomatopoeia","Grammar","§0","Agreed as its own class with reduplication; not yet written up.","sound words reduplication",1],
+["Script — the whole design","Script","§0","An abugida built from brush strokes. Each consonant has an inherent u; every other sound is a mark in a fixed place. Moon curl on every glyph. Native stems as blocks. Brush and carved forms.","writing system abugida native script alphabet"],
+["Why it looks the way it does","Script","§1","Built from the Japanese stroke set. Four drafts rejected: geometric (Korean), top line (Devanagari), bowls and dots (Arabic). Made to be carved and read by moonlight or touch.","korean arabic devanagari drafts rejected japanese look"],
+["The strokes","Script","§2","Horizontal, vertical, dot, hook, flick, left sweep, right sweep, moon curl.","stroke types brush"],
+["Where the marks go","Script","§3","Left: i, e, o. Right: a. No mark: u. Foot: nasal vowel. Top right: voicing ticks. Over the letter: glide or cluster. Lower right: the coda dot.","vowel marks zones nasal voicing coda glide"],
+["Moon curl","Script","§3","The signature: a curl rising into the first stroke of every glyph, written first. No kana or kanji begins that way.","signature curl serif"],
+["Carrier","Script","§3","A plain vertical with a hook holds a vowel that has no consonant before it. Alone, it reads u.","vowel-initial carrier bare vowel"],
+["Consonant families","Script","§4","Lips: an open frame. Tongue tip: a central vertical. Palate: a cliff. Back: a Z-turn. A nasal adds one horizontal; a voiced consonant adds the ticks.","letters consonant shapes families"],
+["Letters redrawn off real kanji","Script","§4","n was 土, r was 人 then 久, h was ヲ; a on top built 干 王 天. l near 卜 is watched.","kanji kana collision"],
+["Every syllable shape","Script","§5","CV, V, CGV, CCV, CCGV — cluster stroke left, glide stroke right — nasal vowels, codas, long consonants. What the language cannot say cannot be written.","syllable cluster glide prya plwa"],
+["Long consonants in the script","Script","§5","A coda of the same consonant, then the syllable: Japanese small tsu. No mark of its own.","sokuon small tsu geminate otto"],
+["Row only vs blocks and rows","Script","§6","Both correct. Row only is the learner's form, one-to-one with the romanization. Blocks and rows is the fluent form.","row block learner fluent"],
+["What goes in a block","Script","§6.2","Native stems. Particles, endings and function words trail in small glyphs; loanwords run in a row (the katakana principle); a compound is touching blocks.","block stem loanword katakana compound grammar"],
+["Block layouts","Script","§6.2","1 fills the square; 2 side by side; 3 one over two; 4 two by two; 5 two over three; 6 three and three. Stroke weight stays constant.","layout square reading order"],
+["Parts, not sounds","Script","§6.3","aoyã + a is written in two parts though said aoyana; d'itsuze is written di + itsuze. Liaison and elision are spoken only.","liaison elision morpheme aoyana"],
+["Punctuation","Script","§7","Comma (and only), full stop, question (curl over a dot), exclamation (vertical over a dot), corner brackets 「 」 for quotations.","question mark exclamation quotes brackets comma"],
+["Brush vs carved","Script","§8","Brush for everyday writing. Carved into bark: curves become straight cuts, stems lean off the grain, dots are pits, and the pale wood shows by moonlight.","carving bark moonlight touch knife"],
+["Script — still open","Script","§9","Vertical writing, stroke order, the first real carving, numerals, voiced long obstruents.","vertical columns stroke order numerals digits",1],
+["Lunaji Brush — the script app","Tooling","Lunaji Brush","Writes any spelling in the script, both ways and both forms. Save as image or SVG, glyph chart, practice mode, editable loan, compound and stem lists. build 2026-09-29-1154.","app brush tool script writer practice"],
 ["Forge — where coining happens","Tooling","Forge","Draw, Derive, Borrow, Phrases, Paradigm, Review, Drift, Lexicon. The Composer is retired.","forge composer tool app"],
 ["Forge filter reference","Tooling","ForgeFilters","Session order, presets table, relax order, field ban lists, the four filter-box lines.","filters presets ban list"],
 ["Session routine","Tooling","Forge","Load both files at the start, save both at the end. Browser storage is a working copy.","export import backup save"],
 ];
 
-const FILES = ["Grammar","Phonology","Lexicology","Dictionary","Proto","Tooling"];
+const FILES = ["Grammar","Phonology","Lexicology","Dictionary","Proto","Script","Tooling"];
 
 /* Coining constraints, keyed by class. These exist because the two-syllable rule
    for new function words is stated in five places and headed in none of them —
