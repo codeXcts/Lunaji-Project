@@ -135,7 +135,7 @@ kbd{font:500 12px var(--mono);padding:1px 5px;border:1px solid var(--line);borde
 <main class="app" id="app" data-parts="on">
   <header>
     <h1>Lunaji Brush</h1>
-    <span class="stamp" id="stamp">build 2026-09-29-0932</span>
+    <span class="stamp" id="stamp">build 2026-09-29-1154</span>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
@@ -216,6 +216,8 @@ Nuswape koime, lwajipe koime.</textarea>
       <li><kbd>-</kbd> splits a stem from its endings yourself: <kbd>lõji-wa</kbd>. Use it when the app guesses the stem wrong, or to stop a split.</li>
       <li><kbd>+</kbd> joins compound blocks: <kbd>koime+zaĩko</kbd>.</li>
       <li><kbd>*</kbd> in front of a word writes it as a loan: <kbd>*jura</kbd>.</li>
+      <li>Quotation marks, straight or curly, become corner brackets 「 」. <kbd>?</kbd> and <kbd>!</kbd> have their own marks.</li>
+      <li>Elision is spoken, not written: <kbd>d'itsuze</kbd> is written as the whole particle di, then itsuze.</li>
     </ul></div>
     <div><h3>How the app finds a stem</h3>
     <p class="sub">It takes common particles and endings (ba, ni, pe, wa, di, na, -ze, -ri, -ta, -jo) off the end of a word, but only while at least two syllables remain and the word is not on the whole-stems list. Stand-alone function words like hena and mi are always written in the small glyphs.</p></div>
@@ -223,7 +225,7 @@ Nuswape koime, lwajipe koime.</textarea>
     <ul>
       <li>Consonant families follow the mouth: the lips share an open frame, the tongue tip a central vertical, the palate a cliff stroke, the back of the mouth a Z-shaped turn. A nasal consonant adds one horizontal. Voicing is the two ticks Japanese uses.</li>
       <li>Vowels: none for u, a sweep on the right for a, a vertical on the left for i, two short bars for e, a left sweep for o. A nasal vowel adds a long sweep along the foot.</li>
-      <li>Glides and clusters are a stroke over the letter: a dot for y, two dots for w, a short sweep for r, a short bar for l.</li>
+      <li>Glides and clusters are a stroke over the letter: a dot for y, two dots for w, a short sweep for r, a short bar for l. When a cluster and a glide come together (prya), both strokes sit over the letter, the cluster on the left.</li>
       <li>A coda ends with a heavy stop dot. A long consonant is written as a coda of the same consonant followed by the syllable, like Japanese small tsu.</li>
     </ul></div>
     <div><h3>Saving images</h3>
@@ -248,7 +250,7 @@ Nuswape koime, lwajipe koime.</textarea>
 <script>
 (function(){
 'use strict';
-var BUILD='build 2026-09-29-0932';
+var BUILD='build 2026-09-29-1154';
 document.getElementById('stamp').textContent=BUILD;
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function load(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
@@ -375,7 +377,13 @@ function fit(b,x0,y0,x1,y1,ratio){
 function glyph(s,T,W){
   var out='', c=s.c?BASE[s.c]:null, voiced=c&&c.v;
   var x0=8,y0=8,x1=92,y1=92;
-  if(s.med){(MEDS[s.med]||[]).forEach(function(m){out+=stroke(m[0],m[1],W,T,'bm')});y0=26;}
+  if(s.med&&s.med2){
+    /* a cluster and a glide: the liquid's stroke on the left, the glide's on the right */
+    var TL=comp([1,1,-13,0],T), TR=comp([1,1,13,0],T);
+    MEDS[s.med].forEach(function(m){out+=stroke(m[0],m[1],W,TL,'bm')});
+    MEDS[s.med2].forEach(function(m){out+=stroke(m[0],m[1],W,TR,'bm')});
+    y0=26;
+  } else if(s.med){(MEDS[s.med]||[]).forEach(function(m){out+=stroke(m[0],m[1],W,T,'bm')});y0=26;}
   if(s.v==='a'){out+=stroke('l','M83 18Q93 54 80 92',W,T,'bv');x1=70;}
   if(s.v==='i'){out+=stroke('v','M15 22V80',W,T,'bv');x0=32;}
   if(s.v==='e'){out+=stroke('h','M5 36H25',W,T,'bv')+stroke('h','M5 64H25',W,T,'bv');x0=32;}
@@ -440,6 +448,12 @@ function syls(word){
     }
     if((b==='y'||b==='w')&&V(c)&&!(b==='y'&&(a==='s'||a==='z'))){
       out.push({c:a,med:b,v:c[0],nasal:c.length>1,label:lab([a,b,c])});i+=3;continue;
+    }
+    if((b==='r'||b==='l')&&STARTERS.indexOf(a)>=0&&(c==='y'||c==='w')&&V(toks[i+3])){
+      var d4=toks[i+3];
+      if(b==='l'&&(a==='t'||a==='d')) warn.push(a+b+' is not a legal cluster');
+      if(b==='r'&&c==='w') warn.push('w cannot follow r');
+      out.push({c:a,med:b,med2:c,v:d4[0],nasal:d4.length>1,label:lab([a,b,c,d4])});i+=4;continue;
     }
     if((b==='r'||b==='l')&&STARTERS.indexOf(a)>=0&&V(c)){
       if(b==='l'&&(a==='t'||a==='d')) warn.push(a+b+' is not a legal cluster');
@@ -524,18 +538,43 @@ function word(tok,warn){
   (a.tails||[]).forEach(function(t){html+=glyphsOf(t,'tl')});
   return '<span class="w">'+html+'</span>';
 }
+/* punctuation, drawn in a 30 x 140 box: [stroke type, path, width] */
+var PUNCT={
+  ',':[['l','M24 108Q22 124 12 134',9]],
+  '.':[['d','M14 122l8 10',10]],
+  '?':[['c','M10 120C-2 112 4 92 24 98',7],['d','M13 124l6 10',10]],
+  '!':[['v','M16 92V116',8],['d','M13 124l6 10',10]],
+  '「':[['h','M28 20H10',7],['v','M10 20V60',7]],
+  '」':[['v','M20 82V122',7],['h','M20 122H2',7]]
+};
 function punct(p){
-  var inner=CARVED?
-    '<g filter="url(#carve)"><g fill="#fff">'+(p===','?carveStroke('l','M24 108L12 134',11,ID):carveStroke('d','M14 122l7 10',13,ID))+'</g></g>':
-    (p===','?brushStroke('l','M24 108Q22 124 12 134',9,ID,'bb'):brushStroke('d','M14 122l8 10',10,ID,'bb'));
-  return '<figure class="gl punct"><svg viewBox="0 0 30 140" role="img" aria-label="'+p+'">'+inner+'</svg><figcaption>&nbsp;</figcaption></figure>';
+  var list=PUNCT[p]||PUNCT['.'], inner='';
+  list.forEach(function(s){inner+=CARVED?carveStroke(s[0],s[1],s[2]*1.3,ID):brushStroke(s[0],s[1],s[2],ID,'bb')});
+  if(CARVED) inner='<g filter="url(#carve)"><g fill="#fff">'+inner+'</g></g>';
+  var label={'「':'open quote','」':'close quote'}[p]||p;
+  return '<figure class="gl punct"><svg viewBox="0 0 30 140" role="img" aria-label="'+label+'">'+inner+'</svg><figcaption>&nbsp;</figcaption></figure>';
 }
-function line(str,warn){
-  var parts=str.split(/([.,!?]|\s+)/).filter(function(x){return x&&!/^\s+$/.test(x)}), out=[];
-  parts.forEach(function(p){
-    if(/^[.,!?]$/.test(p)){ if(out.length) out[out.length-1]=out[out.length-1].replace(/<\/span>$/,punct(p)+'</span>'); return; }
-    out.push(word(p,warn));
+/* elision is spoken only: d'itsuze is written as the whole particle di, then itsuze */
+function unElide(str){
+  return str.replace(/(^|[\s“«「"])(sh|ts|ny|[bdfghjklmnprstvwyz])['’]([aeiouãĩõ])/gi,function(m,pre,c,v){
+    return pre+c+v.normalize('NFD')[0]+' '+v;
   });
+}
+var OPENQ=['“','«','「'], CLOSEQ=['”','»','」'];
+function line(str,warn){
+  var parts=unElide(str).split(/([.,!?"“”«»「」]|\s+)/).filter(function(x){return x&&!/^\s+$/.test(x)});
+  var out=[], pending='', open=false;
+  function attach(html){ if(out.length) out[out.length-1]=out[out.length-1].replace(/<\/span>$/,html+'</span>'); else out.push('<span class="w">'+html+'</span>'); }
+  parts.forEach(function(p){
+    var isOpen=OPENQ.indexOf(p)>=0||(p==='"'&&!open), isClose=CLOSEQ.indexOf(p)>=0||(p==='"'&&open);
+    if(isOpen){pending+=punct('「');open=true;return;}
+    if(isClose){attach(punct('」'));open=false;return;}
+    if(/^[.,!?]$/.test(p)){attach(punct(p));return;}
+    var html=word(p,warn);
+    if(pending){html=html.replace('<span class="w">','<span class="w">'+pending);pending='';}
+    out.push(html);
+  });
+  if(pending) out.push('<span class="w">'+pending+'</span>');
   return out.join('');
 }
 
@@ -622,13 +661,17 @@ var KEYS=[
   ['Voicing','ka ga sa za','The two ticks Japanese uses for voicing.'],
   ['Glides','kya twa','A dot over the letter for y, two dots for w.'],
   ['Clusters','pra blo','A short sweep over the letter for r, a short bar for l.'],
-  ['Coda and length','kilsu otto','A heavy stop dot at the lower right means no vowel. A long consonant is the coda plus the syllable.']
+  ['Coda and length','kilsu otto','A heavy stop dot at the lower right means no vowel. A long consonant is the coda plus the syllable.'],
+  ['Cluster and glide','prya plwa','Both strokes over the letter: the cluster on the left, the glide on the right.']
 ];
 function renderChart(){
   document.getElementById('keys').innerHTML=KEYS.map(function(k){
     var items=k[1].split(' ').map(function(x){return syls(x).syls.map(single).join('')}).join('');
     return '<div class="key"><span class="tag">'+k[0]+'</span><div class="row">'+items+'</div><p>'+k[2]+'</p></div>';
-  }).join('');
+  }).join('')+
+  '<div class="key" style="--bw:70px"><span class="tag">Punctuation</span><div class="row">'+
+    [',','.','?','!','「','」'].map(function(p){return punct(p).replace('<figcaption>&nbsp;</figcaption>','<figcaption>'+esc(p)+'</figcaption>')}).join('')+
+  '</div><p>Comma (and), full stop, question, exclamation, and corner brackets for quotations. Type ordinary quotation marks and they become brackets.</p></div>';
   var t='<thead><tr><th></th>'+V.map(function(v){return '<th>-'+v+'</th>'}).join('')+'</tr></thead><tbody>';
   t+='<tr><td class="c">–</td>'+V.map(function(v){return '<td>'+single(syls(v).syls[0])+'</td>'}).join('')+'</tr>';
   FAM.forEach(function(f){

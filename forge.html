@@ -61,6 +61,10 @@ textarea{resize:vertical}
   border:1px solid transparent;
 }
 .stack li.top{background:var(--panel2); border-color:var(--lamp)}
+.stack li.pick{border-color:var(--cool); background:#1d3238}
+.stack li.pick .n{color:var(--cool)}
+.cand{border:1px solid var(--line); border-radius:6px; padding:12px; margin:12px 0 0}
+.cand.gone{opacity:.45}
 .stack li .n{color:var(--dim); font-size:12px; min-width:22px}
 .stack li .r{font-size:19px; letter-spacing:.06em}
 .stack li .out{color:var(--dim); font-size:14px; margin-left:auto}
@@ -97,12 +101,13 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-28-2015</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-29-1322</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
   <button role="tab" aria-selected="true" data-tab="draw">Draw</button>
   <button role="tab" aria-selected="false" data-tab="queue">Queue</button>
+  <button role="tab" aria-selected="false" data-tab="confirm" id="tabConfirm">Confirm</button>
   <button role="tab" aria-selected="false" data-tab="derive">Derive</button>
   <button role="tab" aria-selected="false" data-tab="verify">Verify</button>
   <button role="tab" aria-selected="false" data-tab="borrow">Borrow</button>
@@ -173,7 +178,7 @@ details.panel>summary{cursor:pointer}
   <div class="panel">
     <label for="filter">Write the filter before you draw</label>
     <textarea id="filter" rows="2" placeholder="e.g. one mora, voiced non-nasal non-y onset, must not erode into ba"></textarea>
-    <p class="hint">Lexicology §6: state the constraints, then take the first root that passes. The three fields below are enforced on the draw; the box above is for the reasoning that isn't machine-checkable.</p>
+    <p class="hint">The three fields below are enforced on the draw. The box above is a note for the log — anything that isn't machine-checkable.</p>
     <div class="row" style="margin-top:10px">
       <div>
         <label for="fBanEnd">Must not end in</label>
@@ -276,7 +281,13 @@ details.panel>summary{cursor:pointer}
 
   <button class="btn" id="gen">Generate stock</button>
   <button class="btn ghost" id="newslot">New slot</button>
-  <p class="hint">Draw one: tap any root to take it. Reject the batch and draw again and the Forge hands you a single root — that one is the word.</p>
+  <label class="toggles" style="margin-top:8px;display:block"><span><input type="checkbox" id="forcedOn"> Second draw hands you a single root (the old §6 rule — off by default)</span></label>
+  <p class="hint">Tap roots to pick them — up to three. <b>Shortlist</b> saves them for the Confirm pass and loads the next queue word. <b>Keep now</b> takes a single pick straight to Derive. Draw position is logged as data only.</p>
+  <div class="row" style="margin-top:6px">
+    <button class="btn" id="slGo" disabled>Shortlist picks</button>
+    <button class="btn ghost" id="keepNow" disabled>Keep now</button>
+  </div>
+  <div id="slMsg"></div>
 
   <div id="shortWarn"></div>
   <div id="drawWarn"></div>
@@ -329,6 +340,16 @@ details.panel>summary{cursor:pointer}
     <button class="btn" id="qAdd" style="margin-top:8px">Add to the queue</button>
     <div id="qMsg"></div>
   </div>
+</section>
+
+<!-- ───────────── CONFIRM ───────────── -->
+<section id="confirm" hidden>
+  <p class="hint">The second pass, with fresh ears. Open a word, write the sentence you'd actually say with <b>___</b> where it goes, and read each candidate in it. Checks run again here, against the lexicon as it stands now.</p>
+  <div class="panel">
+    <p id="cfStatus" style="margin:0 0 8px"></p>
+    <ul id="cfList" style="list-style:none;padding:0;margin:0"></ul>
+  </div>
+  <div id="cfWork"></div>
 </section>
 
 <section id="borrow" hidden>
@@ -1404,11 +1425,11 @@ const $ = id => document.getElementById(id);
 document.querySelectorAll("nav button").forEach(b=>{
   b.onclick = () => {
     document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["draw","queue","derive","verify","borrow","phrases","paradigm","review","drift","lineage","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+    ["draw","queue","confirm","derive","verify","borrow","phrases","paradigm","review","drift","lineage","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
   };
 });
 
-let stock = [], slotDraws = 0, forced = false;
+let stock = [], slotDraws = 0, forced = false, picks = [];
 let lastDraw = null;   // how the root in the Derive tab was obtained
 const LOG = [];
 function logLine(s){ LOG.push(s); paintLog(); saveWork(); }
@@ -1430,7 +1451,7 @@ function saveWork(){
   if(restoring) return;
   const f = {};
   WORKFIELDS.forEach(id => { if($(id)) f[id] = $(id).value; });
-  try{ localStorage.setItem(WORKKEY, JSON.stringify({f, stock, slotDraws, forced, lastDraw, LOG})); }
+  try{ localStorage.setItem(WORKKEY, JSON.stringify({f, stock, slotDraws, forced, picks, lastDraw, LOG})); }
   catch(e){}
 }
 function loadWork(){
@@ -1440,6 +1461,7 @@ function loadWork(){
   WORKFIELDS.forEach(id => { if($(id) && v.f && v.f[id] !== undefined) $(id).value = v.f[id]; });
   stock = v.stock || []; slotDraws = v.slotDraws || 0;
   forced = !!v.forced; lastDraw = v.lastDraw || null;
+  picks = Array.isArray(v.picks) ? v.picks.filter(i => i < stock.length) : [];
   if(v.LOG) { LOG.length = 0; v.LOG.forEach(l=>LOG.push(l)); paintLog(); }
   restoring = false;
   if(stock.length) paintStack();
@@ -1453,12 +1475,11 @@ const stamp = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 
 function takeRoot(i){
   const r = stock[i];
-  if(i >= 3 && !filterText() && !$("filter").value.trim() &&
-     !confirm("Position " + (i+1) + " with no filter written.\n\nLexicology §6: rejecting until something feels right is shortlist drift with extra steps. Take it anyway?")) return;
+  // 2026-09-29: no prompt on draw position. Position is logged as data; taste decides.
   lastDraw = forced ? "Taken as a forced draw."
                     : `Drawn at position ${i+1} of ${stock.length}.`;
   logLine(`${stamp()}  TOOK ${r.root} → ${r.out} /${r.ipa}/  [${forced ? "forced draw" : "position " + (i+1) + " of " + stock.length}]`);
-  stock = []; slotDraws = 0; forced = false;
+  stock = []; picks = []; slotDraws = 0; forced = false;
   $("rootIn").value = r.root;
   saveWork();
   $("cls2").value = $("cls").value;
@@ -1471,16 +1492,20 @@ function paintStack(){
   const ul = $("stack"); ul.innerHTML = "";
   stock.forEach((r,i)=>{
     const li = document.createElement("li");
-    if(i===0) li.className = "top";
+    const on = picks.includes(i);
+    li.className = on ? "pick" : (i===0 ? "top" : "");
     li.style.cursor = "pointer";
-    li.innerHTML = `<span class="n">${forced ? "the word" : i+1}</span>
+    li.innerHTML = `<span class="n">${on ? "\u2713" : forced ? "the word" : i+1}</span>
       <span class="r proto">${r.root}</span>
       <span class="out lun">${r.out} /${r.ipa}/</span>
       <span class="n">${r.fired || "no rules fired"}</span>${(tw => tw.length ? `<span class="n" style="color:var(--lamp)" title="one letter from ${esc(twinText(tw))}">≈ ${esc(tw.slice(0,2).map(x => x.w).join(", "))}</span>` : "")(nearTwins(r.out))}`;
-    li.onclick = () => takeRoot(i);
+    li.onclick = () => togglePick(i);
     ul.appendChild(li);
   });
+  paintPickBtns();
+  const fOn = $("forcedOn") && $("forcedOn").checked;
   $("gen").textContent = slotDraws === 0 ? "Generate stock"
+                       : !fOn ? "Draw a fresh stock"
                        : slotDraws === 1 ? "Reject batch — draw one, forced"
                        : "Draw one, forced";
   const shortContent = ["verb","irreg","dnoun","pnoun"].includes($("cls").value)
@@ -1499,6 +1524,54 @@ function paintStack(){
     : slotDraws >= 1
     ? `<div class="warn">One batch already rejected for this slot. The next draw returns a single root and you take it.</div>` : "";
 }
+/* ══════════ shortlist (pass 1) ══════════
+   2026-09-29. Drawing and judging are split: pick up to three from the stack,
+   shortlist them against the queue word, move on. The choice between them is
+   made later, in Confirm, in a sentence of your own. */
+const PICKMAX = 3;
+function togglePick(i){
+  const k = picks.indexOf(i);
+  if(k >= 0) picks.splice(k, 1);
+  else { if(picks.length >= PICKMAX) picks.shift(); picks.push(i); }
+  saveWork(); paintStack();
+}
+function paintPickBtns(){
+  if(!$("slGo")) return;
+  $("slGo").disabled = !picks.length;
+  $("slGo").textContent = picks.length ? `Shortlist ${picks.length} pick${picks.length === 1 ? "" : "s"}` : "Shortlist picks";
+  $("keepNow").disabled = picks.length !== 1;
+}
+const PRESET_OF_CLS = {verb:"verb", adjv:"adjv", irreg:"verb", dnoun:"dnoun", pnoun:"pnoun", func:"funcNew", pron:"pron"};
+function shortlistPicks(){
+  if(!picks.length) return;
+  let it = QU.cur && qItem(QU.cur);
+  if(!it || it.done || (it.family && !it.root)){
+    const g = prompt("What does this word mean? It goes into the queue with its shortlist.");
+    if(!g || !g.trim()) return;
+    it = {id: lnId(), gloss: g.trim(), preset: $("pPreset").value || PRESET_OF_CLS[$("cls").value] || "pnoun",
+          field: $("fField").value.trim().toLowerCase(), family: "", root: false,
+          tier: $("pTier").value || "ord", done: false, word: "", asked: true};
+    QU.items.push(it);
+  }
+  const cls = $("cls").value, had = it.cands || [];
+  const add = picks.slice().sort((a, b) => a - b).map(i => { const r = stock[i];
+    return {root: r.root, out: r.out, ipa: r.ipa, fired: r.fired, pos: i + 1, of: stock.length, forced, cls, d: stamp()}; })
+    .filter(a => !had.some(c => c.root === a.root));
+  it.cands = had.concat(add);
+  if($("fField").value.trim()) it.slField = $("fField").value.trim().toLowerCase();
+  logLine(`${stamp()}  SHORTLISTED ${it.gloss}: ${add.map(a => `${a.root} \u2192 ${a.out} [pos ${a.pos}/${a.of}]`).join(", ")}`);
+  stock = []; picks = []; slotDraws = 0; forced = false; QU.cur = null;
+  saveQ(); saveWork(); paintQueue(); paintStack(); paintConfirmTab();
+  const waiting = tentItems().length, nx = qNext();
+  const msg = `Shortlisted ${add.length} for <b>${esc(it.gloss)}</b> \u00b7 ${waiting} word${waiting === 1 ? "" : "s"} waiting in Confirm.`;
+  if(nx){ qGo(nx.id); $("slMsg").innerHTML = `<div class="warn">${msg} Next up: <b>${esc(nx.gloss)}</b>.</div>`; }
+  else $("slMsg").innerHTML = `<div class="warn">${msg} Nothing left in the queue to draw.</div>`;
+}
+$("slGo").onclick = shortlistPicks;
+$("keepNow").onclick = () => { if(picks.length === 1) takeRoot(picks[0]); };
+try{ $("forcedOn").checked = localStorage.getItem("lunaji-forge-forced") === "1"; }catch(e){}
+$("forcedOn").onchange = () => { try{ localStorage.setItem("lunaji-forge-forced", $("forcedOn").checked ? "1" : "0"); }catch(e){} paintStack(); };
+
 /* ══════════ presets ══════════
    ForgeFilters.pdf §3, with two corrections: the ancient-monosyllable preset
    does not offer an (a vowel-initial function word is the earned class of
@@ -1605,8 +1678,9 @@ $("famGo").onclick = () => {
 
 $("gen").onclick = () => {
   const cls = $("cls").value;
-  forced = slotDraws >= 1;
+  forced = slotDraws >= 1 && $("forcedOn").checked;
   const n = forced ? 1 : Number($("count").value);
+  picks = []; $("slMsg").innerHTML = "";
   stock = drawStock(cls, Number($("syls").value), n, $("ends").value, $("onset").value);
   const want = forced ? 1 : Math.min(4, n), relaxed = [];
   for(const [what, act] of relaxSteps()){
@@ -1624,12 +1698,13 @@ $("gen").onclick = () => {
   paintStack();
 };
 $("newslot").onclick = () => {
-  stock = []; slotDraws = 0; forced = false;
+  stock = []; picks = []; slotDraws = 0; forced = false;
   logLine(`${stamp()}  — new slot —`);
   paintStack();
 };
 
 
+var kSentVal = "";
 function renderDerivation(){
   const box = $("derivation"); const src = $("rootIn").value.trim();
   if(!src){ box.innerHTML = `<p class="hint">Type a proto-root above, or take one from the stack.</p>`; return; }
@@ -1673,8 +1748,12 @@ function renderDerivation(){
       <input id="kField" placeholder="kin, kitchen, night" spellcheck="false" autocapitalize="off">
       <label for="kRelated">Related words, if any</label>
       <input id="kRelated" placeholder="nowireta, -ta" spellcheck="false">
-      <div id="frames"></div>
+      <label for="kSent">Your sentence — ___ where the word goes, one per line</label>
+      <textarea id="kSent" rows="2" class="lun" spellcheck="false" autocapitalize="off" placeholder="___na kominu | the ___ is tired"></textarea>
+      <p class="hint">Particles and suffixes join onto the blank: ___na, ___ni, ___ze. Add | and the English to file it under that in the phrasebook. Saved with the word when you keep it.</p>
+      <div id="kSentOut"></div>
       <div id="pbFrames"></div>
+      <details style="margin-top:14px"><summary class="hint" style="cursor:pointer">Template frames \u2014 legality and prosody warnings</summary><div id="frames"></div></details>
       <label for="kNote">What you heard when you said it</label>
       <textarea id="kNote" rows="2" placeholder="Judged in a sentence, not in isolation — Lexicology §6 step 6."></textarea>
       <div class="row" style="margin-top:10px">
@@ -1689,6 +1768,11 @@ function renderDerivation(){
   paintPbFrames(res.spelling);
   qPrime(); paintPbFrames(res.spelling);
   $("kGloss").addEventListener("input", () => paintPbFrames(res.spelling));
+  { const qi = QU && QU.cur && qItem(QU.cur);
+    $("kSent").value = kSentVal || (qi && qi.sent) || ""; }
+  const paintK = () => { $("kSentOut").innerHTML = sentPreview(res.spelling, $("cls2").value, sentLines($("kSent").value)); };
+  $("kSent").addEventListener("input", () => { kSentVal = $("kSent").value; paintK(); });
+  paintK();
   $("keepWord") && ($("keepWord").onclick = () => keepWord(res, src));
   $("dropWord").onclick = () => {
     logLine(`${stamp()}  DISCARDED ${src.toUpperCase()} → ${res.spelling}${$("kNote").value.trim() ? "  — " + $("kNote").value.trim() : ""}`);
@@ -2103,6 +2187,11 @@ function keepWord(res, src){
     $("copyEntry").textContent = "Copied";
   };
   renderLex();
+  const sl = sentLines($("kSent") ? $("kSent").value : "");
+  const pbn = saveSentences(w, gloss, sl);
+  if(pbn) $("entryOut").insertAdjacentHTML("beforeend",
+    `<p class="hint">Saved ${pbn} sentence${pbn === 1 ? "" : "s"} to the phrasebook.</p>`);
+  kSentVal = "";
   const filled = fillSlots(w, gloss);
   if(filled) $("entryOut").insertAdjacentHTML("beforeend",
     `<p class="hint">Filled ${filled} phrasebook slot${filled===1?"":"s"} with <span class="lun">${w}</span>. Say ${filled===1?"it":"them"} in the Phrases tab.</p>`);
@@ -3385,25 +3474,30 @@ function paintQueue(){
   const row = it => {
     const ready = qReady(it), cur = QU.cur === it.id;
     const kind = it.root ? `<span class="tag ok">${esc(it.family)} root</span>` : it.family ? `<span class="tag">${esc(it.family)} family</span>` : "";
+    const nC = (it.cands || []).length;
+    const rootIt = it.family && !it.root ? qRootOf(it.family) : null;
     const act = it.family && !it.root
-      ? (ready ? `<a href="#" data-qgo="${it.id}">Branch in Lineage</a>` : `<span class="hint" style="display:inline;margin:0">waits for the ${esc(it.family)} root</span>`)
+      ? (ready ? `<a href="#" data-qgo="${it.id}">Branch in Lineage</a>` : `<span class="hint" style="display:inline;margin:0">waits for the ${esc(it.family)} root${rootIt && (rootIt.cands || []).length ? " to be confirmed" : ""}</span>`)
+      : nC ? `<a href="#" data-qcf="${it.id}">Confirm</a><a href="#" data-qgo="${it.id}">Draw more</a>`
       : `<a href="#" data-qgo="${it.id}">Coin in Draw</a>`;
+    const sl = nC ? ` <span class="tag" style="color:var(--cool)">shortlisted \u00b7 ${nC}</span>` : "";
     return `<li class="lnnode" data-qrow="${it.id}" style="border-bottom:1px solid var(--line);padding:9px 0${cur ? ";background:var(--panel2)" : ""}">
-      <div><b>${esc(it.gloss)}</b> <span class="hint" style="display:inline">${esc(Q_LABEL[it.preset] || it.preset)}${it.field ? " · " + esc(it.field) : ""}${it.tier !== "ord" ? " · " + it.tier : ""}</span> ${kind}</div>
+      <div><b>${esc(it.gloss)}</b> <span class="hint" style="display:inline">${esc(Q_LABEL[it.preset] || it.preset)}${it.field ? " · " + esc(it.field) : ""}${it.tier !== "ord" ? " · " + it.tier : ""}</span> ${kind}${sl}</div>
       <div class="lnacts">${act}<a href="#" data-qskip="${it.id}">Mark done</a><a href="#" data-qdel="${it.id}">Remove</a></div></li>`;
   };
   $("qList").innerHTML = pend.length ? `<ul style="list-style:none;padding:0;margin:0">${pend.map(row).join("")}</ul>` : "";
   $("qDone").hidden = !done.length;
   $("qDoneList").innerHTML = done.map(it => `<li><b>${esc(it.gloss)}</b> ${it.word ? `→ <span class="lun">${esc(it.word)}</span>` : `<span class="hint" style="display:inline">marked done</span>`} <a href="#" data-qundo="${it.id}" style="color:var(--cool);font-size:13px">undo</a></li>`).join("");
   qBanner();
+  paintConfirmTab();
 }
 function qBanner(){
   const it = QU.cur && qItem(QU.cur);
   const html = it && !it.done
-    ? `<div class="warn" style="margin-bottom:10px">Queue: coining <b>${esc(it.gloss)}</b> (${esc(Q_LABEL[it.preset] || it.preset)}${it.root ? `, root of the ${esc(it.family)} family` : ""}). The meaning will carry through to Keep.</div>` : "";
+    ? `<div class="warn" style="margin-bottom:10px">Queue: coining <b>${esc(it.gloss)}</b> (${esc(Q_LABEL[it.preset] || it.preset)}${it.root ? `, root of the ${esc(it.family)} family` : ""}). The meaning will carry through to Keep.${(it.cands || []).length ? ` Already shortlisted: ${it.cands.map(c => esc(c.out)).join(", ")} \u2014 new picks are added to them.` : ""}</div>` : "";
   if($("qBanner")) $("qBanner").innerHTML = html;
 }
-function qNext(){ return QU.items.find(x => !x.done && qReady(x)); }
+function qNext(){ return QU.items.find(x => !x.done && !(x.cands && x.cands.length) && qReady(x)); }
 function qGo(id){
   const it = qItem(id); if(!it) return;
   if(!it.family && !it.asked && !it.done){
@@ -3446,6 +3540,7 @@ function qAfterKeep(w, src, gloss){
   if(gloss && gloss.toLowerCase() !== it.gloss.toLowerCase() &&
      !confirm(`Mark “${it.gloss}” in the queue as done with ${w}?`)) return;
   it.done = true; it.word = w; QU.cur = null;
+  if(it.cands && it.cands.length){ it.shortlist = it.cands.map(c => c.out); it.cands = []; }
   logLine(`${stamp()}  QUEUE done · ${it.gloss} → ${w}`);
   if(it.root && it.family){
     let t = lnTreeOfFamily(it.family);
@@ -3488,11 +3583,12 @@ $("qClear").onclick = () => {
   QU.items = QU.items.filter(x => !x.done); saveQ(); paintQueue();
 };
 document.querySelector("#queue").addEventListener("click", ev => {
-  const a = ev.target.closest("[data-qgo],[data-qskip],[data-qdel],[data-qundo]"); if(!a) return;
+  const a = ev.target.closest("[data-qgo],[data-qskip],[data-qdel],[data-qundo],[data-qcf]"); if(!a) return;
   ev.preventDefault();
   const d = a.dataset;
+  if(d.qcf){ cfOpen = d.qcf; document.querySelector('nav button[data-tab="confirm"]').click(); paintConfirmTab(); return; }
   if(d.qgo) qGo(d.qgo);
-  else if(d.qskip){ const it = qItem(d.qskip); it.done = true; if(QU.cur === it.id) QU.cur = null;
+  else if(d.qskip){ const it = qItem(d.qskip); it.done = true; if(QU.cur === it.id) QU.cur = null; it.cands = [];
     if(it.root && it.family && !lnTreeOfFamily(it.family)){ LN.trees.push({id: lnId(), family: it.family, root: "", sense: it.gloss, branches: []}); saveLn(); paintLineage(); }
     saveQ(); paintQueue(); }
   else if(d.qdel){ QU.items = QU.items.filter(x => x.id !== d.qdel); if(QU.cur === d.qdel) QU.cur = null; saveQ(); paintQueue(); }
@@ -3500,6 +3596,190 @@ document.querySelector("#queue").addEventListener("click", ev => {
 });
 $("lnFam").onchange = () => { const t = lnTree(); if(!t) return; t.family = $("lnFam").value.trim().toLowerCase(); saveLn(); paintQueue(); };
 document.querySelector('nav button[data-tab="queue"]').addEventListener("click", paintQueue);
+
+/* ══════════ sentences ══════════
+   2026-09-29. The word is judged in a sentence you wrote, not a template. A
+   line is Lunaji with ___ for the word, optionally | English. Particles and
+   suffixes written onto the blank join the way they join onto any word. */
+function sentLines(text){
+  return (text || "").split(/\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const k = l.indexOf("|");
+    return k < 0 ? {lu: l, en: ""} : {lu: l.slice(0, k).trim(), en: l.slice(k + 1).trim()};
+  }).filter(l => l.lu);
+}
+const fillBlank = (lu, w) => lu.replace(/_{2,}([a-z']*)/g, (m, suf) => joinSuffix(w, suf));
+function sentPreview(w, cls, lines){
+  if(!lines.length || !w) return "";
+  const hadIt = COINED.includes(w);
+  if(!hadIt) LEX[w] = {g:"(candidate)", c: CMAP[cls] || "noun", real:false};
+  try{
+    return lines.map(l => {
+      const line = fillBlank(l.lu, w);
+      const unk = unknownWords(line);
+      return `<div style="margin:10px 0 0">${l.en ? `<div class="hint" style="opacity:.7">${esc(l.en)}</div>` : ""}` +
+        (/_{2,}/.test(l.lu) ? "" : `<div class="hint" style="color:var(--lamp)">no ___ in this line, so the word isn't in it</div>`) +
+        prosodyBlock(line) + (() => { try{ return `<div class="hint" style="opacity:.8">stress: ${esc(analyse(line).phrases.map(p => p.stress).join(" \u2016 "))}</div>`; }catch(e){ return ""; } })() +
+        (unk.length ? `<div class="hint" style="color:#c77">not in the lexicon: ${unk.map(esc).join(", ")}</div>` : "") + `</div>`;
+    }).join("");
+  } finally { if(!hadIt) delete LEX[w]; }
+}
+function saveSentences(w, gloss, lines){
+  let n = 0;
+  lines.forEach(l => {
+    if(!/_{2,}/.test(l.lu)) return;
+    const lu = fillBlank(l.lu, w);
+    if(PB.some(e => e.lu === lu)) return;
+    PB.push({en: l.en || `${gloss || w} — coining sentence`, lu, verdict: "", says: []}); n++;
+  });
+  if(n){ savePB(); paintPB(); logLine(`${stamp()}  phrasebook +${n} with ${w}`); }
+  return n;
+}
+
+/* ══════════ confirm (pass 2) ══════════
+   Every check runs again here, because the lexicon has moved since the
+   shortlist was made. Candidates on other shortlists count as neighbours, so
+   two waiting words can't settle on the same shape. */
+var cfOpen = null;
+function tentItems(){ return QU ? QU.items.filter(x => !x.done && x.cands && x.cands.length) : []; }
+function cfOthers(it){
+  return tentItems().filter(x => x !== it).flatMap(x => x.cands.map(c => ({w: c.out, g: x.gloss + ", shortlisted"})));
+}
+function cfCheck(c, it){
+  let res;
+  try{ res = derive(c.root); }
+  catch(e){ return {w: c.out, ipa: c.ipa, block: ["no longer derives: " + e.message], warn: [], note: []}; }
+  const w = res.spelling, others = cfOthers(it);
+  const tags = check(res, c.cls);
+  const r = wordRisks(w, c.cls);
+  const block = tags.filter(t => !t.ok).map(t => t.s).concat(r.block);
+  const warn = r.warn.slice();
+  const tw = nearTwins(w, others);
+  if(tw.length) warn.push("one letter from " + twinText(tw));
+  const dup = others.filter(o => o.w === w);
+  if(dup.length) warn.push("the same shape is waiting for " + dup.map(d => d.g).join("; "));
+  return {w, ipa: res.ipa, res, changed: w !== c.out, block, warn, note: r.note || []};
+}
+function paintConfirmTab(){
+  if(!$("cfList")) return;
+  const T = tentItems(), nC = T.reduce((a, x) => a + x.cands.length, 0);
+  $("tabConfirm").textContent = T.length ? `Confirm (${T.length})` : "Confirm";
+  $("cfStatus").textContent = T.length
+    ? `${T.length} word${T.length === 1 ? "" : "s"} waiting · ${nC} candidates.`
+    : "Nothing shortlisted. Pick roots in Draw and press Shortlist; they wait here.";
+  $("cfList").innerHTML = T.map(it => `<li class="lnnode" style="border-bottom:1px solid var(--line);padding:9px 0${cfOpen === it.id ? ";background:var(--panel2)" : ""}">
+      <div><b>${esc(it.gloss)}</b> <span class="hint" style="display:inline">${esc(Q_LABEL[it.preset] || it.preset)}${it.field ? " · " + esc(it.field) : ""} · ${it.cands.length} candidate${it.cands.length === 1 ? "" : "s"}${it.sent ? " · sentence written" : ""}</span></div>
+      <div class="lnacts"><a href="#" data-cfopen="${it.id}">${cfOpen === it.id ? "Open" : "Open"}</a></div></li>`).join("");
+  if(cfOpen && !T.some(x => x.id === cfOpen)) cfOpen = null;
+  paintCfWork();
+}
+function paintCfWork(){
+  const it = cfOpen && qItem(cfOpen);
+  if(!it){ if(!$("cfWork").dataset.keep) $("cfWork").innerHTML = ""; return; }
+  delete $("cfWork").dataset.keep;
+  $("cfWork").innerHTML = `<div class="panel">
+      <div style="font-size:20px"><b>${esc(it.gloss)}</b></div>
+      <div class="hint">${esc(Q_LABEL[it.preset] || it.preset)}${(it.slField || it.field) ? " · " + esc(it.slField || it.field) : ""} · ${esc(it.tier || "ord")}${it.root ? ` · root of the ${esc(it.family)} family` : ""}</div>
+      <label for="cfSent" style="margin-top:12px">Your sentence — ___ where the word goes, one per line</label>
+      <textarea id="cfSent" rows="3" class="lun" spellcheck="false" autocapitalize="off" placeholder="___na kominu | the ___ is tired"></textarea>
+      <p class="hint">Particles and suffixes join onto the blank: ___na, ___ni, ___ze. Add | and the English to file the line under that. Every line goes into the phrasebook with the word you pick.</p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn ghost" id="cfReject">None of these — back to the queue</button>
+        <button class="btn ghost" id="cfClose">Close</button>
+      </div>
+    </div>
+    <div id="cfCands"></div>`;
+  $("cfSent").value = it.sent || "";
+  $("cfSent").oninput = () => { it.sent = $("cfSent").value; saveQ(); paintCands(it); };
+  $("cfClose").onclick = () => { cfOpen = null; paintConfirmTab(); };
+  $("cfReject").onclick = () => {
+    if(!confirm(`Send “${it.gloss}” back to the queue for a fresh draw? Its sentence is kept.`)) return;
+    logLine(`${stamp()}  SHORTLIST REJECTED ${it.gloss}: ${it.cands.map(c => c.out).join(", ")}`);
+    it.cands = []; saveQ(); cfOpen = null; paintQueue();
+  };
+  paintCands(it);
+}
+function paintCands(it){
+  const lines = sentLines(it.sent);
+  $("cfCands").innerHTML = it.cands.map((c, ci) => {
+    const ch = cfCheck(c, it);
+    return `<div class="cand">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <span class="lun" style="font-size:24px">${esc(ch.w)}</span><span class="ipa">/${esc(ch.ipa)}/</span></div>
+      <div class="hint">&lt; ${esc(c.root)} · ${esc(c.fired || "no rules fired")} · drawn ${c.pos} of ${c.of}, ${esc(c.d)}</div>
+      ${ch.changed ? `<div class="warn">The engine now derives ${esc(c.root)} as <b>${esc(ch.w)}</b>; it was <b>${esc(c.out)}</b> when shortlisted.</div>` : ""}
+      ${ch.block.map(x => `<div class="hint" style="color:#c77">${esc(x)}</div>`).join("")}
+      ${ch.warn.map(x => `<div class="hint" style="color:var(--lamp)">${esc(x)}</div>`).join("")}
+      ${ch.note.map(x => `<div class="hint" style="opacity:.55">${esc(x)}</div>`).join("")}
+      ${lines.length ? sentPreview(ch.w, c.cls, lines) : `<p class="hint">Write a sentence above and it appears here with this word in it.</p>`}
+      <div class="row" style="margin-top:10px">
+        <button class="btn" data-cfpick="${ci}" ${ch.block.length ? "disabled" : ""}>Pick this one</button>
+        <button class="btn ghost" data-cfdrop="${ci}">Drop</button>
+      </div>
+      ${ch.block.length ? `<p class="hint">Blocked by the checks above, so it can't be picked.</p>` : ""}
+    </div>`;
+  }).join("");
+}
+function cfConfirm(it, ci){
+  const c = it.cands[ci], ch = cfCheck(c, it);
+  if(ch.block.length) return;
+  const w = ch.w, res = ch.res, src = c.root.toUpperCase(), cls = c.cls, gloss = it.gloss;
+  const n = it.cands.length;
+  const how = `Drawn at position ${c.pos} of ${c.of}${c.forced ? " (forced draw)" : ""}; shortlisted ${c.d}${n > 1 ? ` with ${n - 1} other${n > 2 ? "s" : ""}` : ""}; confirmed ${stamp()}.`;
+  const field = it.slField || it.field || "";
+  LEX[w] = {g: gloss, c: CMAP[cls] || "noun", real: true, p: src, d: stamp(), how, k: cls};
+  if(field) LEX[w].f = field;
+  saveLex(); renderLex();
+  logLine(`${stamp()}  KEPT ${src} → ${w} /${res.ipa}/  ${gloss}  [confirmed from ${it.cands.map(x => x.out).join(", ")}]`);
+  const entry = [`### ${w}`, `**/${res.ipa}/** · *${CLASSLABEL[cls] || "class"}*`, `1. ${gloss}`, `< ${src}`,
+                 `» ${rulePhrases(res, src)} ${how}`, `[coined ${stamp()}]`].join("\n");
+  const pbn = saveSentences(w, gloss, sentLines(it.sent));
+  const filled = fillSlots(w, gloss);
+  it.done = true; it.word = w; it.shortlist = it.cands.map(x => x.out); it.cands = [];
+  if(QU.cur === it.id) QU.cur = null;
+  logLine(`${stamp()}  QUEUE done · ${gloss} → ${w}`);
+  let famNote = "";
+  if(it.root && it.family){
+    let t = lnTreeOfFamily(it.family);
+    if(!t){ t = {id: lnId(), family: it.family, root: src, sense: gloss, branches: []}; LN.trees.push(t); }
+    else if(!t.root) t.root = src;
+    saveLn(); paintLineage();
+    famNote = `<p class="hint">The ${esc(it.family)} lineage is open, rooted on ${esc(src)}. Its daughters are unlocked in the queue.</p>`;
+  }
+  saveQ();
+  cfOpen = null;
+  const nx = tentItems()[0];
+  $("cfWork").dataset.keep = "1";
+  $("cfWork").innerHTML = `<div class="panel">
+      <div class="hint">Kept</div><div class="lun" style="font-size:24px">${esc(w)}</div>
+      <label style="margin-top:12px;display:block">Dictionary entry</label>
+      <pre>${esc(entry)}</pre>
+      <button class="btn ghost" id="cfCopy">Copy entry</button>
+      ${pbn ? `<p class="hint">Saved ${pbn} sentence${pbn === 1 ? "" : "s"} to the phrasebook.</p>` : ""}
+      ${filled ? `<p class="hint">Filled ${filled} phrasebook slot${filled === 1 ? "" : "s"} with ${esc(w)}.</p>` : ""}
+      ${famNote}
+      ${nx ? `<button class="btn" id="cfNext" style="margin-top:10px">Next waiting: ${esc(nx.gloss)}</button>` : `<p class="hint">Nothing else waiting.</p>`}
+    </div>`;
+  $("cfCopy").onclick = () => { navigator.clipboard.writeText(entry); $("cfCopy").textContent = "Copied"; };
+  paintQueue();
+  if(nx) $("cfNext").onclick = () => { cfOpen = nx.id; paintConfirmTab(); window.scrollTo(0, 0); };
+}
+$("confirm").addEventListener("click", ev => {
+  const a = ev.target.closest("[data-cfopen],[data-cfpick],[data-cfdrop]"); if(!a) return;
+  ev.preventDefault();
+  const d = a.dataset, it = cfOpen && qItem(cfOpen);
+  if(d.cfopen){ cfOpen = d.cfopen; paintConfirmTab(); $("cfWork").scrollIntoView({behavior: "smooth", block: "start"}); return; }
+  if(!it) return;
+  if(d.cfpick !== undefined) cfConfirm(it, Number(d.cfpick));
+  if(d.cfdrop !== undefined){
+    const c = it.cands[Number(d.cfdrop)];
+    logLine(`${stamp()}  SHORTLIST dropped ${c.out} from ${it.gloss}`);
+    it.cands.splice(Number(d.cfdrop), 1); saveQ();
+    if(!it.cands.length) cfOpen = null;
+    paintQueue();
+  }
+});
+document.querySelector('nav button[data-tab="confirm"]').addEventListener("click", paintConfirmTab);
+
 paintQueue();
 
 /* ══════════ shape map ══════════
