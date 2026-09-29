@@ -101,7 +101,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-29-1547</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-29-1738</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -351,6 +351,15 @@ details.panel>summary{cursor:pointer}
     <ul id="cfList" style="list-style:none;padding:0;margin:0"></ul>
   </div>
   <div id="cfWork"></div>
+  <details class="panel" id="bankPanel">
+    <summary><b>Sentence bank</b> <span class="hint" style="display:inline">\u00b7 your sentences, written once, filled in for every word of that class</span></summary>
+    <p class="hint" style="margin-top:8px">One line each, <b>___</b> for the word, | and the English if you like. Verbs have no separate adjective or adverb class, so a good verb bank tests every job a verb does: predicate, past, negated, with an object, before a noun, before a verb. Switch a line off for a single word in its Confirm card when it doesn't fit that meaning.</p>
+    <label for="bankVerb">Verbs</label>
+    <textarea id="bankVerb" rows="6" class="lun" spellcheck="false" autocapitalize="off"></textarea>
+    <label for="bankNoun" style="margin-top:8px">Nouns</label>
+    <textarea id="bankNoun" rows="5" class="lun" spellcheck="false" autocapitalize="off"></textarea>
+    <p class="hint">Bank lines show on every candidate but aren't saved to the phrasebook \u2014 only the sentences you write for a word are. Saved in the lexicon file.</p>
+  </details>
 </section>
 
 <section id="borrow" hidden>
@@ -1799,7 +1808,9 @@ function renderDerivation(){
   $("kGloss").addEventListener("input", () => paintPbFrames(res.spelling));
   { const qi = QU && QU.cur && qItem(QU.cur);
     $("kSent").value = kSentVal || (qi && qi.sent) || ""; }
-  const paintK = () => { $("kSentOut").innerHTML = sentPreview(res.spelling, $("cls2").value, sentLines($("kSent").value)); };
+  const paintK = () => { const c2 = $("cls2").value;
+    $("kSentOut").innerHTML = (typeof formStrip === "function" && typeof BANK !== "undefined" && BANK ? formStrip(res.spelling, c2) : "") +
+      sentPreview(res.spelling, c2, sentLines($("kSent").value).concat(typeof BANK !== "undefined" && BANK ? bankLines(c2) : [])); };
   $("kSent").addEventListener("input", () => { kSentVal = $("kSent").value; paintK(); });
   paintK();
   $("keepWord") && ($("keepWord").onclick = () => keepWord(res, src));
@@ -2520,7 +2531,7 @@ function readTextFile(input){
   });
 }
 $("lxSaveFile").onclick = async () => {
-  const body = JSON.stringify({v:3, LEX, RETIRED: RET, REVIEW: REV, DRIFT, LINEAGE: LN, QUEUE: QU});
+  const body = JSON.stringify({v:3, LEX, RETIRED: RET, REVIEW: REV, DRIFT, LINEAGE: LN, QUEUE: QU, BANK});
   if(await saveTextFile(`lunaji-lexicon-${stamp()}.txt`, body, $("lxFileNote"))) setDirty("lex", false);
   logLine(`${stamp()}  saved the lexicon to a file · ${Object.keys(LEX).length} words`);
 };
@@ -2546,6 +2557,7 @@ $("lxFile").onchange = async () => {
     if(Array.isArray(extra.DRIFT)){ DRIFT = extra.DRIFT; saveDrift(); }
     if(extra.LINEAGE && Array.isArray(extra.LINEAGE.trees)){ LN = extra.LINEAGE; if(!Array.isArray(LN.values)) LN.values = []; saveLn(); }
     if(extra.QUEUE && Array.isArray(extra.QUEUE.items)){ QU = extra.QUEUE; saveQ(); }
+    if(extra.BANK && typeof extra.BANK === "object"){ BANK = extra.BANK; saveBank(); $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || ""; }
     paintRetired(); paintDrift(); paintReview(); paintLineage(); paintQueue();
   }
   setDirty("lex", false);
@@ -3657,7 +3669,7 @@ function sentPreview(w, cls, lines){
     return lines.map(l => {
       const line = fillBlank(l.lu, w);
       const unk = unknownWords(line);
-      return `<div style="margin:10px 0 0">${l.en ? `<div class="hint" style="opacity:.7">${esc(l.en)}</div>` : ""}` +
+      return `<div style="margin:10px 0 0">${l.en || l.bank ? `<div class="hint" style="opacity:.7">${esc(l.en)}${l.bank ? ` <span style="opacity:.6">\u00b7 bank</span>` : ""}</div>` : ""}` +
         (/_{2,}/.test(l.lu) ? "" : `<div class="hint" style="color:var(--lamp)">no ___ in this line, so the word isn't in it</div>`) +
         prosodyBlock(line) + (() => { try{ return `<div class="hint" style="opacity:.8">stress: ${esc(analyse(line).phrases.map(p => p.stress).join(" \u2016 "))}</div>`; }catch(e){ return ""; } })() +
         (unk.length ? `<div class="hint" style="color:#c77">not in the lexicon: ${unk.map(esc).join(", ")}</div>` : "") + `</div>`;
@@ -3674,6 +3686,54 @@ function saveSentences(w, gloss, lines){
   });
   if(n){ savePB(); paintPB(); logLine(`${stamp()}  phrasebook +${n} with ${w}`); }
   return n;
+}
+
+
+/* ══════════ sentence bank ══════════
+   2026-09-29. Sentences written once per class and filled in for every
+   candidate, so a verb is heard in all its jobs without a sentence being
+   written for it each time. Stored with the lexicon file. */
+const BANKKEY = "lunaji-bank";
+const BANK_DEFAULT = {
+  verb: ["lõjiwa ___ze hena | at night, (it) didn't ___",
+         "noayeni ___ze | ___ed the wind",
+         "___ helãba hĩ | there's a ___ person",
+         "___ri lõze | used to be ___ing",
+         "___ kazõze | came, ___ing"].join("\n"),
+  noun: ["___na kominu | the ___ is tired",
+         "___ni sofuze | saw the ___",
+         "___wa hĩ | (someone) is at the ___",
+         "howeru ___ | a good ___"].join("\n")
+};
+var BANK = null;
+try{ BANK = JSON.parse(localStorage.getItem(BANKKEY) || "null"); }catch(e){ BANK = null; }
+if(!BANK || typeof BANK !== "object") BANK = Object.assign({}, BANK_DEFAULT);
+function saveBank(){ try{ localStorage.setItem(BANKKEY, JSON.stringify(BANK)); }catch(e){} setDirty("lex", true); }
+const bankKind = cls => ["verb","adjv","irreg"].includes(cls) ? "verb" : ["pnoun","dnoun"].includes(cls) ? "noun" : "";
+function bankLines(cls, off){
+  const k = bankKind(cls); if(!k) return [];
+  return sentLines(BANK[k] || "").filter(l => !(off || []).includes(l.lu)).map(l => Object.assign(l, {bank: true}));
+}
+$("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
+$("bankVerb").oninput = () => { BANK.verb = $("bankVerb").value; saveBank(); const it = cfOpen && qItem(cfOpen); if(it) paintCfWork(); };
+$("bankNoun").oninput = () => { BANK.noun = $("bankNoun").value; saveBank(); const it = cfOpen && qItem(cfOpen); if(it) paintCfWork(); };
+
+/* The forms a word will actually wear, side by side, each with its phrase
+   accent. A mini Paradigm inside the card. */
+function formStrip(w, cls){
+  const k = bankKind(cls); if(!k || !w) return "";
+  const T = x => toTilde(x);
+  const forms = k === "verb"
+    ? [w, joinSuffix(w, "ze"), joinSuffix(w, "ri"), w + " hena", joinSuffix(w, "ze") + " hena", joinSuffix(w, "ze") + " la", joinSuffix(w, "ri") + " " + T("lonze")]
+    : [w, joinSuffix(w, "na"), joinSuffix(w, "ba"), joinSuffix(w, "ni"), joinSuffix(w, "pe"), joinSuffix(w, "wa"), joinSuffix(w, "di")];
+  const hadIt = COINED.includes(w);
+  if(!hadIt) LEX[w] = {g:"(candidate)", c: CMAP[cls] || "noun", real:false};
+  try{
+    return `<div style="margin:10px 0 0;display:flex;flex-wrap:wrap;gap:6px 14px">` + forms.map(f => {
+      let st = ""; try{ st = analyse(f).phrases.map(p => p.stress).join(" "); }catch(e){}
+      return `<span style="white-space:nowrap"><span class="lun" style="font-size:16px">${esc(f)}</span>${st ? ` <span class="hint" style="display:inline;opacity:.65">/${esc(st)}/</span>` : ""}</span>`;
+    }).join("") + `</div>`;
+  } finally { if(!hadIt) delete LEX[w]; }
 }
 
 /* ══════════ confirm (pass 2) ══════════
@@ -3723,6 +3783,7 @@ function paintCfWork(){
       <label for="cfSent" style="margin-top:12px">Your sentence — ___ where the word goes, one per line</label>
       <textarea id="cfSent" rows="3" class="lun" spellcheck="false" autocapitalize="off" placeholder="___na kominu | the ___ is tired"></textarea>
       <p class="hint">Particles and suffixes join onto the blank: ___na, ___ni, ___ze. Add | and the English to file the line under that. Every line goes into the phrasebook with the word you pick.</p>
+      <div id="cfBank"></div>
       <div class="row" style="margin-top:8px">
         <button class="btn ghost" id="cfReject">None of these — back to the queue</button>
         <button class="btn ghost" id="cfClose">Close</button>
@@ -3730,6 +3791,20 @@ function paintCfWork(){
     </div>
     <div id="cfCands"></div>`;
   $("cfSent").value = it.sent || "";
+  const bk = bankKind((it.cands[0] || {}).cls);
+  const all = bk ? sentLines(BANK[bk] || "") : [];
+  $("cfBank").innerHTML = all.length ? `<label style="margin-top:10px">From the ${bk} bank \u2014 untick what doesn't fit this meaning</label>` +
+    all.map((l, k) => `<label style="display:flex;gap:8px;align-items:baseline;font-weight:normal;margin:4px 0">
+      <input type="checkbox" data-bank="${k}" ${(it.bankOff || []).includes(l.lu) ? "" : "checked"}>
+      <span><span class="lun">${esc(l.lu)}</span>${l.en ? ` <span class="hint" style="display:inline">${esc(l.en)}</span>` : ""}</span></label>`).join("")
+    : (bk ? `<p class="hint">The ${bk} bank is empty. Fill it in under Sentence bank, below.</p>` : "");
+  $("cfBank").onchange = ev => {
+    const x = ev.target.closest("[data-bank]"); if(!x) return;
+    const lu = all[Number(x.dataset.bank)].lu;
+    it.bankOff = (it.bankOff || []).filter(v => v !== lu);
+    if(!x.checked) it.bankOff.push(lu);
+    saveQ(); paintCands(it);
+  };
   $("cfSent").oninput = () => { it.sent = $("cfSent").value; saveQ(); paintCands(it); };
   $("cfClose").onclick = () => { cfOpen = null; paintConfirmTab(); };
   $("cfReject").onclick = () => {
@@ -3740,7 +3815,7 @@ function paintCfWork(){
   paintCands(it);
 }
 function paintCands(it){
-  const lines = sentLines(it.sent);
+  const own = sentLines(it.sent);
   $("cfCands").innerHTML = it.cands.map((c, ci) => {
     const ch = cfCheck(c, it);
     return `<div class="cand">
@@ -3751,7 +3826,8 @@ function paintCands(it){
       ${ch.block.map(x => `<div class="hint" style="color:#c77">${esc(x)}</div>`).join("")}
       ${ch.warn.map(x => `<div class="hint" style="color:var(--lamp)">${esc(x)}</div>`).join("")}
       ${ch.note.map(x => `<div class="hint" style="opacity:.55">${esc(x)}</div>`).join("")}
-      ${lines.length ? sentPreview(ch.w, c.cls, lines) : `<p class="hint">Write a sentence above and it appears here with this word in it.</p>`}
+      ${formStrip(ch.w, c.cls)}
+      ${(lines => lines.length ? sentPreview(ch.w, c.cls, lines) : `<p class="hint">Write a sentence above, or fill the bank, and it appears here with this word in it.</p>`)(own.concat(bankLines(c.cls, it.bankOff)))}
       <div class="row" style="margin-top:10px">
         <button class="btn" data-cfpick="${ci}" ${ch.block.length ? "disabled" : ""}>Pick this one</button>
         <button class="btn ghost" data-cfdrop="${ci}">Drop</button>
