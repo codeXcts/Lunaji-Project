@@ -97,7 +97,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-19-1800</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-28-2015</div>
 <p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -633,13 +633,43 @@ const CONS = "pbtdkgmnfvszhrlwy".split("");
 const CONS_W = "nnnnnmmmrrrrllllwwwyykkkkssszzhhpbtdfgv".split("");
 const VOW_W  = "aeiiooooouuuu".split("");
 const OBSTRUENT = "pbtdkgfvsz", LIQUID = "rl";   // sh, j, ny are derived, never proto
+/* Which obstruents may lead an onset cluster — Phonology §4.2 rule 6:
+   pr br tr dr kr gr fr vr pl bl kl gl fl vl. NOT s or z. Aligned 2026-09-28:
+   the Forge had been building sla / zra onsets the spec never allowed. With
+   codas legal, s before a liquid goes to the coda instead — kas.la, not ka.sla.
+   z is not coda-eligible, so z before a liquid is simply lost, as before. */
+const CLUSTER_OB = "pbtdkgfv";
 const NASAL_C = ["m","n","ɲ"];
 const GLIDES = ["y","w"];
-const isV = c => VOW.includes(c) || "ãẽĩõ".includes(c);
+const isV = c => VOW.includes(c) || "ãẽĩõũ".includes(c);
+// 2026-09-28. Phonology §4.1a — a liquid or s may close a syllable, word-internally.
+const CODA_OK = "rls";
+/* Orthography, Phonology §6. The engine works in the old `an in on` spelling
+   internally, because every phonotactic regex below is written against it. The
+   tilde is applied on the way out and undone on the way in, so the files the
+   Forge reads and writes are tilde-spelled and nothing else had to change. */
+const NAS_T = {a:"ã", i:"ĩ", o:"õ", e:"ẽ", u:"ũ"};
+const T_NAS = {"ã":"an", "ĩ":"in", "õ":"on", "ẽ":"en", "ũ":"un"};
+/* 2026-09-28, later — the nasal-seam apostrophe is dropped from the WRITTEN
+   language. With nasality on the vowel, helãni, aoyãwa and shĩyu cannot be
+   misread, so the mark had no job left. The engine still uses the n-form
+   internally, where the apostrophe IS needed (shin'yu vs shinyu = ɲ), so toN()
+   re-inserts it and toTilde() removes it. Old files carrying the apostrophe
+   still load. The elision apostrophe (d'itsuze) is untouched: it follows a
+   consonant, never a nasal vowel. */
+const toTilde = w => typeof w === "string"
+  ? w.replace(/([aeiou])n'/g, (m,v) => NAS_T[v])
+     .replace(/([aeiou])n(?![aeiouãĩõyw'])/g, (m,v) => NAS_T[v])
+     .replace(/([ãĩõẽũ])'/g, "$1")
+  : w;
+const toN = w => typeof w === "string"
+  ? w.replace(/[ãĩõẽũ]'?(?=[aeiouãĩõẽũywn])/g, m => T_NAS[m[0]] + "'")
+     .replace(/[ãĩõẽũ]'?/g, m => T_NAS[m[0]])
+  : w;
 
 /* ══════════ parse ══════════ */
 function parse(str){
-  const s = str.trim().toLowerCase().replace(/[^a-z']/g,"");
+  const s = toN(str.trim().toLowerCase()).replace(/[^a-z']/g,"");
   const w = []; let i = 0;
   while(i < s.length){
     let c = s[i];
@@ -656,6 +686,7 @@ function parse(str){
 
     // n is a coda only if no vowel AND no glide follows — NY is onset n + y, feeding R8
     if(s[i]==="n" && !(isV(s[i+1]) || s[i+1]==="y" || s[i+1]==="w")){ w.push({t:"N", s:"n"}); i++; }
+    if(s[i]==="'") i++;                          // internal seam mark from toN()
   }
   if(!w.length) throw new Error("Empty root");
   return syllabify(w);
@@ -704,27 +735,71 @@ function R3(w){
       // "between two consonants" is literal — KARUA keeps its u, nothing follows it but a vowel
       const lc = w[i-1] && w[i-1].t==="C", rc = w[i+1] && (w[i+1].t==="C" || w[i+1].t==="N");
       if(!lc || !rc) continue;
-      // blocked where deleting would leave a cluster before a nasal vowel (NOKURAN)
+      /* Narrowed 2026-09-28. Phonology §4.2 rule 7 bans a complex ONSET in front
+         of a nasal vowel, and before codas existed the survivor had nowhere to go
+         but that onset, so every pre-nasal environment was blocked. Now a
+         coda-eligible consonant becomes the coda of the PRECEDING syllable and
+         nothing complex reaches the onset — so the block applies only where the
+         survivor could not be a coda.
+           NOKURAN   → nokuran   (k cannot be a coda; /krãː/ would be complex)
+           MINOSUKAN → minoskan  (s becomes a coda; the onset is a plain k)      */
       const clusters = w[i+1].t==="C";
       const nextNasal = w[i+2] && w[i+2].t==="V" && w[i+3] && w[i+3].t==="N";
-      if(clusters && nextNasal) continue;
+      const C1 = w[i-1].s, C2 = w[i+1].s;
+      // Only a liquid, s, or an identical pair. A nasal C1 keeps the old blocking
+      // behaviour deliberately: unblocking it would move nasal words like UMULIN.
+      const codaEligible = CODA_OK.includes(C1) || (C1===C2 && !NASAL_C.includes(C1));
+      if(clusters && nextNasal && !codaEligible) continue;
       w.splice(i,1); syllabify(w); fired=true; i--;
     }
   }
   return fired;
 }
-// R4 — cluster cleanup. A nasal before a non-nasal survives as a coda; anything else is lost
+/* R4 — cluster resolution. Rewritten 2026-09-28; this rule was called "cluster
+   cleanup" and under the old survivor list cleanup was mostly what it did.
+   Two consonants left standing by R3 resolve by which two they are:
+     obstruent + liquid  → both survive, as a complex ONSET      (TAPURA → tapra)
+     C1 is a liquid or s → C1 survives as a CODA                 (MERUTA → merta)
+     C1 = C2             → they fuse into a LONG consonant       (OWARURU → owarru)
+     C1 is a nasal       → survives as a coda, feeding R5        (KANUTA → kanta)
+     anything else       → C1 is lost                            (SATUNA → sana)
+   Two things outrank all of it: a following coda n takes the one slot (FOLOGORUN),
+   and a survivor that would end the word in a real consonant is lost (HIRUN).   */
 function R4(w){
   let fired=false;
   for(let i=0;i<w.length-1;i++){
     const a=w[i], b=w[i+1];
     if(a.t!=="C") continue;
-    if(b.t!=="C" && b.t!=="N") continue;
-    if(OBSTRUENT.includes(a.s) && LIQUID.includes(b.s)) continue;   // TAPURA → tapra
+    if(b.t!=="C" && b.t!=="N" && b.t!=="K") continue;
+    if(CLUSTER_OB.includes(a.s) && LIQUID.includes(b.s)) continue;  // complex onset — never s or z
     if(NASAL_C.includes(a.s) && !NASAL_C.includes(b.s)){ w[i]={t:"N",s:a.s}; fired=true; }
+    else if(b.t==="N"){ w.splice(i,1); fired=true; i--; }           // the n wins the slot
+    /* Identical consonants that may NOT fuse, so C1 is simply lost:
+         a nasal — R1's precedent is that adjacent nasals collapse;
+         r — ruled by ear 2026-09-28. A doubled tap is not a long tap, it is a
+         trill [r], which the inventory does not have. Italian gets *carro*
+         because its r is already a trill; Lunaji's is a tap, so a long one would
+         smuggle a new phoneme in through R4. A long l is fine (Italian bello) —
+         a lateral stays a lateral when you hold it. */
+    else if(a.s===b.s && (NASAL_C.includes(a.s) || a.s==="r" || a.s==="h"
+            || a.s==="y" || a.s==="w")){ w.splice(i,1); fired=true; i--; }
+    else if(a.s===b.s){ w[i]={t:"K",s:a.s}; fired=true; }            // long consonant
+    else if(CODA_OK.includes(a.s) && a.s==="r" && b.s==="r"){ w.splice(i,1); fired=true; i--; }
+    else if(CODA_OK.includes(a.s) && !(w[i-1] && w[i-1].t==="K")){ w[i]={t:"K",s:a.s}; fired=true; }
     else { w.splice(i,1); fired=true; i--; }
     syllabify(w);
   }
+  /* No long r, ruled by ear 2026-09-28. Two syncopes in one word can bring a coda
+     r up against an onset r even when neither was an identical pair at the time,
+     so the ban needs a pass of its own rather than a branch above. */
+  for(let i=0;i<w.length-1;i++)
+    if(w[i].t==="K" && w[i].s==="r" && w[i+1].t==="C" && w[i+1].s==="r"){
+      w.splice(i,1); fired=true; i--;
+    }
+  /* Phonology §4.1a — a word may not end in a real consonant. A coda stranded at
+     the end is dropped; this is why HIRUN gives hin and never *hir. */
+  while(w.length && w[w.length-1].t==="K"){ w.pop(); fired=true; }
+  syllabify(w);
   return fired;
 }
 // R5 — a coda nasal nasalizes the vowel before it and leaves its mora behind
@@ -736,6 +811,14 @@ function R5(w){
     for(let k=i-1;k>=0;k--) if(w[k].t==="V"){ w[k].nasal=true; break; }
     w.splice(i,1); fired=true; i--;
   }
+  /* No long r (ruled by ear 2026-09-28). Deleting the nasal segment above can
+     bring a coda r up against an onset r that R4 never saw as a pair, so the
+     ban needs a pass here as well as in R4. */
+  for(let i=0;i<w.length-1;i++)
+    if(w[i].t==="K" && w[i].s==="r" && w[i+1].t==="C" && w[i+1].s==="r"){
+      w.splice(i,1); fired=true; i--;
+    }
+  syllabify(w);
   return fired;
 }
 // R6 — nasal vowels lower: ũ → õ and ẽ → ã. Three nasal vowels survive: ã ĩ õ
@@ -763,6 +846,24 @@ function R8(w){
   return fired;
 }
 
+/* R12 — sequential voicing at a compound seam. Added 2026-09-28, Phonology §4.3.
+   The second element of a compound voices its initial obstruent, unless it
+   already contains a voiced one (Lyman's Law). Japanese rendaku, producing the
+   French half of the consonant inventory: /v z ʒ/ become productive.
+   h does not participate — Japanese sends h → b only because its h descends
+   from p, and Lunaji's h has no such history.
+   Compound seams only: not a clitic, not a suffix, not a fused form.           */
+const VOICE12 = [["sh","j"],["ts","z"],["p","b"],["t","d"],["k","g"],["s","z"],["f","v"]];
+function compound(first, second){
+  const a = toN(first), b = toN(second);
+  if(/[bdgvz]|j(?![aeiou]?$)/.test(b.replace(/^(sh|ts|[ptksf])/, "")) ||
+     /[bdgvz]/.test(b) || /j/.test(b.slice(1)))
+    return toTilde(a + b);                         // Lyman's Law blocks it
+  for(const [vl, vd] of VOICE12)
+    if(b.startsWith(vl)) return toTilde(a + vd + b.slice(vl.length));
+  return toTilde(a + b);                           // h, sonorants, vowels: no target
+}
+
 const RULES = [
   ["R1","geminate / nasal cluster",R1],
   ["R2","glide formation",R2],
@@ -786,20 +887,34 @@ function spell(w){
       // — ruled 2026-09-10 — before a bare glide too: ny and nw are already the
       // digraphs for ɲ and for onset n + w, so shinyu would read as /ʃi.ɲu/.
       // A bare glide is parsed as an onset, so test for it explicitly.
-      if(prevV.nasal && (!s.onset || s.onset === "y" || s.onset === "w")) out += "'";
+      // 2026-09-28 — a real coda already separates them, so the mark is not needed:
+      // shĩl.yu cannot be misread as ɲ the way shĩ.yu could.
+      // (the nasal-seam apostrophe was written here until 2026-09-28 — no longer
+      //  needed with nasality on the vowel; toN() restores it internally)
     }
     const tsu = s.onset==="t" && !s.glide && s.v.s==="u" && !s.v.nasal;
     if(s.onset) out += tsu ? "ts" : s.onset.split("").map(c=>SPELL[c]||c).join("");
     if(s.glide) out += s.glide.s;
-    out += s.v.s + (s.v.nasal ? "n" : "");
+    out += s.v.nasal ? NAS_T[s.v.s] : s.v.s;   // Phonology §6 — the tilde
+    if(s.coda) out += s.coda;                    // 2026-09-28 — merta, kaspo, owarru
   });
   return out;
 }
+/* spell() is tilde-spelled, which is what the lexicon file stores and what the
+   person reads. A few helpers below carry phonotactic regexes written against
+   the older `an in on` form; each of those normalizes its input with toN(). */
+const spellN = w => toN(spell(w));
 function ipa(w){
   const sy = syllables(w);
-  // Phonology §5 — stress falls on the last nasal syllable, or the final syllable
+  /* Phonology §5, rewritten 2026-09-28 — the accent falls on the last HEAVY
+     syllable, or on the final syllable where there is none. Heavy is a nasal
+     vowel, a closed syllable, or the first half of a long consonant.
+     NOTE: the accent belongs to the PHRASE, not the word. What is marked here is
+     where it falls when the word stands alone as a phrase, which is how a
+     citation form is said. Inside a longer phrase it may carry no accent at all.
+     Use phraseAccent() for a whole phrase. */
   let str = -1;
-  sy.forEach((s,i)=>{ if(s.v.nasal) str = i; });
+  sy.forEach((s,i)=>{ if(isHeavy(s)) str = i; });
   if(str < 0) str = sy.length - 1;
   const NAS = {a:"ã",e:"ẽ",i:"ĩ",o:"õ",u:"ũ"};
   return sy.map((s,i)=>{
@@ -810,19 +925,34 @@ function ipa(w){
       : s.onset.split("").map(c => c==="r" ? "ɾ" : c==="y" ? "j" : c).join("");
     if(s.glide) o += s.glide.s==="y" ? "j" : "w";
     o += s.v.nasal ? NAS[s.v.s]+"ː" : s.v.s;
+    if(s.coda) o += s.coda === "r" ? "ɾ" : s.coda;
     return o;
   }).join(".");
 }
+/* Phonology §5 — the accent is assigned over a phrase: a noun with its clitics,
+   or the verb complex with its post-verbal tail. Give it the phrase's syllables
+   in order and it returns the index that carries the beat. */
+function phraseAccent(sy){
+  for(let i=sy.length-1;i>=0;i--) if(isHeavy(sy[i])) return i;
+  return sy.length - 1;
+}
 function syllables(w){
-  const out=[]; let cur={onset:"",glide:null,v:null};
+  const out=[]; let cur={onset:"",glide:null,v:null,coda:""};
   for(const seg of w){
     if(seg.t==="C") cur.onset += seg.s;          // clusters accumulate into one onset
     else if(seg.t==="G") cur.glide = seg;
-    else if(seg.t==="V"){ cur.v = seg; out.push(cur); cur={onset:"",glide:null,v:null}; }
+    else if(seg.t==="V"){ cur.v = seg; out.push(cur); cur={onset:"",glide:null,v:null,coda:""}; }
+    // 2026-09-28 — a real coda closes the syllable already emitted
+    else if(seg.t==="K" && out.length) out[out.length-1].coda = seg.s;
   }
   return out;
 }
-const moras = w => w.filter(s=>s.t==="V").reduce((n,s)=>n+(s.nasal?2:1),0);
+// Phonology §5 — heavy means a nasal vowel, a closed syllable, or the first half
+// of a long consonant. All three take a mora and all three attract the accent.
+const isHeavy = s => Boolean(s.v.nasal || s.coda);
+/* Phonology §5 — oral vowel 1, nasal vowel 2, coda 1, first half of a long
+   consonant 1. Glides and complex onsets add nothing. Updated 2026-09-28. */
+const moras = w => w.reduce((n,s)=> n + (s.t==="V" ? (s.nasal?2:1) : s.t==="K" ? 1 : 0), 0);
 
 /* ══════════ derive ══════════ */
 function derive(rootStr){
@@ -832,7 +962,7 @@ function derive(rootStr){
     const fired = fn(w);
     steps.push({id,name,fired,form:spell(w)});
   }
-  return {word:w, steps, spelling:spell(w), ipa:ipa(w), moras:moras(w)};
+  return {word:w, steps, spelling:spell(w), spellingN:spellN(w), ipa:ipa(w), moras:moras(w)};
 }
 
 /* ══════════ legality ══════════ */
@@ -911,6 +1041,14 @@ let LEX = {}, SUFFIX = null;
 // the Composer's class vocabulary is canonical, since both tools now read one store
 const CMAP = {pnoun:"noun", dnoun:"noun", verb:"verb", adjv:"verb", irreg:"verb", aux:"aux",
               func:"case", pron:"pron", suffix:"case", any:"noun"};
+/* 2026-09-28 — the lexicon is tilde-spelled. Anything arriving in the old
+   `an in on` form (an older export, the built-in seed, a hand-typed word) is
+   converted on the way in, so both spellings load and only one is stored. */
+function tildeKeys(o){
+  if(!o || typeof o !== "object") return o;
+  if(Array.isArray(o)) return o.map(toTilde);
+  const out = {}; for(const k in o) out[toTilde(k)] = o[k]; return out;
+}
 function seedObj(){
   const o = {};
   for(const w in LEX_SEED) o[w] = {g:LEX_SEED[w][0], c:CMAP[LEX_SEED[w][1]] || "noun", real:true};
@@ -935,11 +1073,24 @@ function check(res, cls){
   const last = w[w.length-1];
   t.push(last && last.t==="V"
     ? {ok:true, s:"ends in a vowel"} : {ok:false, s:"does not end in a vowel"});
-  const coda = w.some(s=>s.t==="N");
-  if(coda) t.push({ok:false, s:"coda survives — a rule failed"});
+  if(w.some(s=>s.t==="N")) t.push({ok:false, s:"nasal coda survives — R5 failed"});
+  /* 2026-09-28 — a real coda is legal word-internally (Phonology §4.1a) and never
+     word-finally. R4 already drops a stranded one; this catches a hand-typed form. */
+  if(last && last.t==="K") t.push({ok:false, s:"word ends in a real consonant (Phonology §4.1a)"});
+  for(let i=0;i<w.length;i++){
+    const s = w[i];
+    if(s.t!=="K") continue;
+    const geminate = w[i+1] && w[i+1].t==="C" && w[i+1].s===s.s;   // first half of a long C
+    if(!geminate && !CODA_OK.includes(s.s))
+      t.push({ok:false, s:"illegal coda \u2014 a standalone coda is a liquid or s only"});
+    if(geminate && (NASAL_C.includes(s.s) || "rhyw".includes(s.s)))
+      t.push({ok:false, s:"this consonant cannot be held long"});
+  }
+  // ruled by ear 2026-09-28 — a doubled tap is a trill, and there is no trill
+  if(/rr/.test(toN(spell(w)))) t.push({ok:false, s:"long r \u2014 a doubled tap is a trill, which the inventory has no"});
   for(let i=0;i<w.length-1;i++){
-    if(w[i].t==="C" && w[i+1].t==="C" && !(OBSTRUENT.includes(w[i].s) && LIQUID.includes(w[i+1].s)))
-      t.push({ok:false, s:"illegal cluster — only obstruent + liquid survives"});
+    if(w[i].t==="C" && w[i+1].t==="C" && !(CLUSTER_OB.includes(w[i].s) && LIQUID.includes(w[i+1].s)))
+      t.push({ok:false, s:"illegal cluster — only obstruent + liquid survives as an onset"});
     if(w[i].t==="C" && "rkgfv".includes(w[i].s) && w[i+1].t==="G" && w[i+1].s==="w")
       t.push({ok:false, s:"w after a velar, labiodental or r (Phonology §4.2.5)"});
     if(w[i].t==="C" && (w[i].s==="s"||w[i].s==="z") && w[i+1].t==="V" && w[i+1].s==="i")
@@ -949,7 +1100,8 @@ function check(res, cls){
   if(syllables(w).some(s=>s.onset.length>1 && s.v.nasal))
     t.push({ok:false, s:"cluster onset on a nasal syllable (Phonology §4.2.7)"});
   t.push({ok:true, s: res.moras + " mora" + (res.moras===1?"":"s")});
-  const sp = res.spelling;
+  const spT = res.spelling;                 // tilde — how the lexicon is keyed
+  const sp  = res.spellingN || toN(spT);    // n-form — what the regexes below expect
   // a glide before its own vowel is inaudible — /yi/ and /wu/. ny + i is ɲi and is left alone.
   // Phonology §4.1b — no oral length, so /o.o/ cannot be heard as two beats
   if(/([aeiou])\1/.test(sp)) t.push({ok:false, s:"identical-vowel hiatus — unrecoverable without oral length"});
@@ -973,8 +1125,8 @@ function check(res, cls){
     if(cls==="pnoun") t.push(!endsU ? {ok:true,s:nasalEnd?"primary noun, nasal-final":"primary noun"}
                                     : {ok:false,s:"nouns may never end in –u"});
   }
-  if(COINED.includes(sp)) t.push({ok:false, s:"collides with " + sp + " — " + LEX[sp].g});
-  else if(isRetired(sp)) t.push({ok:false, s:"this shape was retired once already"});
+  if(COINED.includes(spT)) t.push({ok:false, s:"collides with " + spT + " — " + LEX[spT].g});
+  else if(isRetired(spT)) t.push({ok:false, s:"this shape was retired once already"});
   return t;
 }
 
@@ -1009,11 +1161,35 @@ function makeSyllable(shape, prevSeg){
   return s;
 }
 const IRREG_RATE = 0.25;   // share of verb draws given a nasal proto final
+/* Lexicology §6, added 2026-09-28. A syllable that is neither the first nor the
+   last is drawn as {r|l|s} + u, no coda, with this probability. That is the
+   entire source of the coda environment — R3 deletes the u and R4 turns the
+   consonant into a coda. Nothing else about the draw changed.
+   Tuned against this generator over 30,000 draws, at the real syllable-count
+   distribution. The standalone model used to set the spec ran hotter per unit of
+   bias, so the spec's 0.30 lands here as 0.16:
+
+     bias   coda%   cluster%   longC%   mean syllables
+     0.00     5.4       0.9       0.6        2.99
+     0.14    17.7       2.1       1.7        2.85
+     0.16    19.8       2.1       2.0        2.84      <- set
+     0.20    23.1       2.4       2.2        2.80
+
+   One word in five carries a coda, clusters roughly double off a very low base,
+   and mean root length falls by about a sixth of a syllable.
+
+   CONFIRMED BY EAR, 2026-09-28. kilsu and nõlasyu were said aloud — the first
+   closed syllables ever spoken in the language — and judged to sound like
+   Lunaji. Lexicology §6 step 6, on the new texture rather than on a word. The
+   same session rejected the long r. */
+const CODA_BIAS = 0.16;
 function generateRoot(cls, nSyl){
   if(cls==="func" && !nSyl) nSyl = 1;   // only when no explicit count is chosen
   let body = "";
   for(let i=0;i<nSyl-1;i++){
     const prev = body[body.length-1];
+    // medial only: never the first syllable, and the last one carries the theme
+    if(i > 0 && Math.random() < CODA_BIAS){ body += pick(CODA_OK.split("")) + "u"; continue; }
     body += makeSyllable(weighted(SHAPES), prev);
   }
   // final syllable carries the theme
@@ -1043,12 +1219,14 @@ function generateRoot(cls, nSyl){
   return (body + fin).toUpperCase();
 }
 function endsOK(sp, req){
+  sp = toN(sp);
   if(!req) return true;
   if(req==="NAS")  return /[aio]n$/.test(sp);
   if(req==="ORAL") return /[aeiou]$/.test(sp);
   return sp.endsWith(req);
 }
 function startsOK(sp, req){
+  sp = toN(sp);
   if(!req) return true;
   if(req==="SON")  return /^[nmrlwy]/.test(sp);
   if(req==="NAS")  return /^[nm]/.test(sp);
@@ -1061,8 +1239,9 @@ function startsOK(sp, req){
 const V = "aeiou";
 // Work on spellings, not parsed structures: the lexicon is stored as spellings
 // and a rhyme is a fact about the written tail either way.
-const rhymeTail = w => w.length >= 4 ? w.slice(-3) : w;
+const rhymeTail = w => (w = toN(w)).length >= 4 ? w.slice(-3) : w;
 function themeOnset(w){
+  w = toN(w);
   let i = w.length - 1;
   if(w[i] === "n") i--;                       // a word-final n is the vowel's nasality
   while(i >= 0 && !V.includes(w[i])) i--;     // land on the final vowel
@@ -1127,6 +1306,7 @@ function splitsIntoParticles(w){
   return walk(w);
 }
 function firstSyl(w){
+  w = toN(w);
   const m = w.match(/^[^aeiou]*[aeiou]n?(?![aeiou])/) || w.match(/^[^aeiou]*[aeiou]/);
   return m ? m[0] : w;
 }
@@ -1458,6 +1638,21 @@ function renderDerivation(){
   catch(e){ box.innerHTML = `<div class="warn">${e.message}. Check the shape against Phonology §4.1.</div>`; return; }
   const tags = check(res, $("cls2").value);
   const bad = tags.some(t=>!t.ok);
+  /* 2026-09-28. The coda rule changed what R3 and R4 do, so a handful of roots
+     derive to a different modern form than the one the language actually uses.
+     Those forms are grandfathered (Proto §1.3) — the new rules apply to new
+     draws. This says so rather than letting the Forge quietly contradict the
+     Dictionary. */
+  const GRANDFATHERED = {
+    "SINLUZUYU":"shĩyu", "SINLUZUYA":"shĩya",
+    "ALUKYOZA":"akyoza", "YORUZU":"yozu", "INOLUYU":"inoyu", "HERUNA":"hena"
+  };  // OWARURU came off this list when the long r was banned — it gives owaru again
+  const gf = GRANDFATHERED[src.toUpperCase()];
+  const gfNote = gf && gf !== res.spelling
+    ? `<div class="warn">Under the 2026-09-28 rules this root derives as <b>${esc(res.spelling)}</b>,
+       but the language already has <b>${esc(gf)}</b> from it. Existing words are grandfathered —
+       the new survivor table applies to new draws. Do not respell ${esc(gf)} on the strength of this.</div>`
+    : "";
   box.innerHTML = `
     <div class="panel">
       <ul class="ladder">
@@ -1467,6 +1662,7 @@ function renderDerivation(){
       </ul>
       <div class="result lun">${res.spelling}</div>
       <div class="ipa">/${res.ipa}/</div>
+      ${gfNote}
       <div class="tags">${tags.map(t=>`<span class="tag ${t.ok?"ok":"bad"}">${t.s}</span>`).join("")}</div>
       ${(tw => tw.length ? `<p class="hint" style="color:var(--lamp)">One letter from ${esc(twinText(tw))}. Say them in one sentence before keeping.</p>` : "")(nearTwins(res.spelling))}
     </div>
@@ -1514,6 +1710,7 @@ const PVOW = "aeiou";
 const isV = c => !!c && PVOW.includes(c);
 
 function sylsOf(w){
+  w = toN(w);
   // the apostrophe is kept during parsing: it is what says an n before a glide
   // is vowel nasality rather than the onset of the next syllable
   const out = [];
@@ -1537,16 +1734,74 @@ function sylsOf(w){
     if(w[i] === "n" && (w[i+1] === "'" || (!isV(w[i+1]) && w[i+1] !== "y" && w[i+1] !== "w"))){
       nasal = true; i++;
     }
-    out.push({t: on + v + (nasal ? "n" : ""), nasal, m: nasal ? 2 : 1});
+    /* 2026-09-28 — an onset may be one consonant, a digraph, or obstruent+liquid
+       (plus a glide). Anything in front of that belongs to the syllable already
+       emitted, as a coda, and carries a mora: mi.nos.kan, not mi.no.skan.       */
+    let glide = "";
+    if(on.length > 1 && (on.endsWith("y") || on.endsWith("w")) && on !== "ny"){
+      glide = on.slice(-1); on = on.slice(0, -1);
+    }
+    let coda = "";
+    if(on.length > 1 && !["sh","ts","ny"].includes(on)){
+      const two = on.slice(-2);
+      const legalTwo = ["sh","ts","ny"].includes(two) ||
+                       (CLUSTER_OB.includes(two[0]) && LIQUID.includes(two[1]));
+      const keep = legalTwo ? 2 : 1;
+      coda = on.slice(0, on.length - keep);
+      on = on.slice(on.length - keep);
+    }
+    if(coda && out.length){
+      const prev = out[out.length - 1];
+      prev.t += coda; prev.m += coda.length; prev.coda = coda;
+    }
+    out.push({t: on + glide + v + (nasal ? "n" : ""), nasal, m: nasal ? 2 : 1});
   }
   return out;
 }
 const morasOfWord = w => sylsOf(w).reduce((a,s)=>a+s.m, 0);
-// Phonology §5: last nasal syllable, else the final one
+/* Phonology §5, rewritten 2026-09-28 — the accent falls on the last HEAVY
+   syllable, heavy being a nasal vowel, a closed syllable, or the first half of a
+   long consonant. This is the CITATION form: where the beat lands when the word
+   stands alone as a phrase. Inside a longer phrase use phraseAccent(). */
+const heavySyl = s => Boolean(s.nasal || s.coda);
 function stressIdx(w){
   const sy = sylsOf(w); let k = -1;
-  sy.forEach((s,i)=>{ if(s.nasal) k = i; });
+  sy.forEach((s,i)=>{ if(heavySyl(s)) k = i; });
   return k < 0 ? sy.length - 1 : k;
+}
+/* One accent per PHRASE, not per word. Takes the phrase's tokens in order and
+   returns the whole phrase transcribed with a single ˈ on its last heavy
+   syllable — or on its final syllable where the phrase has none. */
+function phraseAccent(toks){
+  const flat = [];
+  toks.forEach((t, ti) => sylsOf(t.toLowerCase()).forEach((s, si) =>
+    flat.push({s: Object.assign({}, s), ti, first: si === 0})));
+  if(!flat.length) return toks.join(" ");
+
+  /* LIAISON — Grammar §1a, ruled 2026-09-28. Inside a phrase, a nasal-final word
+     before a vowel-initial word gives its nasal up as an onset: ginusã ilusãba →
+     gi.nu.sa‿ni.lu.ˈsãː.ba. Never across a phrase boundary, which is why this
+     runs per phrase and not over the whole line. */
+  for(let i = 0; i < flat.length - 1; i++){
+    const a = flat[i], b = flat[i + 1];
+    if(!b.first) continue;                       // same word — §1a handles it
+    if(!a.s.nasal) continue;                     // needs a nasal to give up
+    if(!isV(b.s.t[0])) continue;                 // needs a vowel to land on
+    a.s.t = a.s.t.replace(/n$/, "");             // the nasal leaves the vowel
+    a.s.nasal = false; a.s.m = 1;
+    b.s.t = "n" + b.s.t;                         // and becomes the next onset
+    b.liaised = true;
+  }
+
+  let k = -1;
+  flat.forEach((x, i) => { if(heavySyl(x.s)) k = i; });
+  if(k < 0) k = flat.length - 1;
+  let out = "";
+  flat.forEach((x, i) => {
+    if(i > 0) out += x.liaised ? "\u203f" : x.first ? " " : ".";
+    out += (i === k ? "ˈ" : "") + toTilde(x.s.t);
+  });
+  return out;
 }
 function ipaWord(w){
   w = w.toLowerCase();
@@ -1616,13 +1871,13 @@ function analyse(line){
       // shape for an oral-only noun, and it is why the nasal vowels are what
       // give a phrase any melody inside itself.
       warn.push({lvl:"note", t:"ONE-BEAT EDGE \u2014 " + word +
-        ": no nasal syllable, so stress and edge tone share \u00ab" + edge.t +
-        "\u00bb. Normal for an oral-only word" +
+        ": no heavy syllable, so the accent and the edge tone share \u00ab" + edge.t +
+        "\u00bb. Normal for an open oral-only word; a coda or a nasal vowel moves it" +
         (sc ? "; the clitic -" + sc.clitic + " carries both." : ".") +
         " A word with a nasal vowel keeps its stress in the stem."});
     }
     return {toks: p.toks, kind: p.kind, moras, edge: edge.t, contour,
-            stress: p.toks.map(t => (LEX[t] && sylsOf(t).length === 1) ? t : ipaWord(t)).join(" "), weakEdge: p.weakEdge};
+            stress: phraseAccent(p.toks), weakEdge: p.weakEdge};
   });
 
   const hasVerb = ph.some(p=>p.kind === "verb");
@@ -1669,11 +1924,11 @@ const analyse = Prosody.analyse, marked = Prosody.marked;
 /* Lexicology §6 step 6 — say it in a sentence before you keep it. Frames use
    only coined words, and the seam comes first: hena loman failed there while
    sounding fine in isolation. */
-const nasEnd = w => /[aeiou]n$/.test(w);
+const nasEnd = w => /[aeiou]n$/.test(toN(w));
 // Ruled 2026-09-16: ni joins everywhere; after a nasal-final word the
 // apostrophe keeps the nasal vowel from being read as an onset n.
-const withNi = w => nasEnd(w) ? w + "'ni" : w + "ni";
-const withTop = w => nasEnd(w) ? w + "a" : w + "na";
+const withNi = w => toTilde(toN(w) + (nasEnd(w) ? "'ni" : "ni"));
+const withTop = w => toTilde(toN(w) + (nasEnd(w) ? "a" : "na"));
 
 function framesFor(w, cls){
   const F = [], put = (l, line, why) => F.push({l, line, why});
@@ -2108,7 +2363,7 @@ $("lexList").onclick = e => {
   logLine(`${stamp()}  removed ${w} from the lexicon`);
 };
 $("lxAdd").onclick = () => {
-  const w = $("lxWord").value.trim().toLowerCase();
+  const w = toTilde($("lxWord").value.trim().toLowerCase());
   if(!w) return;
   LEX[w] = Object.assign({d: stamp()}, LEX[w] || {}, {g: $("lxGloss").value.trim() || "(no gloss yet)", c: $("lxClass").value, real: true});
   saveLex(); renderLex();
@@ -2147,7 +2402,7 @@ function readTextFile(input){
   });
 }
 $("lxSaveFile").onclick = async () => {
-  const body = JSON.stringify({v:2, LEX, RETIRED: RET, REVIEW: REV, DRIFT, LINEAGE: LN, QUEUE: QU});
+  const body = JSON.stringify({v:3, LEX, RETIRED: RET, REVIEW: REV, DRIFT, LINEAGE: LN, QUEUE: QU});
   if(await saveTextFile(`lunaji-lexicon-${stamp()}.txt`, body, $("lxFileNote"))) setDirty("lex", false);
   logLine(`${stamp()}  saved the lexicon to a file · ${Object.keys(LEX).length} words`);
 };
@@ -2166,9 +2421,9 @@ $("lxFile").onchange = async () => {
   const now = Object.keys(LEX).length;
   const more = extra && extra.RETIRED ? `\nAlso in the file: ${Object.keys(extra.RETIRED).length} retired shapes, review progress and drift counts.` : "";
   if(!confirm(`${f.name}\n\n${words.length} words in the file, ${now} in the Forge now.${more}\nReplace the Forge's copy with the file?`)) return;
-  LEX = next; saveLex(); renderLex();
+  LEX = tildeKeys(next); saveLex(); renderLex();
   if(extra){
-    if(extra.RETIRED){ RET = extra.RETIRED; saveRet(); }
+    if(extra.RETIRED){ RET = tildeKeys(extra.RETIRED); saveRet(); }
     if(extra.REVIEW){ REV = extra.REVIEW; saveRev(); }
     if(Array.isArray(extra.DRIFT)){ DRIFT = extra.DRIFT; saveDrift(); }
     if(extra.LINEAGE && Array.isArray(extra.LINEAGE.trees)){ LN = extra.LINEAGE; if(!Array.isArray(LN.values)) LN.values = []; saveLn(); }
@@ -2182,7 +2437,7 @@ $("lxFile").onchange = async () => {
 $("lxImport").onclick = () => {
   try{
     const next = JSON.parse($("lxIO").value);
-    if(next && typeof next === "object"){ LEX = next; saveLex(); renderLex(); $("lxIO").value = "Imported."; }
+    if(next && typeof next === "object"){ LEX = tildeKeys(next); saveLex(); renderLex(); $("lxIO").value = "Imported."; }
   }catch(e){ $("lxIO").value = "That is not valid JSON. Export from the other device and paste the whole line."; }
 };
 // Merge, never replace. The saved lexicon is the only copy of anything coined
@@ -2223,12 +2478,13 @@ function glossHas(gloss, slot){
   return g.includes(" " + slot.toLowerCase() + " ");
 }
 function joinSuffix(w, suf){
-  const nas = /[aeiou]n$/.test(w);
   if(!suf) return w;
-  if(nas && /^[nyw]/.test(suf)) return w + "'" + suf;   // the nasal holds before n, y, w
-  if(nas && suf === "na") return w + "a";
-  if(!nas && suf === "a") return w + "na";
-  return w + suf;
+  w = toN(w);                                   // work in the n-form, write tilde
+  const nas = /[aeiou]n$/.test(w);
+  if(nas && /^[nyw]/.test(suf)) return toTilde(w + "'" + suf);  // nasal holds before n, y, w
+  if(nas && suf === "na") return toTilde(w + "a");
+  if(!nas && suf === "a") return toTilde(w + "na");
+  return toTilde(w + suf);
 }
 function substitute(lu, w, gloss){
   return lu.replace(SLOT, (m, slot, suf) => glossHas(gloss, slot.trim()) ? joinSuffix(w, suf) : m);
@@ -2392,6 +2648,7 @@ function ipaSyl(t, nasal){
   return out + (nasal ? NASV[v] : v);
 }
 function ipaOf(w){
+  w = toN(w);
   try{
     const sy = Prosody.sylsOf(w), st = Prosody.stressIdx(w);
     if(!sy.length) throw 0;
@@ -2400,10 +2657,10 @@ function ipaOf(w){
     try{ return Prosody.ipaWord(w); }catch(e2){ return w; }
   }
 }
-const nasalFinal = w => /[aio]n$/.test(w);
+const nasalFinal = w => /[aio]n$/.test(toN(w));
 // Phonology §6: a nasal vowel before a bare glide takes the apostrophe, or
 // aoyanwa would read /a.o.ja.nwa/ — the n taken as an onset before w.
-const J = (w, p) => nasalFinal(w) && /^[nyw]/.test(p) ? w + "'" + p : w + p;
+const J = (w, p) => toTilde(nasalFinal(w) && /^[nyw]/.test(p) ? toN(w) + "'" + p : toN(w) + p);
 function pdRow(label, form, note, base){
   const toks = form.split(" ");
   const phon = toks.map(t => (LEX[t] && t.length <= 3 && !/[aeiou]n$/.test(t)) ? t : ipaOf(t)).join(" ");
@@ -2709,7 +2966,7 @@ const DRIFT_SEED = [
   {name:"hena after a light syllable", env:"sofouze hena — nothing heavy to launch the /h/ from", v:[["hena",0],["ena",0]]},
   {name:"hena after a heavy nasal", env:"kazon hena — the environment that kept /h/", v:[["hena",0],["ena",0]]},
   {name:"kazonze", env:"two /z/ two syllables apart, no theme vowel", v:[["kazonze",0],["kazonse",0]]},
-  {name:"nasal before ni", env:"helan'ni — the stress system rides on this mora", v:[["held, two beats",0],["shortened",0]]},
+  {name:"nasal before ni", env:"helãni — the accent system rides on this mora", v:[["held, two beats",0],["shortened",0]]},
   {name:"mi in ordinary speech", env:"negation without emphasis", v:[["said",0],["dropped",0]]},
   {name:"final –u after a voiceless consonant", env:"a verb ending -ku, -pu, -su", v:[["voiced",0],["whispered",0]]},
   {name:"/ĩ/ in inku, sainko", env:"the hardest sound for its only speaker", v:[["open vowel",0],["[ŋ] closure",0]]},
@@ -3421,7 +3678,7 @@ $("lxAudit").onclick = () => {
     const e = LEX[w], bits = [];
     if(!e.g || e.g === "(no gloss yet)") bits.push("no gloss");
     if(e.c === "noun" && /u$/.test(w)) bits.push("noun ends in \u2013u");
-    if(e.c === "verb" && !/(u|[aio]n)$/.test(w)) bits.push("class is verb, but no theme \u2013u or nasal final");
+    if(e.c === "verb" && !/(u|[aio]n)$/.test(toN(w))) bits.push("class is verb, but no theme \u2013u or nasal final");
     if(content(w) || e.c === "pron"){
       // run the word as if it were new: lift it out so it does not collide with itself
       delete LEX[w];

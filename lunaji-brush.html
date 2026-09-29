@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lunaji Brush</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+/* Layout: an app shell. Header with build stamp, tab bar, then one working panel per tab. */
+:root{
+  --bg:#edf0f4; --panel:#f7f9fb; --field:#ffffff; --text:#16202f; --muted:#566275; --line:#ccd4de;
+  --ink:#16202f; --vowel:#b94f12; --mod:#1a7385; --good:#2d7a4a; --bad:#b3372c;
+  --bark:#1c2129; --bark-edge:#11151b; --moon:#e1e8f3; --moon-dim:#9aa9bf;
+  --display:'Young Serif', Georgia, 'Times New Roman', serif;
+  --body:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b111e; --panel:#121a2c; --field:#0a0f1a; --text:#dbe4f0; --muted:#93a0b5; --line:#26324a;
+    --ink:#e9f0f9; --vowel:#f0a35e; --mod:#6cc4d4; --good:#6fcf97; --bad:#f08a80; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b111e; --panel:#121a2c; --field:#0a0f1a; --text:#dbe4f0; --muted:#93a0b5; --line:#26324a;
+  --ink:#e9f0f9; --vowel:#f0a35e; --mod:#6cc4d4; --good:#6fcf97; --bad:#f08a80; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{background:var(--bg);color:var(--text);font:15px/1.55 var(--body)}
+[hidden]{display:none!important}
+.app{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:20px 56px;display:flex;flex-direction:column;gap:18px}
+.app[data-parts="off"]{--vowel:var(--ink);--mod:var(--ink)}
+.app.nolabel .gl figcaption{visibility:hidden}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+h1{font:400 1.9rem/1.1 var(--display);margin:0}
+.stamp{font:500 12px var(--mono);color:var(--muted)}
+h2{font:400 1.3rem/1.2 var(--display);margin:0}
+p{margin:0}
+.sub{color:var(--muted);max-width:68ch}
+
+/* tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{font:500 14px var(--body);padding:9px 14px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--vowel)}
+.tabs button:focus-visible,button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--mod);outline-offset:2px}
+.view{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+
+/* controls */
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{font:500 13px var(--mono);padding:7px 12px;cursor:pointer;color:var(--muted);border-right:1px solid var(--line);white-space:nowrap}
+.seg label:last-of-type{border-right:0}
+.seg input:checked+label{background:var(--text);color:var(--bg)}
+.seg input:focus-visible+label{outline:2px solid var(--mod);outline-offset:-2px}
+.chk{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);cursor:pointer}
+.chk input[type=range]{width:110px;accent-color:var(--mod)}
+.btn{font:500 13px var(--body);padding:8px 14px;border:1px solid var(--line);border-radius:5px;background:var(--field);color:var(--text);cursor:pointer}
+.btn:hover{border-color:var(--mod);color:var(--mod)}
+.btn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+.btn.primary:hover{color:var(--bg);opacity:.9}
+textarea{width:100%;min-height:92px;resize:vertical;font:400 1.05rem/1.5 var(--mono);padding:10px 12px;border:1px solid var(--line);border-radius:5px;background:var(--field);color:var(--text)}
+.status{font:400 12.5px/1.5 var(--mono);color:var(--muted);min-height:1.5em}
+.warn{margin:0;padding:0;list-style:none;font:400 12.5px/1.5 var(--mono);color:var(--vowel);display:flex;flex-direction:column;gap:2px}
+
+/* output */
+.out{--bw:84px;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:18px 14px;min-height:170px;display:flex;flex-direction:column;gap:22px;overflow-x:auto}
+.line{display:flex;flex-wrap:wrap;gap:18px 26px;align-items:flex-end;min-height:20px}
+.carved .out,.carved .practice-stage{
+  background:
+    repeating-linear-gradient(91deg,rgba(255,255,255,.028) 0 2px,transparent 2px 11px),
+    repeating-linear-gradient(89deg,rgba(0,0,0,.22) 0 3px,transparent 3px 17px),
+    linear-gradient(165deg,#262c36,var(--bark) 55%,#171b22);
+  border-color:var(--bark-edge);
+}
+.carved .out .gl figcaption,.carved .practice-stage .gl figcaption{color:var(--moon-dim)}
+.empty{font:13px var(--mono);color:var(--muted)}
+
+/* glyphs */
+.gl{display:flex;flex-direction:column;align-items:center;gap:4px;margin:0}
+.gl svg{display:block;height:auto;overflow:visible}
+.gl figcaption{font:500 11px/1 var(--mono);color:var(--muted);white-space:nowrap}
+.gl.tl figcaption{color:var(--mod)}
+.gl.single svg{width:var(--gw,54px)}
+.gl.blk svg{width:var(--bw,84px)}
+.gl.tl svg,.gl.ln svg{width:calc(var(--bw,84px)*.5)}
+.gl.rw svg{width:calc(var(--bw,84px)*.62)}
+.gl.punct svg{width:calc(var(--bw,84px)*.18)}
+.bb{fill:var(--ink)} .bv{fill:var(--vowel)} .bm{fill:var(--mod)}
+.w{display:flex;align-items:flex-end;flex-wrap:nowrap}
+.cmp{display:flex;align-items:flex-end}
+.cmp .gl.blk+.gl.blk{margin-left:-6px}
+.row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end}
+
+/* chart */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;--gw:46px}
+th{font:500 12px var(--mono);color:var(--muted);text-align:center;padding:5px 6px;font-weight:500}
+th.fam{text-align:left;padding-top:14px;border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.08em}
+td{padding:4px 6px;text-align:center}
+td.c{font:500 13px var(--mono);text-align:right;padding-right:10px}
+.keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.key{display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;--gw:48px}
+.key .tag{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mod)}
+.key p{font-size:13px;color:var(--muted)}
+
+/* practice */
+.practice-stage{--bw:110px;--gw:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:26px 14px;min-height:240px;background:var(--field);border:1px solid var(--line);border-radius:6px}
+.practice-stage .gl figcaption{visibility:hidden}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;max-width:460px}
+.choices button{font:500 1.1rem var(--mono);padding:12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);cursor:pointer}
+.choices button.right{border-color:var(--good);color:var(--good)}
+.choices button.wrong{border-color:var(--bad);color:var(--bad)}
+.score{font:500 13px var(--mono);color:var(--muted);display:flex;gap:18px;flex-wrap:wrap}
+.feedback{font-size:14px;min-height:1.5em;text-align:center}
+.feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
+
+/* lists and help */
+.lists{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.lists label{display:flex;flex-direction:column;gap:6px;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.lists textarea{min-height:180px;font-size:.95rem;text-transform:none;letter-spacing:0}
+.help{display:flex;flex-direction:column;gap:14px;max-width:72ch}
+.help h3{font:600 .95rem var(--body);margin:0}
+.help ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+kbd{font:500 12px var(--mono);padding:1px 5px;border:1px solid var(--line);border-radius:3px;background:var(--field)}
+</style>
+</head>
+<body>
+<main class="app" id="app" data-parts="on">
+  <header>
+    <h1>Lunaji Brush</h1>
+    <span class="stamp" id="stamp">build 2026-09-29-0932</span>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" id="tab-write" aria-controls="view-write" aria-selected="true">Write</button>
+    <button role="tab" id="tab-chart" aria-controls="view-chart" aria-selected="false">Chart</button>
+    <button role="tab" id="tab-practice" aria-controls="view-practice" aria-selected="false">Practice</button>
+    <button role="tab" id="tab-lists" aria-controls="view-lists" aria-selected="false">Word lists</button>
+    <button role="tab" id="tab-help" aria-controls="view-help" aria-selected="false">Help</button>
+  </nav>
+
+  <div class="bar panel" aria-label="Display settings">
+    <div class="seg" role="radiogroup" aria-label="Way of writing">
+      <input type="radio" name="mode" id="modeMixed" value="mixed" checked><label for="modeMixed">Blocks and rows</label>
+      <input type="radio" name="mode" id="modeRow" value="row"><label for="modeRow">Row only</label>
+    </div>
+    <div class="seg" role="radiogroup" aria-label="Form">
+      <input type="radio" name="form" id="formBrush" value="brush" checked><label for="formBrush">Brush</label>
+      <input type="radio" name="form" id="formCarved" value="carved"><label for="formCarved">Carved</label>
+    </div>
+    <label class="chk" id="colorOpt"><input type="checkbox" id="optColor"> Color the parts</label>
+    <label class="chk"><input type="checkbox" id="optLabel" checked> Spelling under glyphs</label>
+    <label class="chk">Size <input type="range" id="optSize" min="50" max="140" value="84"></label>
+  </div>
+
+  <section class="view" id="view-write" role="tabpanel" aria-labelledby="tab-write">
+    <label class="sub" for="src">Type Lunaji in the Latin spelling. Each line of text becomes a line of script.</label>
+    <textarea id="src" spellcheck="false" autocomplete="off">Lõjiwa uwikini sofuze hena.
+Nuswape koime, lwajipe koime.</textarea>
+    <div class="bar">
+      <button class="btn primary" type="button" id="savePng">Save as image</button>
+      <button class="btn" type="button" id="saveSvg">Save as SVG</button>
+      <button class="btn" type="button" id="clearBtn">Clear</button>
+      <span class="status" id="status" role="status"></span>
+    </div>
+    <div class="out" id="out"></div>
+    <ul class="warn" id="warn"></ul>
+  </section>
+
+  <section class="view" id="view-chart" role="tabpanel" aria-labelledby="tab-chart" hidden>
+    <p class="sub">Every consonant with every vowel. Each letter opens with the moon curl. The chart follows the Brush or Carved setting above.</p>
+    <div class="keys" id="keys"></div>
+    <div class="panel tablewrap"><table id="table"></table></div>
+  </section>
+
+  <section class="view" id="view-practice" role="tabpanel" aria-labelledby="tab-practice" hidden>
+    <div class="bar">
+      <div class="seg" role="radiogroup" aria-label="What to practise">
+        <input type="radio" name="pset" id="psPlain" value="plain" checked><label for="psPlain">Plain syllables</label>
+        <input type="radio" name="pset" id="psMarks" value="marks"><label for="psMarks">With marks</label>
+        <input type="radio" name="pset" id="psWords" value="words"><label for="psWords">Real words</label>
+      </div>
+      <div class="score" id="score"></div>
+    </div>
+    <div class="practice-stage" id="stage"></div>
+    <p class="feedback" id="feedback" role="status"></p>
+    <div style="display:flex;justify-content:center"><button class="btn" type="button" id="nextBtn">Next</button></div>
+  </section>
+
+  <section class="view" id="view-lists" role="tabpanel" aria-labelledby="tab-lists" hidden>
+    <p class="sub">These lists decide how words are written in Blocks and rows. One entry per line. They are saved in this browser, so export the Forge lexicon habitually and keep these in step with it.</p>
+    <div class="lists">
+      <label for="lLoans">Loanwords (written in a row)<textarea id="lLoans" spellcheck="false"></textarea></label>
+      <label for="lComp">Compounds (write as parts joined by +)<textarea id="lComp" spellcheck="false"></textarea></label>
+      <label for="lStems">Whole stems (never split off an ending)<textarea id="lStems" spellcheck="false"></textarea></label>
+    </div>
+    <div class="bar"><button class="btn primary" type="button" id="saveLists">Save lists</button><button class="btn" type="button" id="resetLists">Restore the starting lists</button><span class="status" id="listStatus" role="status"></span></div>
+  </section>
+
+  <section class="view help" id="view-help" role="tabpanel" aria-labelledby="tab-help" hidden>
+    <div><h3>Two ways of writing</h3>
+    <ul>
+      <li><b>Blocks and rows</b> is the fluent form. A native stem is packed into one square block. Particles, endings and function words follow in small glyphs, and loanwords are written in a row, the way Japanese writes foreign words in katakana. A compound is two blocks touching.</li>
+      <li><b>Row only</b> is the learner's form. Every glyph is full size, one sound after another, spelled exactly like the Latin spelling. Both are correct Lunaji.</li>
+    </ul></div>
+    <div><h3>Typing</h3>
+    <ul>
+      <li>Nasal vowels: type <kbd>ã</kbd> <kbd>ĩ</kbd> <kbd>õ</kbd>, or <kbd>a~</kbd> <kbd>i~</kbd> <kbd>o~</kbd>.</li>
+      <li><kbd>-</kbd> splits a stem from its endings yourself: <kbd>lõji-wa</kbd>. Use it when the app guesses the stem wrong, or to stop a split.</li>
+      <li><kbd>+</kbd> joins compound blocks: <kbd>koime+zaĩko</kbd>.</li>
+      <li><kbd>*</kbd> in front of a word writes it as a loan: <kbd>*jura</kbd>.</li>
+    </ul></div>
+    <div><h3>How the app finds a stem</h3>
+    <p class="sub">It takes common particles and endings (ba, ni, pe, wa, di, na, -ze, -ri, -ta, -jo) off the end of a word, but only while at least two syllables remain and the word is not on the whole-stems list. Stand-alone function words like hena and mi are always written in the small glyphs.</p></div>
+    <div><h3>The letters</h3>
+    <ul>
+      <li>Consonant families follow the mouth: the lips share an open frame, the tongue tip a central vertical, the palate a cliff stroke, the back of the mouth a Z-shaped turn. A nasal consonant adds one horizontal. Voicing is the two ticks Japanese uses.</li>
+      <li>Vowels: none for u, a sweep on the right for a, a vertical on the left for i, two short bars for e, a left sweep for o. A nasal vowel adds a long sweep along the foot.</li>
+      <li>Glides and clusters are a stroke over the letter: a dot for y, two dots for w, a short sweep for r, a short bar for l.</li>
+      <li>A coda ends with a heavy stop dot. A long consonant is written as a coda of the same consonant followed by the syllable, like Japanese small tsu.</li>
+    </ul></div>
+    <div><h3>Saving images</h3>
+    <p class="sub">Saving works when the app is opened from your GitHub Pages copy or as a file on your device. Inside the Claude preview, downloads are blocked, so the buttons may do nothing there.</p></div>
+  </section>
+</main>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" id="defs">
+  <defs>
+    <filter id="carve" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.6" result="h"/>
+      <feDiffuseLighting in="h" surfaceScale="-4" diffuseConstant="1.9" lighting-color="#ffffff" result="lit"><feDistantLight azimuth="225" elevation="30"/></feDiffuseLighting>
+      <feFlood flood-color="#d8dde6" result="wood"/>
+      <feBlend in="lit" in2="wood" mode="multiply" result="shade"/>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="0.6" result="area"/>
+      <feComposite in="shade" in2="area" operator="in"/>
+    </filter>
+  </defs>
+  <path id="measure" d=""/>
+</svg>
+
+<script>
+(function(){
+'use strict';
+var BUILD='build 2026-09-29-0932';
+document.getElementById('stamp').textContent=BUILD;
+function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function load(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
+
+/* ================= glyph engine ================= */
+function sm(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)}
+var PROF={
+  h:function(t){return t<.15?1-(t/.15)*.2:(t>.8?.8+((t-.8)/.2)*.28:.8)},
+  v:function(t){return t<.12?1.05-(t/.12)*.17:(t>.85?.88+((t-.85)/.15)*.05:.88)},
+  l:function(t){return 1-0.92*sm((t-.3)/.7)},
+  r:function(t){return t<.82?.45+.8*sm(t/.82):1.25-1.1*sm((t-.82)/.18)},
+  d:function(t){return t<.85?.35+.95*sm(t/.85):1.3-.2*sm((t-.85)/.15)},
+  k:function(t){return 1-.95*sm(t)},
+  f:function(t){return 1-.9*sm(t)},
+  c:function(t){return .3+.6*sm(t)}
+};
+var ENDCAP={h:1,v:1,d:1};
+var FRAME=[['v','M22 20V86'],['h','M22 20H76'],['v','M76 20V80'],['k','M76 80l-9 -7']];
+var LEAKF=[['l','M34 20Q32 60 12 88'],['h','M34 20H72'],['v','M72 20V76'],['f','M72 76Q78 88 92 82']];
+var TEE=[['h','M16 44H84'],['v','M50 12V88']];
+var ESS=[['h','M16 40H84'],['l','M50 12Q52 68 20 90']];
+var SHH=[['h','M24 30H76'],['h','M12 56H88'],['l','M50 10Q52 70 20 92']];
+var CLIFF=[['h','M20 20H86'],['l','M26 20Q26 64 10 90'],['d','M52 44l12 16']];
+var ZED=[['h','M20 22H76'],['l','M76 22Q58 50 28 70'],['f','M28 70Q58 78 88 70']];
+var BASE={
+  p:{s:FRAME}, b:{s:FRAME,v:1}, f:{s:LEAKF}, v:{s:LEAKF,v:1},
+  m:{s:FRAME.concat([['h','M22 54H76']])},
+  w:{s:[['v','M20 30V52'],['h','M20 30H80'],['v','M80 30V50'],['k','M80 50l-8 -6']]},
+  t:{s:TEE}, d:{s:TEE,v:1}, s:{s:ESS}, z:{s:ESS,v:1}, sh:{s:SHH}, j:{s:SHH,v:1},
+  ts:{s:TEE.concat([['d','M24 64l8 12'],['d','M78 64l-7 12']])},
+  n:{s:[['h','M16 40H84'],['v','M50 12V88'],['h','M50 70H84']]},
+  r:{s:[['v','M48 12V56'],['l','M48 56Q42 76 18 88'],['f','M48 56Q66 70 90 64']]},
+  l:{s:[['v','M40 10V90'],['r','M40 46Q60 62 90 82']]},
+  y:{s:CLIFF}, ny:{s:CLIFF.concat([['h','M40 66H82']])},
+  k:{s:ZED}, g:{s:ZED,v:1},
+  h:{s:[['h','M20 24H78'],['l','M78 24Q60 52 30 72'],['f','M30 72Q50 76 64 66'],['d','M24 42l8 12']]}
+};
+var CARRIER=[['v','M50 12V82'],['k','M50 82l-10 -8']];
+var MEDS={y:[['d','M46 4l7 12']],w:[['d','M38 5l7 11'],['d','M64 5l-7 11']],r:[['l','M60 3Q55 13 40 21']],l:[['h','M36 13H64']]};
+function withMoon(list){
+  var m=/^M\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/.exec(list[0][1]), x=+m[1], y=+m[2];
+  return [['c','M'+(x-6)+' '+(y+26)+'C'+(x-30)+' '+(y+20)+' '+(x-28)+' '+(y-10)+' '+(x-2)+' '+(y-2)]].concat(list);
+}
+var MP=document.getElementById('measure');
+var ID=[1,1,0,0], CACHE={}, BOXC={}, CARVED=false, ROWONLY=false;
+function comp(A,B){return [A[0]*B[0],A[1]*B[1],A[2]*B[0]+B[2],A[3]*B[1]+B[3]]}
+function samples(d,T){
+  MP.setAttribute('d',d);
+  var L=MP.getTotalLength(); if(!L) return [];
+  var n=Math.max(10,Math.ceil(L/2)),pts=[];
+  for(var i=0;i<=n;i++){var p=MP.getPointAtLength(L*i/n);pts.push([p.x*T[0]+T[2],p.y*T[1]+T[3]]);}
+  return pts;
+}
+function f1(v){return v.toFixed(1)}
+function segDist(p,a,b){
+  var dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;
+  if(!l2) return Math.hypot(p[0]-a[0],p[1]-a[1]);
+  var t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l2));
+  return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy);
+}
+function rdp(pts,eps){
+  if(pts.length<3) return pts;
+  var dmax=0,idx=0,a=pts[0],b=pts[pts.length-1];
+  for(var i=1;i<pts.length-1;i++){var d=segDist(pts[i],a,b);if(d>dmax){dmax=d;idx=i;}}
+  if(dmax>eps){var l=rdp(pts.slice(0,idx+1),eps),r=rdp(pts.slice(idx),eps);return l.slice(0,-1).concat(r);}
+  return [a,b];
+}
+/* brush: stroke outline with a profile per stroke type */
+function brushStroke(type,d,W,T,fill){
+  var key='b'+type+d+W+T.join(',');
+  if(CACHE[key]===undefined){
+    var pts=samples(d,T), n=pts.length-1, P=PROF[type], left=[], right=[];
+    if(n<1) CACHE[key]='';
+    else{
+      for(var i=0;i<=n;i++){
+        var a=pts[Math.max(0,i-1)],b=pts[Math.min(n,i+1)];
+        var dx=b[0]-a[0],dy=b[1]-a[1],m=Math.hypot(dx,dy)||1,w=W*P(i/n)/2;
+        left.push(f1(pts[i][0]-dy/m*w)+' '+f1(pts[i][1]+dx/m*w));
+        right.push(f1(pts[i][0]+dy/m*w)+' '+f1(pts[i][1]-dx/m*w));
+      }
+      var o='<path d="M'+left.join('L')+'L'+right.reverse().join('L')+'Z"/>';
+      o+='<circle cx="'+f1(pts[0][0])+'" cy="'+f1(pts[0][1])+'" r="'+f1(W*P(0)/2)+'"/>';
+      if(ENDCAP[type]) o+='<circle cx="'+f1(pts[n][0])+'" cy="'+f1(pts[n][1])+'" r="'+f1(W*P(1)/2)+'"/>';
+      CACHE[key]=o;
+    }
+  }
+  return '<g class="'+fill+'">'+CACHE[key]+'</g>';
+}
+/* carved: curves become straight knife cuts, each cut a wedge */
+function carveStroke(type,d,W,T){
+  var key='c'+type+d+W+T.join(',');
+  if(CACHE[key]===undefined){
+    var pts=samples(d,T), out='';
+    if(pts.length>1){
+      var k=rdp(pts,2.6);
+      for(var i=0;i<k.length-1;i++){
+        var A=k[i],B=k[i+1],dx=B[0]-A[0],dy=B[1]-A[1],l=Math.hypot(dx,dy); if(l<0.8) continue;
+        var w=W*Math.min(1,0.55+l/30)/2, nx=-dy/l*w, ny=dx/l*w, e=0.55;
+        var p1=[A[0]+dx*.25,A[1]+dy*.25], p2=[A[0]+dx*.75,A[1]+dy*.75];
+        out+='<path d="M'+f1(A[0]+nx*e)+' '+f1(A[1]+ny*e)+'L'+f1(p1[0]+nx)+' '+f1(p1[1]+ny)+'L'+f1(p2[0]+nx)+' '+f1(p2[1]+ny)+
+             'L'+f1(B[0]+nx*e)+' '+f1(B[1]+ny*e)+'L'+f1(B[0]-nx*e)+' '+f1(B[1]-ny*e)+'L'+f1(p2[0]-nx)+' '+f1(p2[1]-ny)+
+             'L'+f1(p1[0]-nx)+' '+f1(p1[1]-ny)+'L'+f1(A[0]-nx*e)+' '+f1(A[1]-ny*e)+'Z"/>';
+        if(i>0) out+='<circle cx="'+f1(A[0])+'" cy="'+f1(A[1])+'" r="'+f1(w*e)+'"/>';
+      }
+    }
+    CACHE[key]=out;
+  }
+  return CACHE[key];
+}
+function stroke(type,d,W,T,fill){return CARVED?carveStroke(type,d,W*1.3,T):brushStroke(type,d,W,T,fill)}
+function bbox(list,key){
+  if(BOXC[key]) return BOXC[key];
+  var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  list.forEach(function(s){samples(s[1],ID).forEach(function(p){x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);});});
+  return BOXC[key]={x:x0,y:y0,w:Math.max(20,x1-x0),h:Math.max(20,y1-y0)};
+}
+function fit(b,x0,y0,x1,y1,ratio){
+  var sx=(x1-x0)/b.w, sy=(y1-y0)/b.h;
+  if(sx>sy*ratio) sx=sy*ratio;
+  if(sy>sx*ratio) sy=sx*ratio;
+  return [sx,sy,x0+((x1-x0)-b.w*sx)/2-b.x*sx,y0+((y1-y0)-b.h*sy)/2-b.y*sy];
+}
+/* one syllable in a 100 x 100 glyph box, placed by T */
+function glyph(s,T,W){
+  var out='', c=s.c?BASE[s.c]:null, voiced=c&&c.v;
+  var x0=8,y0=8,x1=92,y1=92;
+  if(s.med){(MEDS[s.med]||[]).forEach(function(m){out+=stroke(m[0],m[1],W,T,'bm')});y0=26;}
+  if(s.v==='a'){out+=stroke('l','M83 18Q93 54 80 92',W,T,'bv');x1=70;}
+  if(s.v==='i'){out+=stroke('v','M15 22V80',W,T,'bv');x0=32;}
+  if(s.v==='e'){out+=stroke('h','M5 36H25',W,T,'bv')+stroke('h','M5 64H25',W,T,'bv');x0=32;}
+  if(s.v==='o'){out+=stroke('l','M27 14Q23 58 5 88',W,T,'bv');x0=32;}
+  if(s.v===null){out+=stroke('d','M81 78l7 12',W*1.15,T,'bm');x1=Math.min(x1,76);y1=Math.min(y1,80);}
+  if(s.nasal){out+=stroke('r','M10 90Q50 82 95 95',W,T,'bm');y1=Math.min(y1,76);}
+  if(voiced){out+=stroke('d','M81 -3l5 10',W*.9,T,'bm')+stroke('d','M91 -5l5 10',W*.9,T,'bm');x1=Math.min(x1,80);}
+  var list=withMoon(c?c.s:CARRIER), b=bbox(list,s.c||'_');
+  var CT=comp(fit(b,x0+2,y0+2,x1-2,y1-2,1.45),T);
+  list.forEach(function(st){out+=stroke(st[0],st[1],W,CT,'bb')});
+  return out;
+}
+function svg(inner,vb,label){
+  var g=CARVED?
+    '<g filter="url(#carve)"><g fill="#fff" transform="translate('+f1(vb*0.09)+' 0) skewX(-10)">'+inner+'</g></g>':
+    '<g transform="translate(0 3) skewY(-4)">'+inner+'</g>';
+  return '<svg viewBox="0 0 '+vb+' '+vb+'" role="img" aria-label="'+esc(label)+'">'+g+'</svg>';
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function fig(cls,inner,vb,label){return '<figure class="gl '+cls+'">'+svg(inner,vb,label)+'<figcaption>'+esc(label)+'</figcaption></figure>'}
+function single(s){return fig('single',glyph(s,ID,7.5),100,s.label)}
+function small(s,cls){return fig(cls,glyph(s,ID,10),100,s.label)}
+var ROWS={1:[1],2:[2],3:[1,2],4:[2,2],5:[2,3],6:[3,3]};
+function block(list,label){
+  var rows=ROWS[list.length]||[3,3,3], rh=130/rows.length, inner='', i=0, W=list.length===1?7.5:(list.length===2?6.5:5.6);
+  rows.forEach(function(cnt,ri){
+    var cw=130/cnt;
+    for(var c=0;c<cnt&&i<list.length;c++){
+      var sx=cw/100, sy=rh/100;
+      if(sx>sy*1.3) sx=sy*1.3; if(sy>sx*1.3) sy=sx*1.3;
+      inner+=glyph(list[i++],[sx,sy,5+c*cw+(cw-100*sx)/2,5+ri*rh+(rh-100*sy)/2],W);
+    }
+  });
+  return fig('blk',inner,140,label);
+}
+
+/* ================= spelling ================= */
+var CONS=/^(sh|ts|ny|[bdfghjklmnprstvwyz])$/;
+var STARTERS=['p','b','t','d','k','g','f','v'], LONGBAD=['m','n','ny','r','h','y','w'];
+function nfd(s){return s.toLowerCase().normalize('NFD').replace(/~/g,'̃')}
+function syls(word){
+  var w=nfd(word);
+  var toks=w.match(/sh|ts|ny|[aeiou]̃?|[bdfghjklmnprstvwyz]|./g)||[], out=[], warn=[], i=0;
+  function V(t){return t&&/^[aeiou]/.test(t)}
+  function lab(parts){return parts.join('').normalize('NFC')}
+  while(i<toks.length){
+    var a=toks[i], b=toks[i+1], c=toks[i+2];
+    if(V(a)){
+      if(a.length>1&&(a[0]==='e'||a[0]==='u')) warn.push(a[0]+' has no nasal form');
+      out.push({c:null,v:a[0],nasal:a.length>1,label:lab([a])});i++;continue;
+    }
+    if(!CONS.test(a)){warn.push('"'+a.normalize('NFC')+'" is not a Lunaji letter');i++;continue;}
+    if(V(b)){
+      if((a==='y'&&b[0]==='i')||(a==='w'&&b[0]==='u')||(a==='ny'&&b[0]==='i')) warn.push(a+b[0]+' is not allowed');
+      if((a==='s'||a==='z')&&b[0]==='i') warn.push(a+'i is written '+(a==='s'?'shi':'ji'));
+      if(a==='t'&&b[0]==='u') warn.push('tu is written tsu');
+      out.push({c:a,v:b[0],nasal:b.length>1,label:lab([a,b])});i+=2;continue;
+    }
+    if(b===a){
+      if(LONGBAD.indexOf(a)>=0) warn.push(a+' cannot be long');
+      out.push({c:a,v:null,nasal:false,label:a+'·'});i++;continue;
+    }
+    if((b==='y'||b==='w')&&V(c)&&!(b==='y'&&(a==='s'||a==='z'))){
+      out.push({c:a,med:b,v:c[0],nasal:c.length>1,label:lab([a,b,c])});i+=3;continue;
+    }
+    if((b==='r'||b==='l')&&STARTERS.indexOf(a)>=0&&V(c)){
+      if(b==='l'&&(a==='t'||a==='d')) warn.push(a+b+' is not a legal cluster');
+      out.push({c:a,med:b,v:c[0],nasal:c.length>1,label:lab([a,b,c])});i+=3;continue;
+    }
+    if(!b) warn.push('a word cannot end on a consonant');
+    else if(['l','r','s'].indexOf(a)<0) warn.push(a+' cannot be a coda');
+    out.push({c:a,v:null,nasal:false,label:a+'·'});i++;
+  }
+  return {syls:out,warn:warn};
+}
+
+/* ================= word lists ================= */
+var DEFAULTS={
+  loans:['filma','jura','kojo','liman','saban','shokola','gitara','mwa'],
+  comp:['lõji+uwiki','koime+zaĩko','lõji+gunwe'],
+  stems:['hotori','ohari','fãvonedi','tsuri','shokola','gitara']
+};
+var LISTS={};
+function parseList(text){return text.split(/\n/).map(function(s){return s.trim()}).filter(Boolean)}
+function applyLists(obj){
+  LISTS.loans=obj.loans.map(nfd);
+  LISTS.stems=obj.stems.map(nfd);
+  LISTS.comp={};
+  obj.comp.forEach(function(c){var n=nfd(c);LISTS.comp[n.replace(/\+/g,'')]=n;});
+}
+var savedLists=null;
+try{savedLists=JSON.parse(load('lunaji-brush-lists','null'))}catch(e){savedLists=null}
+var LISTOBJ=savedLists&&savedLists.loans?savedLists:JSON.parse(JSON.stringify(DEFAULTS));
+applyLists(LISTOBJ);
+
+var ENDINGS=['ze','ri','ta','jo','ba','ni','pe','wa','di','na'];
+var FUNC=['hena','mi','norõ','toma','uan','yeti','rowo','byõ','lõ','la','ke','dã','na','jĩ','po','gu','a','ba','ni','pe','wa','di','ta','ze','ri','jo'].map(nfd);
+function vcount(s){return (s.match(/[aeiou]/g)||[]).length}
+function peel(w){
+  var tails=[];
+  while(LISTS.stems.indexOf(w)<0&&!LISTS.comp[w]){
+    var hit=null;
+    for(var i=0;i<ENDINGS.length;i++){
+      var e=ENDINGS[i];
+      if(w.length>e.length&&w.slice(-e.length)===e){
+        var r=w.slice(0,-e.length);
+        if(/[aeiou]̃?$/.test(r)&&vcount(r)>=2){hit=e;break;}
+      }
+    }
+    if(!hit) break;
+    tails.unshift(hit); w=w.slice(0,-hit.length);
+  }
+  return {stem:w,tails:tails};
+}
+function analyse(tok){
+  var w=nfd(tok).replace(/['’`]/g,''), loan=false;
+  if(w[0]==='*'){loan=true;w=w.slice(1);}
+  var stem, tails=[];
+  if(w.indexOf('-')>=0){var p=w.split('-').filter(Boolean);stem=p[0]||'';tails=p.slice(1);}
+  else if(FUNC.indexOf(w)>=0){return {kind:'func',tails:[w]};}
+  else {var r=peel(w);stem=r.stem;tails=r.tails;}
+  if(loan||LISTS.loans.indexOf(stem.replace(/\+/g,''))>=0) return {kind:'loan',stem:stem.replace(/\+/g,''),tails:tails};
+  var parts=(stem.indexOf('+')>=0?stem:(LISTS.comp[stem]||stem)).split('+').filter(Boolean);
+  return {kind:'native',parts:parts,tails:tails};
+}
+
+/* ================= writing words and lines ================= */
+function word(tok,warn){
+  var a=analyse(tok), html='';
+  function glyphsOf(str,cls){
+    var r=syls(str); r.warn.forEach(function(x){warn.push(tok+': '+x)});
+    return r.syls.map(function(s){return small(s,cls)}).join('');
+  }
+  if(ROWONLY){
+    var all=(a.kind==='native'?a.parts:(a.kind==='loan'?[a.stem]:[])).concat(a.tails||[]);
+    return '<span class="w">'+all.map(function(p){return glyphsOf(p,'rw')}).join('')+'</span>';
+  }
+  if(a.kind==='native'){
+    html+='<span class="cmp">'+a.parts.map(function(p){
+      var r=syls(p); r.warn.forEach(function(x){warn.push(tok+': '+x)});
+      return r.syls.length?block(r.syls,p.normalize('NFC')):'';
+    }).join('')+'</span>';
+  } else if(a.kind==='loan'){
+    html+=glyphsOf(a.stem,'ln');
+  }
+  (a.tails||[]).forEach(function(t){html+=glyphsOf(t,'tl')});
+  return '<span class="w">'+html+'</span>';
+}
+function punct(p){
+  var inner=CARVED?
+    '<g filter="url(#carve)"><g fill="#fff">'+(p===','?carveStroke('l','M24 108L12 134',11,ID):carveStroke('d','M14 122l7 10',13,ID))+'</g></g>':
+    (p===','?brushStroke('l','M24 108Q22 124 12 134',9,ID,'bb'):brushStroke('d','M14 122l8 10',10,ID,'bb'));
+  return '<figure class="gl punct"><svg viewBox="0 0 30 140" role="img" aria-label="'+p+'">'+inner+'</svg><figcaption>&nbsp;</figcaption></figure>';
+}
+function line(str,warn){
+  var parts=str.split(/([.,!?]|\s+)/).filter(function(x){return x&&!/^\s+$/.test(x)}), out=[];
+  parts.forEach(function(p){
+    if(/^[.,!?]$/.test(p)){ if(out.length) out[out.length-1]=out[out.length-1].replace(/<\/span>$/,punct(p)+'</span>'); return; }
+    out.push(word(p,warn));
+  });
+  return out.join('');
+}
+
+/* ================= settings ================= */
+var app=document.getElementById('app');
+function setMode(v){ROWONLY=(v==='row');store('lunaji-write-mode',v);renderAll();}
+function setForm(v){
+  CARVED=(v==='carved');store('lunaji-script-form',v);
+  app.classList.toggle('carved',CARVED);
+  document.getElementById('colorOpt').hidden=CARVED;
+  renderAll();
+}
+document.querySelectorAll('input[name=mode]').forEach(function(r){r.addEventListener('change',function(){setMode(r.value)})});
+document.querySelectorAll('input[name=form]').forEach(function(r){r.addEventListener('change',function(){setForm(r.value)})});
+var optColor=document.getElementById('optColor'), optLabel=document.getElementById('optLabel'), optSize=document.getElementById('optSize');
+optColor.addEventListener('change',function(){app.dataset.parts=optColor.checked?'on':'off';store('lunaji-brush-color',optColor.checked?'1':'0')});
+optLabel.addEventListener('change',function(){app.classList.toggle('nolabel',!optLabel.checked);store('lunaji-brush-label',optLabel.checked?'1':'0')});
+optSize.addEventListener('input',function(){document.getElementById('out').style.setProperty('--bw',optSize.value+'px');store('lunaji-brush-size',optSize.value)});
+
+/* ================= write tab ================= */
+var src=document.getElementById('src'), outEl=document.getElementById('out'), warnEl=document.getElementById('warn'), statusEl=document.getElementById('status');
+function renderWrite(){
+  var warn=[], lines=src.value.split(/\n/);
+  var html=lines.map(function(l){return l.trim()?'<div class="line">'+line(l,warn)+'</div>':''}).join('');
+  outEl.innerHTML=html||'<p class="empty">Type above and the script appears here.</p>';
+  var seen={}; warn=warn.filter(function(w){if(seen[w])return false;seen[w]=1;return true});
+  warnEl.innerHTML=warn.map(function(w){return '<li>'+esc(w.normalize('NFC'))+'</li>'}).join('');
+  store('lunaji-brush-text',src.value);
+}
+src.addEventListener('input',renderWrite);
+document.getElementById('clearBtn').addEventListener('click',function(){src.value='';renderWrite();src.focus();});
+
+/* saving: rebuild the visible output as one SVG, then optionally paint it to a PNG */
+function cssVar(n){return getComputedStyle(app).getPropertyValue(n).trim()}
+function exportSVG(){
+  var R=outEl.getBoundingClientRect(), parts=[], labels=optLabel.checked;
+  var ink=cssVar('--ink'), vowel=cssVar('--vowel'), mod=cssVar('--mod'), muted=CARVED?cssVar('--moon-dim'):cssVar('--muted');
+  outEl.querySelectorAll('figure.gl').forEach(function(f){
+    var s=f.querySelector('svg'), r=s.getBoundingClientRect();
+    parts.push('<svg x="'+f1(r.left-R.left)+'" y="'+f1(r.top-R.top)+'" width="'+f1(r.width)+'" height="'+f1(r.height)+'" viewBox="'+s.getAttribute('viewBox')+'" overflow="visible">'+s.innerHTML+'</svg>');
+    var cap=f.querySelector('figcaption');
+    if(labels&&cap&&cap.textContent.trim()){
+      var cr=cap.getBoundingClientRect();
+      parts.push('<text x="'+f1(cr.left-R.left+cr.width/2)+'" y="'+f1(cr.top-R.top+cr.height*0.85)+'" text-anchor="middle">'+esc(cap.textContent)+'</text>');
+    }
+  });
+  var W=Math.ceil(R.width), H=Math.ceil(R.height);
+  var bg=CARVED?cssVar('--bark'):cssVar('--field');
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'+
+    '<style>.bb{fill:'+ink+'}.bv{fill:'+vowel+'}.bm{fill:'+mod+'}text{font:500 11px ui-monospace,Menlo,Consolas,monospace;fill:'+muted+'}</style>'+
+    '<defs>'+document.getElementById('carve').outerHTML+'</defs>'+
+    '<rect width="100%" height="100%" fill="'+bg+'"/>'+parts.join('')+'</svg>';
+}
+function download(name,blob){
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+}
+function stampName(ext){var d=new Date();function p(n){return (n<10?'0':'')+n}return 'lunaji-'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+'.'+ext}
+document.getElementById('saveSvg').addEventListener('click',function(){
+  if(!src.value.trim()){statusEl.textContent='Type something first.';return;}
+  download(stampName('svg'),new Blob([exportSVG()],{type:'image/svg+xml'}));
+  statusEl.textContent='Saved as SVG.';
+});
+document.getElementById('savePng').addEventListener('click',function(){
+  if(!src.value.trim()){statusEl.textContent='Type something first.';return;}
+  var svgText=exportSVG(), img=new Image();
+  img.onload=function(){
+    var scale=2, c=document.createElement('canvas');
+    c.width=img.width*scale; c.height=img.height*scale;
+    var ctx=c.getContext('2d'); ctx.scale(scale,scale); ctx.drawImage(img,0,0);
+    c.toBlob(function(b){ if(b){download(stampName('png'),b);statusEl.textContent='Saved as image.';} else statusEl.textContent='This browser could not make the image. Try Save as SVG.'; },'image/png');
+  };
+  img.onerror=function(){statusEl.textContent='This browser could not make the image. Try Save as SVG.';};
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgText);
+});
+
+/* ================= chart tab ================= */
+var V=['u','a','i','e','o','ã','ĩ','õ'];
+var FAM=[['Lips',['p','b','f','v','m','w']],['Tongue tip',['t','d','s','z','sh','j','ts','n','r','l']],['Palate',['y','ny']],['Back',['k','g','h']]];
+var KEYS=[
+  ['Vowels','u a i e o','No stroke for u. A sweep on the right for a. A vertical, two bars or a sweep on the left for i, e, o.'],
+  ['Nasal vowels','ã ĩ õ','A long sweep along the foot. Only ã, ĩ, õ exist.'],
+  ['Voicing','ka ga sa za','The two ticks Japanese uses for voicing.'],
+  ['Glides','kya twa','A dot over the letter for y, two dots for w.'],
+  ['Clusters','pra blo','A short sweep over the letter for r, a short bar for l.'],
+  ['Coda and length','kilsu otto','A heavy stop dot at the lower right means no vowel. A long consonant is the coda plus the syllable.']
+];
+function renderChart(){
+  document.getElementById('keys').innerHTML=KEYS.map(function(k){
+    var items=k[1].split(' ').map(function(x){return syls(x).syls.map(single).join('')}).join('');
+    return '<div class="key"><span class="tag">'+k[0]+'</span><div class="row">'+items+'</div><p>'+k[2]+'</p></div>';
+  }).join('');
+  var t='<thead><tr><th></th>'+V.map(function(v){return '<th>-'+v+'</th>'}).join('')+'</tr></thead><tbody>';
+  t+='<tr><td class="c">–</td>'+V.map(function(v){return '<td>'+single(syls(v).syls[0])+'</td>'}).join('')+'</tr>';
+  FAM.forEach(function(f){
+    t+='<tr><th class="fam" colspan="'+(V.length+1)+'">'+f[0]+'</th></tr>';
+    f[1].forEach(function(c){
+      t+='<tr><td class="c">'+c+'</td>'+V.map(function(v){return '<td>'+single(syls(c+v).syls[0])+'</td>'}).join('')+'</tr>';
+    });
+  });
+  document.getElementById('table').innerHTML=t+'</tbody>';
+}
+
+/* ================= practice tab ================= */
+var WORDLIST=[
+  ['lõji','night'],['uwiki','moon'],['sofu','to see'],['hena','a faint sound; not'],['koime','fire'],['koimu','to feed the fire'],['ani','flower'],
+  ['nuswa','I'],['lwaji','you'],['nwoli','he, she'],['hotori','spouse'],['onãkõzã','dead of night'],['minoskã','work, effort'],
+  ['saĩko','house, home'],['kunwe','sky'],['wokonya','daytime'],['mumã','bird'],['zwawashi','window'],['noaye','wind'],
+  ['kominu','to be tired'],['inoyu','to be dark'],['wiõku','to sleep'],['kyõku','to hear'],['emose','what'],['mõzo','who'],
+  ['kuwanu','to know'],['howeru','to be good'],['onu','to say'],['dã','yes'],['aoyã','road'],['okisõ','silence'],['omime','door'],
+  ['kazõ','to come'],['fãvonedi','dream'],['vanõla','hello'],['helã','person'],['tsuri','doctor'],['ohari','(held word)'],['yosami','letter, note'],['orimĩ','cute']
+];
+var PSET='plain', Q=null, answered=false, SC={right:0,tried:0,streak:0,best:+load('lunaji-brush-best','0')||0};
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+var ALLC=[null,'p','b','f','v','m','w','t','d','s','z','sh','j','ts','n','r','l','y','ny','k','g','h'];
+function randSyl(marks){
+  var c=pick(ALLC), v=pick(['u','a','i','e','o']), s=c||'', out;
+  if(marks){
+    if(c&&Math.random()<.3){
+      var opts=[];
+      if(STARTERS.indexOf(c)>=0){opts.push('r');if(c!=='t'&&c!=='d')opts.push('l');}
+      if(c!=='s'&&c!=='z')opts.push('y');
+      if(['k','g','f','v','r'].indexOf(c)<0)opts.push('w');
+      if(opts.length) s+=pick(opts);
+    }
+    if(['a','i','o'].indexOf(v)>=0&&Math.random()<.3) v+='̃';
+  }
+  if(v==='i'&&/(^|[^s])s$|z$/.test(s)) v='a';
+  if((s==='y'&&v==='i')||(s==='w'&&v==='u')||(s==='ny'&&v==='i')) v='o';
+  if(s==='t'&&v==='u') s='ts';
+  return (s+v).normalize('NFC');
+}
+function newQ(){
+  answered=false; document.getElementById('feedback').textContent=''; document.getElementById('feedback').className='feedback';
+  var ans, opts=[ ], shown;
+  if(PSET==='words'){
+    var w=pick(WORDLIST); ans=w[0];
+    while(opts.length<3){var o=pick(WORDLIST)[0];if(o!==ans&&opts.indexOf(o)<0)opts.push(o);}
+    shown='<div class="line">'+line(ans,[])+'</div>';
+    Q={ans:ans,gloss:w[1]};
+  } else {
+    ans=randSyl(PSET==='marks');
+    var guard=0; while(opts.length<3&&guard++<200){var o2=randSyl(PSET==='marks');if(o2!==ans&&opts.indexOf(o2)<0)opts.push(o2);}
+    shown=syls(ans).syls.map(single).join('');
+    Q={ans:ans,gloss:''};
+  }
+  opts.push(ans); opts.sort(function(){return Math.random()-.5});
+  document.getElementById('stage').innerHTML='<div class="row" style="justify-content:center">'+shown+'</div><div class="choices">'+opts.map(function(o){return '<button type="button" data-o="'+esc(o)+'">'+esc(o)+'</button>'}).join('')+'</div>';
+  Q.opts=opts;
+}
+document.getElementById('stage').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-o]'); if(!b||answered) return;
+  answered=true; SC.tried++;
+  var ok=b.dataset.o===Q.ans, fb=document.getElementById('feedback');
+  document.querySelectorAll('.choices button').forEach(function(x){if(x.dataset.o===Q.ans)x.classList.add('right')});
+  if(ok){SC.right++;SC.streak++;if(SC.streak>SC.best){SC.best=SC.streak;store('lunaji-brush-best',String(SC.best));}fb.textContent='Right'+(Q.gloss?': '+Q.ans+' means “'+Q.gloss+'”.':'.');fb.className='feedback ok';}
+  else{b.classList.add('wrong');SC.streak=0;fb.textContent='That one is '+Q.ans+(Q.gloss?', “'+Q.gloss+'”.':'.');fb.className='feedback no';}
+  renderScore();
+});
+function renderScore(){document.getElementById('score').innerHTML='<span>'+SC.right+' of '+SC.tried+' right</span><span>streak '+SC.streak+'</span><span>best '+SC.best+'</span>'}
+document.getElementById('nextBtn').addEventListener('click',newQ);
+document.querySelectorAll('input[name=pset]').forEach(function(r){r.addEventListener('change',function(){PSET=r.value;newQ();})});
+function renderPracticeGlyphs(){
+  if(!Q) return;
+  var stage=document.getElementById('stage'), row=stage.querySelector('.row');
+  if(row) row.innerHTML=PSET==='words'?'<div class="line">'+line(Q.ans,[])+'</div>':syls(Q.ans).syls.map(single).join('');
+}
+
+/* ================= lists tab ================= */
+var lLoans=document.getElementById('lLoans'), lComp=document.getElementById('lComp'), lStems=document.getElementById('lStems'), listStatus=document.getElementById('listStatus');
+function fillLists(o){lLoans.value=o.loans.join('\n');lComp.value=o.comp.join('\n');lStems.value=o.stems.join('\n');}
+fillLists(LISTOBJ);
+document.getElementById('saveLists').addEventListener('click',function(){
+  LISTOBJ={loans:parseList(lLoans.value),comp:parseList(lComp.value).filter(function(x){return x.indexOf('+')>0}),stems:parseList(lStems.value)};
+  applyLists(LISTOBJ); store('lunaji-brush-lists',JSON.stringify(LISTOBJ));
+  listStatus.textContent='Saved. '+LISTOBJ.loans.length+' loanwords, '+LISTOBJ.comp.length+' compounds, '+LISTOBJ.stems.length+' whole stems.';
+  renderAll();
+});
+document.getElementById('resetLists').addEventListener('click',function(){
+  LISTOBJ=JSON.parse(JSON.stringify(DEFAULTS)); fillLists(LISTOBJ); applyLists(LISTOBJ);
+  store('lunaji-brush-lists',JSON.stringify(LISTOBJ)); listStatus.textContent='Restored the starting lists.'; renderAll();
+});
+
+/* ================= tabs ================= */
+var TABS=['write','chart','practice','lists','help'], current='write';
+function show(t){
+  current=t;
+  TABS.forEach(function(x){
+    document.getElementById('tab-'+x).setAttribute('aria-selected',x===t?'true':'false');
+    document.getElementById('view-'+x).hidden=(x!==t);
+  });
+  store('lunaji-brush-tab',t);
+  if(t==='chart') renderChart();
+  if(t==='practice'&&!Q) newQ();
+}
+TABS.forEach(function(x){document.getElementById('tab-'+x).addEventListener('click',function(){show(x)})});
+document.querySelector('.tabs').addEventListener('keydown',function(e){
+  if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft') return;
+  var i=TABS.indexOf(current)+(e.key==='ArrowRight'?1:-1); i=(i+TABS.length)%TABS.length;
+  show(TABS[i]); document.getElementById('tab-'+TABS[i]).focus();
+});
+
+function renderAll(){
+  renderWrite();
+  if(current==='chart') renderChart();
+  renderPracticeGlyphs();
+}
+
+/* ================= start ================= */
+var sm0=load('lunaji-write-mode','mixed'); if(sm0!=='row') sm0='mixed';
+var sf0=load('lunaji-script-form','brush'); if(sf0!=='carved') sf0='brush';
+document.querySelector('input[name=mode][value='+sm0+']').checked=true; ROWONLY=(sm0==='row');
+document.querySelector('input[name=form][value='+sf0+']').checked=true; CARVED=(sf0==='carved'); app.classList.toggle('carved',CARVED);
+document.getElementById('colorOpt').hidden=CARVED;
+optColor.checked=load('lunaji-brush-color','0')==='1'; app.dataset.parts=optColor.checked?'on':'off';
+optLabel.checked=load('lunaji-brush-label','1')==='1'; app.classList.toggle('nolabel',!optLabel.checked);
+optSize.value=load('lunaji-brush-size','84'); outEl.style.setProperty('--bw',optSize.value+'px');
+var t0=load('lunaji-brush-text',null); if(t0!==null) src.value=t0;
+renderScore();
+renderWrite();
+var tab0=load('lunaji-brush-tab','write'); if(TABS.indexOf(tab0)<0) tab0='write'; show(tab0);
+window.__lb={syls:syls,analyse:analyse};
+})();
+</script>
+</body>
+</html>
