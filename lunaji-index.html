@@ -35,8 +35,8 @@ mark{background:none;color:var(--accent)}
 </style>
 
 <header>
-  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-29-1950</div>
-  <p class="sub">Where things live, not what they say. Current to 2026-09-29.</p>
+  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-30-0754</div>
+  <p class="sub">Where things live, not what they say. Current to 2026-09-30.</p>
   <input id="q" placeholder="flower, plural, negation, stress…" autocomplete="off">
   <div class="tags" id="tags"></div>
 </header>
@@ -245,7 +245,9 @@ const D = [
 ["Script — the whole design","Script","§0","An abugida built from brush strokes. Each consonant has an inherent u; every other sound is a mark in a fixed place. Moon curl on every glyph. Native stems as blocks. Brush and carved forms.","writing system abugida native script alphabet"],
 ["Why it looks the way it does","Script","§1","Built from the Japanese stroke set. Four drafts rejected: geometric (Korean), top line (Devanagari), bowls and dots (Arabic). Made to be carved and read by moonlight or touch.","korean arabic devanagari drafts rejected japanese look"],
 ["The strokes","Script","§2","Horizontal, vertical, dot, hook, flick, left sweep, right sweep, moon curl.","stroke types brush"],
-["Where the marks go","Script","§3","Left: i, e, o. Right: a. No mark: u. Foot: nasal vowel. Top right: voicing ticks. Over the letter: glide or cluster. Lower right: the coda dot.","vowel marks zones nasal voicing coda glide"],
+["Where the marks go","Script","§3","Left: i, e, o, ü, ö. Right: a. No mark: u. Foot: nasal vowel. Top right: voicing ticks. Over the letter: glide or cluster. Lower right: the coda dot.","vowel marks zones nasal voicing coda glide"],
+["Stroke order","Script","§2a","Consonant first, the moon curl flowing into its first stroke; then glide or cluster, vowel, nasal foot, voicing ticks, coda dot last. Japanese rules inside the consonant: top before bottom, horizontal before a crossing vertical, a frame is two strokes, the Z-turn is one. The one departure: a left-side vowel comes after the consonant, not first like a kanji radical. Ruled 2026-09-30.","stroke order writing order handwriting pen pencil numbers"],
+["Pen and pencil vs brush","Script","§2a","The letter is its skeleton, not its brush shape. Keep ü's foot bar, ö's joining stroke, the nasal horizontal of m n ny, the voicing ticks and the coda dot; the rest is handwriting.","handwriting pen pencil skeleton variation"],
 ["Moon curl","Script","§3","The signature: a curl rising into the first stroke of every glyph, written first. No kana or kanji begins that way.","signature curl serif"],
 ["Carrier","Script","§3","A plain vertical with a hook holds a vowel that has no consonant before it. Alone, it reads u.","vowel-initial carrier bare vowel"],
 ["Consonant families","Script","§4","Lips: an open frame. Tongue tip: a central vertical. Palate: a cliff. Back: a Z-turn. A nasal adds one horizontal; a voiced consonant adds the ticks.","letters consonant shapes families"],
@@ -258,9 +260,9 @@ const D = [
 ["Parts, not sounds","Script","§6.3","aoyã + a is written in two parts though said aoyana; d'itsuze is written di + itsuze. Liaison and elision are spoken only.","liaison elision morpheme aoyana"],
 ["Punctuation","Script","§7","Comma (and only), full stop, question (curl over a dot), exclamation (vertical over a dot), corner brackets 「 」 for quotations.","question mark exclamation quotes brackets comma"],
 ["Brush vs carved","Script","§8","Brush for everyday writing. Carved into bark: curves become straight cuts, stems lean off the grain, dots are pits, and the pale wood shows by moonlight.","carving bark moonlight touch knife"],
-["Script — still open","Script","§9","Vertical writing, stroke order, the first real carving, numerals, voiced long obstruents.","vertical columns stroke order numerals digits",1],
-["Script — marks for ü and ö","Script","§3","Owed since 2026-09-29, in the script chat. Must be told from the u mark by touch, not only by sight.","umlaut diaeresis vowel mark ü ö carved touch",1],
-["Lunaji Brush — the script app","Tooling","Lunaji Brush","Writes any spelling in the script, both ways and both forms. Save as image or SVG, glyph chart, practice mode, editable loan, compound and stem lists. build 2026-09-29-1154.","app brush tool script writer practice"],
+["Script — still open","Script","§9","Vertical writing, the first real carving, numerals, voiced long obstruents. Stroke order closed 2026-09-30 (§2a).","vertical columns stroke order numerals digits",1],
+["Script — marks for ü and ö","Script","§3","Rounding closes the front vowel's stroke: ü is i's vertical with a bar along its foot (an L), ö is e's two bars joined on the left. Whole strokes, so they hold up by touch and when carved. Never nasal; ö appears only in loans, so never inside a block. Added 2026-09-29 (Script v1.1).","umlaut diaeresis vowel mark ü ö carved touch"],
+["Lunaji Brush — the script app","Tooling","Lunaji Brush","Writes any spelling in the script, both ways and both forms. Save as image or SVG, glyph chart, practice mode, editable loan, compound and stem lists. Build 2026-09-29-1955 added ü and ö (type u: o:) and the R13 and ö checks; build 2026-09-30-0753 adds the stroke-order view — tap any glyph on Chart or Write. After updating from before 1955, press Restore the starting lists.","app brush tool script writer practice ü ö r13 stroke order"],
 ["Forge — where coining happens","Tooling","Forge","Draw, Derive, Borrow, Phrases, Paradigm, Review, Drift, Lexicon. The Composer is retired. Build 2026-09-29-1950 adds R13, ü/ö in French loans, y-leaning glides, whispered-vowel marks in Phrases, and Lexicon › Apply R13.","forge composer tool app"],
 ["Forge — Apply R13","Tooling","Forge","Lexicon tab. Lists every native word R13 respells, with tick boxes, then carries the phrasebook, sentence bank and review progress over. Loans are skipped. Save both files after.","respell r13 migrate lexicon"],
 ["Forge filter reference","Tooling","ForgeFilters","Session order, presets table, relax order, field ban lists, the four filter-box lines.","filters presets ban list"],

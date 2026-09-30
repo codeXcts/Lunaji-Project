@@ -11,7 +11,7 @@
 /* Layout: an app shell. Header with build stamp, tab bar, then one working panel per tab. */
 :root{
   --bg:#edf0f4; --panel:#f7f9fb; --field:#ffffff; --text:#16202f; --muted:#566275; --line:#ccd4de;
-  --ink:#16202f; --vowel:#b94f12; --mod:#1a7385; --good:#2d7a4a; --bad:#b3372c;
+  --ink:#16202f; --vowel:#b94f12; --mod:#1a7385; --good:#2d7a4a; --bad:#b3372c; --cur:#b94f12;
   --bark:#1c2129; --bark-edge:#11151b; --moon:#e1e8f3; --moon-dim:#9aa9bf;
   --display:'Young Serif', Georgia, 'Times New Roman', serif;
   --body:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -21,12 +21,12 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0b111e; --panel:#121a2c; --field:#0a0f1a; --text:#dbe4f0; --muted:#93a0b5; --line:#26324a;
-    --ink:#e9f0f9; --vowel:#f0a35e; --mod:#6cc4d4; --good:#6fcf97; --bad:#f08a80; color-scheme:dark;
+    --ink:#e9f0f9; --vowel:#f0a35e; --mod:#6cc4d4; --good:#6fcf97; --bad:#f08a80; --cur:#f0a35e; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0b111e; --panel:#121a2c; --field:#0a0f1a; --text:#dbe4f0; --muted:#93a0b5; --line:#26324a;
-  --ink:#e9f0f9; --vowel:#f0a35e; --mod:#6cc4d4; --good:#6fcf97; --bad:#f08a80; color-scheme:dark;
+  --ink:#e9f0f9; --vowel:#f0a35e; --mod:#6cc4d4; --good:#6fcf97; --bad:#f08a80; --cur:#f0a35e; color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -93,6 +93,26 @@ textarea{width:100%;min-height:92px;resize:vertical;font:400 1.05rem/1.5 var(--m
 .gl.rw svg{width:calc(var(--bw,84px)*.62)}
 .gl.punct svg{width:calc(var(--bw,84px)*.18)}
 .bb{fill:var(--ink)} .bv{fill:var(--vowel)} .bm{fill:var(--mod)}
+/* stroke order */
+.gl[data-i]{cursor:pointer;border-radius:4px}
+.gl[data-i]:hover svg,.gl[data-i]:focus-visible svg{outline:1px dashed var(--mod);outline-offset:3px}
+.gl[data-i]:focus-visible{outline:none}
+.so{display:flex;flex-direction:column;gap:14px;border-color:var(--mod)}
+.so-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 14px}
+.so-title{font:400 1.25rem var(--display)}
+.so-count{font:500 13px var(--mono);color:var(--muted)}
+.so-main{display:flex;flex-wrap:wrap;gap:18px 26px;align-items:center}
+.so-big svg{display:block;width:min(230px,62vw);height:auto;overflow:visible;background:var(--field);border:1px solid var(--line);border-radius:6px}
+.so-side{display:flex;flex-direction:column;gap:10px;max-width:40ch;font-size:14px;color:var(--muted)}
+.so-btns{display:flex;flex-wrap:wrap;gap:8px}
+.so-strip{display:flex;flex-wrap:wrap;gap:10px}
+.so-strip figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.so-strip svg{display:block;width:62px;height:auto;overflow:visible;background:var(--field);border:1px solid var(--line);border-radius:4px}
+.so-strip figcaption{font:500 11px var(--mono);color:var(--muted)}
+.bdone{fill:var(--ink)} .bcur{fill:var(--cur)}
+.so-n circle{fill:var(--field);stroke:var(--mod);stroke-width:.8}
+.so-n text{font:600 7px var(--mono);fill:var(--mod);text-anchor:middle;dominant-baseline:central}
+.so-n.cur circle{stroke:var(--cur)} .so-n.cur text{fill:var(--cur)}
 .w{display:flex;align-items:flex-end;flex-wrap:nowrap}
 .cmp{display:flex;align-items:flex-end}
 .cmp .gl.blk+.gl.blk{margin-left:-6px}
@@ -135,7 +155,7 @@ kbd{font:500 12px var(--mono);padding:1px 5px;border:1px solid var(--line);borde
 <main class="app" id="app" data-parts="on">
   <header>
     <h1>Lunaji Brush</h1>
-    <span class="stamp" id="stamp">build 2026-09-29-1955</span>
+    <span class="stamp" id="stamp">build 2026-09-30-0753</span>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
@@ -175,7 +195,24 @@ Nuswape koime, lwajipe koime.</textarea>
   </section>
 
   <section class="view" id="view-chart" role="tabpanel" aria-labelledby="tab-chart" hidden>
-    <p class="sub">Every consonant with every vowel. Each letter opens with the moon curl. The chart follows the Brush or Carved setting above.</p>
+    <p class="sub">Every consonant with every vowel. Each letter opens with the moon curl. The chart follows the Brush or Carved setting above. <b>Tap any glyph to see its stroke order</b> — here or on the Write tab.</p>
+    <div class="panel so" id="so" hidden aria-live="polite">
+      <div class="so-head"><span class="so-title" id="soTitle"></span><span class="so-count" id="soCount"></span></div>
+      <div class="so-main">
+        <div class="so-big" id="soBig"></div>
+        <div class="so-side">
+          <p id="soNote"></p>
+          <div class="so-btns">
+            <button class="btn primary" type="button" id="soPlay">Play</button>
+            <button class="btn" type="button" id="soStep">Next stroke</button>
+            <button class="btn" type="button" id="soAll">Show all</button>
+            <button class="btn" type="button" id="soClose">Close</button>
+          </div>
+          <p>Consonant first, with the moon curl flowing into its first stroke. Then the glide or cluster, the vowel, the nasal foot, the voicing ticks, and last the coda dot.</p>
+        </div>
+      </div>
+      <div class="so-strip" id="soStrip"></div>
+    </div>
     <div class="keys" id="keys"></div>
     <div class="panel tablewrap"><table id="table"></table></div>
   </section>
@@ -230,6 +267,8 @@ Nuswape koime, lwajipe koime.</textarea>
       <li>Glides and clusters are a stroke over the letter: a dot for y, two dots for w, a short sweep for r, a short bar for l. When a cluster and a glide come together (prya), both strokes sit over the letter, the cluster on the left.</li>
       <li>A coda ends with a heavy stop dot. A long consonant is written as a coda of the same consonant followed by the syllable, like Japanese small tsu.</li>
     </ul></div>
+    <div><h3>Stroke order</h3>
+    <p class="sub">Tap any glyph on the Chart or Write tab to see it written stroke by stroke, with numbers, a Play button and a strip of frames. Consonant first, with the moon curl flowing into its first stroke; then the glide or cluster, the vowel, the nasal foot, the voicing ticks, and last the coda dot. With a pen or pencil the taper disappears, and that is fine: the letter is its skeleton, not its brush shape.</p></div>
     <div><h3>Saving images</h3>
     <p class="sub">Saving works when the app is opened from your GitHub Pages copy or as a file on your device. Inside the Claude preview, downloads are blocked, so the buttons may do nothing there.</p></div>
   </section>
@@ -252,7 +291,7 @@ Nuswape koime, lwajipe koime.</textarea>
 <script>
 (function(){
 'use strict';
-var BUILD='build 2026-09-29-1955';
+var BUILD='build 2026-09-30-0753';
 document.getElementById('stamp').textContent=BUILD;
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function load(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
@@ -270,17 +309,18 @@ var PROF={
   c:function(t){return .3+.6*sm(t)}
 };
 var ENDCAP={h:1,v:1,d:1};
-var FRAME=[['v','M22 20V86'],['h','M22 20H76'],['v','M76 20V80'],['k','M76 80l-9 -7']];
-var LEAKF=[['l','M34 20Q32 60 12 88'],['h','M34 20H72'],['v','M72 20V76'],['f','M72 76Q78 88 92 82']];
+/* a third element of 1 marks a stroke written in the same movement as the one before it */
+var FRAME=[['v','M22 20V86'],['h','M22 20H76'],['v','M76 20V80',1],['k','M76 80l-9 -7',1]];
+var LEAKF=[['l','M34 20Q32 60 12 88'],['h','M34 20H72'],['v','M72 20V76',1],['f','M72 76Q78 88 92 82',1]];
 var TEE=[['h','M16 44H84'],['v','M50 12V88']];
 var ESS=[['h','M16 40H84'],['l','M50 12Q52 68 20 90']];
 var SHH=[['h','M24 30H76'],['h','M12 56H88'],['l','M50 10Q52 70 20 92']];
 var CLIFF=[['h','M20 20H86'],['l','M26 20Q26 64 10 90'],['d','M52 44l12 16']];
-var ZED=[['h','M20 22H76'],['l','M76 22Q58 50 28 70'],['f','M28 70Q58 78 88 70']];
+var ZED=[['h','M20 22H76'],['l','M76 22Q58 50 28 70',1],['f','M28 70Q58 78 88 70',1]];
 var BASE={
   p:{s:FRAME}, b:{s:FRAME,v:1}, f:{s:LEAKF}, v:{s:LEAKF,v:1},
   m:{s:FRAME.concat([['h','M22 54H76']])},
-  w:{s:[['v','M20 30V52'],['h','M20 30H80'],['v','M80 30V50'],['k','M80 50l-8 -6']]},
+  w:{s:[['v','M20 30V52'],['h','M20 30H80'],['v','M80 30V50',1],['k','M80 50l-8 -6',1]]},
   t:{s:TEE}, d:{s:TEE,v:1}, s:{s:ESS}, z:{s:ESS,v:1}, sh:{s:SHH}, j:{s:SHH,v:1},
   ts:{s:TEE.concat([['d','M24 64l8 12'],['d','M78 64l-7 12']])},
   n:{s:[['h','M16 40H84'],['v','M50 12V88'],['h','M50 70H84']]},
@@ -288,13 +328,14 @@ var BASE={
   l:{s:[['v','M40 10V90'],['r','M40 46Q60 62 90 82']]},
   y:{s:CLIFF}, ny:{s:CLIFF.concat([['h','M40 66H82']])},
   k:{s:ZED}, g:{s:ZED,v:1},
-  h:{s:[['h','M20 24H78'],['l','M78 24Q60 52 30 72'],['f','M30 72Q50 76 64 66'],['d','M24 42l8 12']]}
+  h:{s:[['h','M20 24H78'],['l','M78 24Q60 52 30 72',1],['f','M30 72Q50 76 64 66',1],['d','M24 42l8 12']]}
 };
-var CARRIER=[['v','M50 12V82'],['k','M50 82l-10 -8']];
+var CARRIER=[['v','M50 12V82'],['k','M50 82l-10 -8',1]];
 var MEDS={y:[['d','M46 4l7 12']],w:[['d','M38 5l7 11'],['d','M64 5l-7 11']],r:[['l','M60 3Q55 13 40 21']],l:[['h','M36 13H64']]};
 function withMoon(list){
   var m=/^M\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/.exec(list[0][1]), x=+m[1], y=+m[2];
-  return [['c','M'+(x-6)+' '+(y+26)+'C'+(x-30)+' '+(y+20)+' '+(x-28)+' '+(y-10)+' '+(x-2)+' '+(y-2)]].concat(list);
+  var first=[list[0][0],list[0][1],1];
+  return [['c','M'+(x-6)+' '+(y+26)+'C'+(x-30)+' '+(y+20)+' '+(x-28)+' '+(y-10)+' '+(x-2)+' '+(y-2)],first].concat(list.slice(1));
 }
 var MP=document.getElementById('measure');
 var ID=[1,1,0,0], CACHE={}, BOXC={}, CARVED=false, ROWONLY=false;
@@ -375,31 +416,40 @@ function fit(b,x0,y0,x1,y1,ratio){
   if(sy>sx*ratio) sy=sx*ratio;
   return [sx,sy,x0+((x1-x0)-b.w*sx)/2-b.x*sx,y0+((y1-y0)-b.h*sy)/2-b.y*sy];
 }
-/* one syllable in a 100 x 100 glyph box, placed by T */
-function glyph(s,T,W){
-  var out='', c=s.c?BASE[s.c]:null, voiced=c&&c.v;
-  var x0=8,y0=8,x1=92,y1=92;
+/* one syllable in a 100 x 100 glyph box, placed by T.
+   glyphStrokes returns the strokes in WRITING ORDER (Script.md §2a), each numbered:
+   the consonant body (moon curl first), then the glide or cluster, the vowel, the
+   nasal foot, the voicing ticks, and last the coda dot. */
+function glyphStrokes(s,T,W){
+  var c=s.c?BASE[s.c]:null, voiced=c&&c.v;
+  var x0=8,y0=8,x1=92,y1=92, med=[], vow=[], nas=[], tick=[], coda=[];
+  function add(bucket,type,d,w,t,fill,join){bucket.push({type:type,d:d,W:w,T:t,fill:fill,join:!!join})}
   if(s.med&&s.med2){
     /* a cluster and a glide: the liquid's stroke on the left, the glide's on the right */
     var TL=comp([1,1,-13,0],T), TR=comp([1,1,13,0],T);
-    MEDS[s.med].forEach(function(m){out+=stroke(m[0],m[1],W,TL,'bm')});
-    MEDS[s.med2].forEach(function(m){out+=stroke(m[0],m[1],W,TR,'bm')});
+    MEDS[s.med].forEach(function(m){add(med,m[0],m[1],W,TL,'bm')});
+    MEDS[s.med2].forEach(function(m){add(med,m[0],m[1],W,TR,'bm')});
     y0=26;
-  } else if(s.med){(MEDS[s.med]||[]).forEach(function(m){out+=stroke(m[0],m[1],W,T,'bm')});y0=26;}
-  if(s.v==='a'){out+=stroke('l','M83 18Q93 54 80 92',W,T,'bv');x1=70;}
-  if(s.v==='i'){out+=stroke('v','M15 22V80',W,T,'bv');x0=32;}
-  if(s.v==='e'){out+=stroke('h','M5 36H25',W,T,'bv')+stroke('h','M5 64H25',W,T,'bv');x0=32;}
-  if(s.v==='o'){out+=stroke('l','M27 14Q23 58 5 88',W,T,'bv');x0=32;}
+  } else if(s.med){(MEDS[s.med]||[]).forEach(function(m){add(med,m[0],m[1],W,T,'bm')});y0=26;}
+  if(s.v==='a'){add(vow,'l','M83 18Q93 54 80 92',W,T,'bv');x1=70;}
+  if(s.v==='i'){add(vow,'v','M15 22V80',W,T,'bv');x0=32;}
+  if(s.v==='e'){add(vow,'h','M5 36H25',W,T,'bv');add(vow,'h','M5 64H25',W,T,'bv');x0=32;}
+  if(s.v==='o'){add(vow,'l','M27 14Q23 58 5 88',W,T,'bv');x0=32;}
   /* front rounded vowels: the front vowel's stroke, closed by rounding */
-  if(s.v==='ü'){out+=stroke('v','M12 22V80',W,T,'bv')+stroke('h','M12 80H30',W,T,'bv');x0=34;}
-  if(s.v==='ö'){out+=stroke('v','M6 34V66',W,T,'bv')+stroke('h','M6 36H25',W,T,'bv')+stroke('h','M6 64H25',W,T,'bv');x0=32;}
-  if(s.v===null){out+=stroke('d','M81 78l7 12',W*1.15,T,'bm');x1=Math.min(x1,76);y1=Math.min(y1,80);}
-  if(s.nasal){out+=stroke('r','M10 90Q50 82 95 95',W,T,'bm');y1=Math.min(y1,76);}
-  if(voiced){out+=stroke('d','M81 -3l5 10',W*.9,T,'bm')+stroke('d','M91 -5l5 10',W*.9,T,'bm');x1=Math.min(x1,80);}
+  if(s.v==='\u00fc'){add(vow,'v','M12 22V80',W,T,'bv');add(vow,'h','M12 80H30',W,T,'bv',1);x0=34;}
+  if(s.v==='\u00f6'){add(vow,'h','M6 36H25',W,T,'bv');add(vow,'v','M6 36V64',W,T,'bv');add(vow,'h','M6 64H25',W,T,'bv',1);x0=32;}
+  if(s.v===null){add(coda,'d','M81 78l7 12',W*1.15,T,'bm');x1=Math.min(x1,76);y1=Math.min(y1,80);}
+  if(s.nasal){add(nas,'r','M10 90Q50 82 95 95',W,T,'bm');y1=Math.min(y1,76);}
+  if(voiced){add(tick,'d','M81 -3l5 10',W*.9,T,'bm');add(tick,'d','M91 -5l5 10',W*.9,T,'bm');x1=Math.min(x1,80);}
   var list=withMoon(c?c.s:CARRIER), b=bbox(list,s.c||'_');
-  var CT=comp(fit(b,x0+2,y0+2,x1-2,y1-2,1.45),T);
-  list.forEach(function(st){out+=stroke(st[0],st[1],W,CT,'bb')});
-  return out;
+  var CT=comp(fit(b,x0+2,y0+2,x1-2,y1-2,1.45),T), body=[];
+  list.forEach(function(st){add(body,st[0],st[1],W,CT,'bb',st[2])});
+  var all=body.concat(med,vow,nas,tick,coda), n=0;
+  all.forEach(function(x){ if(!x.join||n===0) n++; x.n=n; });
+  return all;
+}
+function glyph(s,T,W){
+  return glyphStrokes(s,T,W).map(function(x){return stroke(x.type,x.d,x.W,x.T,x.fill)}).join('');
 }
 function svg(inner,vb,label){
   var g=CARVED?
@@ -409,8 +459,63 @@ function svg(inner,vb,label){
 }
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function fig(cls,inner,vb,label){return '<figure class="gl '+cls+'">'+svg(inner,vb,label)+'<figcaption>'+esc(label)+'</figcaption></figure>'}
-function single(s){return fig('single',glyph(s,ID,7.5),100,s.label)}
-function small(s,cls){return fig(cls,glyph(s,ID,10),100,s.label)}
+var REG=[];
+function tag(html,s){var i=REG.push(s)-1;return html.replace('<figure class="gl ','<figure data-i="'+i+'" tabindex="0" role="button" aria-label="stroke order for '+esc(s.label)+'" class="gl ');}
+function single(s){return tag(fig('single',glyph(s,ID,7.5),100,s.label),s)}
+function small(s,cls){return tag(fig(cls,glyph(s,ID,10),100,s.label),s)}
+
+/* ================= stroke order ================= */
+var SO={s:null,list:[],upto:0,max:0,timer:null};
+function soSVG(list,upto,numbers,hi){
+  var inner='', labels='';
+  list.forEach(function(x){
+    if(x.n>upto) return;
+    inner+=brushStroke(x.type,x.d,x.W,x.T,(hi&&x.n===upto)?'bcur':'bdone');
+  });
+  if(numbers){
+    var seen={};
+    list.forEach(function(x){
+      if(x.n>upto||seen[x.n]) return; seen[x.n]=1;
+      var m=/^M\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/.exec(x.d), px=+m[1]*x.T[0]+x.T[2], py=+m[2]*x.T[1]+x.T[3];
+      px=Math.max(5,Math.min(95,px-7)); py=Math.max(5,Math.min(95,py-7));
+      labels+='<g class="so-n'+((hi&&x.n===upto)?' cur':'')+'"><circle cx="'+f1(px)+'" cy="'+f1(py)+'" r="5"/><text x="'+f1(px)+'" y="'+f1(py)+'">'+x.n+'</text></g>';
+    });
+  }
+  return '<svg viewBox="-6 -10 112 112" role="img" aria-label="strokes 1 to '+upto+'"><g transform="translate(0 3) skewY(-4)">'+inner+labels+'</g></svg>';
+}
+function soPaint(){
+  document.getElementById('soBig').innerHTML=soSVG(SO.list,SO.upto,true,SO.upto<SO.max||!!SO.timer);
+  document.getElementById('soCount').textContent=SO.upto+' of '+SO.max+' strokes';
+}
+function soOpen(s){
+  soStop();
+  SO.s=s; SO.list=glyphStrokes(s,ID,7.5); SO.max=SO.list.length?SO.list[SO.list.length-1].n:0; SO.upto=SO.max;
+  document.getElementById('soTitle').textContent='Stroke order \u00b7 '+s.label;
+  var parts=[];
+  if(s.c) parts.push('the consonant '+s.c+' with its moon curl');
+  else parts.push('the carrier with its moon curl');
+  if(s.med) parts.push('the '+s.med+(s.med2?' and '+s.med2:'')+' stroke'+(s.med2?'s':''));
+  if(s.v&&s.v!=='u') parts.push('the '+s.v+' mark');
+  if(s.nasal) parts.push('the nasal foot');
+  if(s.c&&BASE[s.c].v) parts.push('the voicing ticks');
+  if(s.v===null) parts.push('the coda dot');
+  document.getElementById('soNote').textContent='Written as '+parts.join(', then ')+'.';
+  var strip='';
+  for(var k=1;k<=SO.max;k++) strip+='<figure>'+soSVG(SO.list,k,false,true)+'<figcaption>'+k+'</figcaption></figure>';
+  document.getElementById('soStrip').innerHTML=strip;
+  soPaint();
+  var el=document.getElementById('so'); el.hidden=false;
+  try{el.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'})}catch(e){el.scrollIntoView()}
+}
+function reduceMotion(){try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}}
+function soStop(){if(SO.timer){clearInterval(SO.timer);SO.timer=null;}}
+function soPlay(){
+  soStop();
+  if(reduceMotion()){SO.upto=SO.max;soPaint();return;}
+  SO.upto=1; soPaint();
+  SO.timer=setInterval(function(){ if(SO.upto>=SO.max){soStop();soPaint();return;} SO.upto++; soPaint(); },700);
+}
+function soStep(){soStop(); SO.upto=SO.upto>=SO.max?1:SO.upto+1; soPaint();}
 var ROWS={1:[1],2:[2],3:[1,2],4:[2,2],5:[2,3],6:[3,3]};
 function block(list,label){
   var rows=ROWS[list.length]||[3,3,3], rh=130/rows.length, inner='', i=0, W=list.length===1?7.5:(list.length===2?6.5:5.6);
@@ -815,6 +920,20 @@ function renderAll(){
   if(current==='chart') renderChart();
   renderPracticeGlyphs();
 }
+
+function soFromEvent(e){
+  if(e.target.closest('#stage')) return; /* never in Practice: it would give the answer away */
+  var f=e.target.closest('figure.gl[data-i]'); if(!f) return;
+  var s=REG[+f.dataset.i]; if(!s) return;
+  if(current!=='chart') show('chart');
+  soOpen(s);
+}
+document.addEventListener('click',function(e){ if(e.target.closest('#so')) return; soFromEvent(e); });
+document.addEventListener('keydown',function(e){ if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('figure.gl[data-i]')){e.preventDefault();soFromEvent(e);} });
+document.getElementById('soPlay').addEventListener('click',soPlay);
+document.getElementById('soStep').addEventListener('click',soStep);
+document.getElementById('soAll').addEventListener('click',function(){soStop();SO.upto=SO.max;soPaint();});
+document.getElementById('soClose').addEventListener('click',function(){soStop();document.getElementById('so').hidden=true;});
 
 /* ================= start ================= */
 var sm0=load('lunaji-write-mode','mixed'); if(sm0!=='row') sm0='mixed';
