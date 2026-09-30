@@ -139,6 +139,38 @@ td.c{font:500 13px var(--mono);text-align:right;padding-right:10px}
 .choices button.wrong{border-color:var(--bad);color:var(--bad)}
 .score{font:500 13px var(--mono);color:var(--muted);display:flex;gap:18px;flex-wrap:wrap}
 .feedback{font-size:14px;min-height:1.5em;text-align:center}
+.pbtns{display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+.btn.good{border-color:var(--good);color:var(--good)} .btn.bad{border-color:var(--bad);color:var(--bad)}
+.sel,.txt{font:500 13px var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--field);color:var(--text)}
+.txt{min-width:14ch}
+.sel:focus-visible,.txt:focus-visible{outline:2px solid var(--mod);outline-offset:2px}
+.prompt{font:400 clamp(2rem,9vw,3.2rem)/1.1 var(--display);color:var(--text);text-align:center}
+.prompt-gloss{font-size:14px;color:var(--muted);text-align:center}
+.reveal{display:flex;flex-direction:column;align-items:center;gap:12px}
+.reveal .so-strip svg{width:54px}
+/* printable sheets: always ink on white paper, whatever the theme */
+.sheet-wrap{overflow-x:auto;max-width:100%}
+.sheet{--cell:19mm;background:#fff;color:#111;width:186mm;padding:10mm 10mm 8mm;box-sizing:content-box;border:1px solid var(--line);border-radius:4px}
+.sh-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4mm;border-bottom:.3mm solid #111;padding-bottom:2mm;margin-bottom:4mm}
+.sh-title{font:400 15pt 'Young Serif',Georgia,serif}
+.sh-fields{font:10pt 'IBM Plex Sans',system-ui,sans-serif;color:#333;white-space:nowrap}
+.sh-row{display:flex;align-items:center;margin:0 0 2.5mm;break-inside:avoid;page-break-inside:avoid}
+.sh-lab{width:14mm;flex:none;font:500 9pt 'IBM Plex Mono',ui-monospace,monospace;color:#333;overflow:hidden;text-overflow:ellipsis}
+.sh-cell{width:var(--cell);height:var(--cell);flex:none}
+.sh-cell svg{display:block;width:100%;height:100%}
+.sh-gap{width:calc(var(--cell)*.35);flex:none}
+.sh-foot{margin-top:4mm;font:8pt 'IBM Plex Sans',system-ui,sans-serif;color:#666}
+.sk{fill:#111} .st{fill:#cdd3db}
+.sh-n circle{fill:#fff;stroke:#1a7385;stroke-width:.8} .sh-n text{font:600 7px 'IBM Plex Mono',monospace;fill:#1a7385;text-anchor:middle;dominant-baseline:central}
+@media print{
+  @page{margin:12mm}
+  html,body{background:#fff!important}
+  :root{padding:0}
+  .app{padding:0;max-width:none}
+  .app>*:not(#view-sheets){display:none!important}
+  #view-sheets>*:not(.sheet-wrap){display:none!important}
+  .sheet{border:0;padding:0;width:auto}
+}
 .feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
 
 /* lists and help */
@@ -155,13 +187,14 @@ kbd{font:500 12px var(--mono);padding:1px 5px;border:1px solid var(--line);borde
 <main class="app" id="app" data-parts="on">
   <header>
     <h1>Lunaji Brush</h1>
-    <span class="stamp" id="stamp">build 2026-09-30-0753</span>
+    <span class="stamp" id="stamp">build 2026-09-30-0939</span>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" id="tab-write" aria-controls="view-write" aria-selected="true">Write</button>
     <button role="tab" id="tab-chart" aria-controls="view-chart" aria-selected="false">Chart</button>
     <button role="tab" id="tab-practice" aria-controls="view-practice" aria-selected="false">Practice</button>
+    <button role="tab" id="tab-sheets" aria-controls="view-sheets" aria-selected="false">Sheets</button>
     <button role="tab" id="tab-lists" aria-controls="view-lists" aria-selected="false">Word lists</button>
     <button role="tab" id="tab-help" aria-controls="view-help" aria-selected="false">Help</button>
   </nav>
@@ -219,16 +252,56 @@ Nuswape koime, lwajipe koime.</textarea>
 
   <section class="view" id="view-practice" role="tabpanel" aria-labelledby="tab-practice" hidden>
     <div class="bar">
+      <div class="seg" role="radiogroup" aria-label="Direction">
+        <input type="radio" name="pdir" id="pdRead" value="read" checked><label for="pdRead">Read it</label>
+        <input type="radio" name="pdir" id="pdWrite" value="write"><label for="pdWrite">Write it</label>
+      </div>
       <div class="seg" role="radiogroup" aria-label="What to practise">
         <input type="radio" name="pset" id="psPlain" value="plain" checked><label for="psPlain">Plain syllables</label>
         <input type="radio" name="pset" id="psMarks" value="marks"><label for="psMarks">With marks</label>
         <input type="radio" name="pset" id="psWords" value="words"><label for="psWords">Real words</label>
       </div>
-      <div class="score" id="score"></div>
+      <label class="chk" for="pFam">Letters
+        <select id="pFam" class="sel">
+          <option value="all">All</option><option value="lips">Lips</option><option value="tip">Tongue tip</option>
+          <option value="palate">Palate</option><option value="back">Back</option><option value="vowels">Vowels only</option>
+        </select></label>
     </div>
+    <div class="bar"><div class="score" id="score"></div><span class="score" id="due"></span></div>
+    <p class="sub" id="pNote"></p>
     <div class="practice-stage" id="stage"></div>
     <p class="feedback" id="feedback" role="status"></p>
-    <div style="display:flex;justify-content:center"><button class="btn" type="button" id="nextBtn">Next</button></div>
+    <div class="pbtns">
+      <button class="btn primary" type="button" id="revealBtn">Reveal</button>
+      <button class="btn good" type="button" id="gotBtn">Got it</button>
+      <button class="btn bad" type="button" id="missBtn">Missed it</button>
+      <button class="btn" type="button" id="nextBtn">Next</button>
+    </div>
+  </section>
+
+  <section class="view" id="view-sheets" role="tabpanel" aria-labelledby="tab-sheets" hidden>
+    <p class="sub">Printable practice pages. Each row starts with a model to copy, then faint copies to trace, then empty squares to write from memory. The guide lines help with proportions, and later with fitting glyphs into blocks.</p>
+    <div class="panel bar sheet-controls">
+      <label class="chk" for="shWhat">Practise
+        <select id="shWhat" class="sel">
+          <option value="fam:lips">Lips family</option><option value="fam:tip">Tongue-tip family</option>
+          <option value="fam:palate">Palate family</option><option value="fam:back">Back family</option>
+          <option value="vowels">Vowels on the carrier</option><option value="vmarks">Every vowel on one consonant</option>
+          <option value="marks">Voicing, glides, clusters, codas</option><option value="words">Starter words</option>
+          <option value="custom">My own list</option>
+        </select></label>
+      <label class="chk" for="shCustom" id="shCustomWrap" hidden>List
+        <input id="shCustom" class="txt" type="text" spellcheck="false" autocomplete="off" placeholder="syllables or words, separated by spaces" value="nuswa lwaji koime"></label>
+      <label class="chk" for="shSize">Square
+        <select id="shSize" class="sel"><option value="15">Small</option><option value="19" selected>Medium</option><option value="24">Large</option></select></label>
+      <label class="chk" for="shTrace">Trace copies
+        <select id="shTrace" class="sel"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+      <label class="chk"><input type="checkbox" id="shNums" checked> Stroke numbers on the model</label>
+      <label class="chk" for="shTitle">Title <input id="shTitle" class="txt" type="text" value="Lunaji writing practice"></label>
+      <button class="btn primary" type="button" id="shPrint">Print</button>
+    </div>
+    <p class="status" id="shStatus">Printing works from your GitHub Pages copy or the file on your device. Inside the Claude preview the print dialog is blocked.</p>
+    <div class="sheet-wrap"><div class="sheet" id="sheet"></div></div>
   </section>
 
   <section class="view" id="view-lists" role="tabpanel" aria-labelledby="tab-lists" hidden>
@@ -267,6 +340,8 @@ Nuswape koime, lwajipe koime.</textarea>
       <li>Glides and clusters are a stroke over the letter: a dot for y, two dots for w, a short sweep for r, a short bar for l. When a cluster and a glide come together (prya), both strokes sit over the letter, the cluster on the left.</li>
       <li>A coda ends with a heavy stop dot. A long consonant is written as a coda of the same consonant followed by the syllable, like Japanese small tsu.</li>
     </ul></div>
+    <div><h3>Practising</h3>
+    <p class="sub"><b>Read it</b> shows a glyph and asks for its sound; <b>Write it</b> shows the sound, you write it on paper, then reveal it with its stroke order and mark yourself. Pick a letter family to learn one at a time. Anything you miss comes back more often, and the review list is kept on this device. <b>Sheets</b> makes printable practice pages: a model with stroke numbers, faint copies to trace, then empty squares.</p></div>
     <div><h3>Stroke order</h3>
     <p class="sub">Tap any glyph on the Chart or Write tab to see it written stroke by stroke, with numbers, a Play button and a strip of frames. Consonant first, with the moon curl flowing into its first stroke; then the glide or cluster, the vowel, the nasal foot, the voicing ticks, and last the coda dot. With a pen or pencil the taper disappears, and that is fine: the letter is its skeleton, not its brush shape.</p></div>
     <div><h3>Saving images</h3>
@@ -291,7 +366,7 @@ Nuswape koime, lwajipe koime.</textarea>
 <script>
 (function(){
 'use strict';
-var BUILD='build 2026-09-30-0753';
+var BUILD='build 2026-09-30-0939';
 document.getElementById('stamp').textContent=BUILD;
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function load(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
@@ -824,11 +899,12 @@ var WORDLIST=[
   ['kuwanu','to know'],['howeru','to be good'],['onu','to say'],['dã','yes'],['aoyã','road'],['okisõ','silence'],['omime','door'],
   ['kazõ','to come'],['fãvonedi','dream'],['vanõla','hello'],['helã','person'],['tsüri','doctor'],['ohari','(held word)'],['yosami','letter, note'],['orimĩ','cute']
 ];
-var PSET='plain', Q=null, answered=false, SC={right:0,tried:0,streak:0,best:+load('lunaji-brush-best','0')||0};
+var PSET='plain', PDIR='read', PFAM='all', Q=null, answered=false, revealed=false, SC={right:0,tried:0,streak:0,best:+load('lunaji-brush-best','0')||0};
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 var ALLC=[null,'p','b','f','v','m','w','t','d','s','z','sh','j','ts','n','r','l','y','ny','k','g','h'];
-function randSyl(marks){
-  var c=pick(ALLC), v=pick(['u','a','i','e','o']), s=c||'', out;
+var FAMS={all:ALLC,lips:['p','b','f','v','m','w'],tip:['t','d','s','z','sh','j','ts','n','r','l'],palate:['y','ny'],back:['k','g','h'],vowels:[null]};
+function randSyl(marks,fam){
+  var c=pick(FAMS[fam||'all']), v=pick(['u','a','i','e','o']), s=c||'';
   if(marks){
     if(c&&Math.random()<.3){
       var opts=[];
@@ -837,49 +913,187 @@ function randSyl(marks){
       if(['k','g','f','v','r'].indexOf(c)<0)opts.push('w');
       if(opts.length) s+=pick(opts);
     }
-    if(['a','i','o'].indexOf(v)>=0&&Math.random()<.3) v+='̃';
+    if(['a','i','o'].indexOf(v)>=0&&Math.random()<.3) v+='\u0303';
   }
-  if(marks&&Math.random()<.18) v=Math.random()<.7?'ü':'ö';
+  if(marks&&Math.random()<.18) v=Math.random()<.7?'\u00fc':'\u00f6';
   if(v==='i'&&/(^|[^s])s$|z$/.test(s)) v='a';
   if((s==='y'&&v==='i')||(s==='w'&&v==='u')||(s==='ny'&&v==='i')) v='o';
-  if(s==='t'&&(v==='u'||v==='ü')) s='ts';
+  if(s==='t'&&(v==='u'||v==='\u00fc')) s='ts';
   return (s+v).normalize('NFC');
 }
-function newQ(){
-  answered=false; document.getElementById('feedback').textContent=''; document.getElementById('feedback').className='feedback';
-  var ans, opts=[ ], shown;
-  if(PSET==='words'){
-    var w=pick(WORDLIST); ans=w[0];
-    while(opts.length<3){var o=pick(WORDLIST)[0];if(o!==ans&&opts.indexOf(o)<0)opts.push(o);}
-    shown='<div class="line">'+line(ans,[])+'</div>';
-    Q={ans:ans,gloss:w[1]};
+/* spaced review: every item sits in a box from 1 (missed) to 5 (solid); boxes 1-2 come back often */
+var BOXES={};
+try{BOXES=JSON.parse(load('lunaji-brush-boxes','{}'))||{}}catch(e){BOXES={}}
+function cfgKey(){return PDIR+'|'+PSET+'|'+(PSET==='words'?'-':PFAM)+'|'}
+function dueList(){var pre=cfgKey();return Object.keys(BOXES).filter(function(k){return k.indexOf(pre)===0&&BOXES[k]<=2}).map(function(k){return k.slice(pre.length)})}
+function glossOf(w){for(var i=0;i<WORDLIST.length;i++) if(WORDLIST[i][0]===w) return WORDLIST[i][1]; return ''}
+function freshItem(){return PSET==='words'?pick(WORDLIST)[0]:randSyl(PSET==='marks',PFAM)}
+function drawItem(){
+  var prev=Q&&Q.ans, due=dueList().filter(function(x){return x!==prev}), item;
+  if(due.length&&Math.random()<.45){
+    var bag=[]; due.forEach(function(x){var b=BOXES[cfgKey()+x];bag.push(x);if(b<=1){bag.push(x);bag.push(x);}});
+    item=pick(bag);
   } else {
-    ans=randSyl(PSET==='marks');
-    var guard=0; while(opts.length<3&&guard++<200){var o2=randSyl(PSET==='marks');if(o2!==ans&&opts.indexOf(o2)<0)opts.push(o2);}
-    shown=syls(ans).syls.map(single).join('');
-    Q={ans:ans,gloss:''};
+    var g=0; do{item=freshItem();}while(item===prev&&g++<20);
   }
-  opts.push(ans); opts.sort(function(){return Math.random()-.5});
-  document.getElementById('stage').innerHTML='<div class="row" style="justify-content:center">'+shown+'</div><div class="choices">'+opts.map(function(o){return '<button type="button" data-o="'+esc(o)+'">'+esc(o)+'</button>'}).join('')+'</div>';
-  Q.opts=opts;
+  return item;
+}
+function grade(ok){
+  var key=cfgKey()+Q.ans, b=BOXES[key]||0;
+  BOXES[key]=ok?Math.min(5,(b||2)+1):1;
+  store('lunaji-brush-boxes',JSON.stringify(BOXES));
+  SC.tried++;
+  if(ok){SC.right++;SC.streak++;if(SC.streak>SC.best){SC.best=SC.streak;store('lunaji-brush-best',String(SC.best));}}
+  else SC.streak=0;
+  renderScore();
+}
+var PNOTES={
+  read:'Read it: see a glyph, choose its sound. Anything you get wrong comes back more often.',
+  write:'Write it: see the sound, write it on paper with its stroke order, then reveal and mark yourself honestly. Missed ones come back more often.'
+};
+function showBtns(){
+  var w=PDIR==='write';
+  document.getElementById('revealBtn').hidden=!w||revealed;
+  document.getElementById('gotBtn').hidden=!w||!revealed||answered;
+  document.getElementById('missBtn').hidden=!w||!revealed||answered;
+  document.getElementById('nextBtn').hidden=w&&!answered;
+}
+function glyphsFor(ans){return PSET==='words'?'<div class="line">'+line(ans,[])+'</div>':syls(ans).syls.map(single).join('')}
+function newQ(){
+  answered=false; revealed=false;
+  var fb=document.getElementById('feedback'); fb.textContent=''; fb.className='feedback';
+  var ans=drawItem();
+  Q={ans:ans,gloss:PSET==='words'?glossOf(ans):''};
+  if(PDIR==='read'){
+    var opts=[], guard=0;
+    while(opts.length<3&&guard++<300){var o=freshItem();if(o!==ans&&opts.indexOf(o)<0)opts.push(o);}
+    opts.push(ans); opts.sort(function(){return Math.random()-.5});
+    Q.opts=opts;
+  }
+  paintQ(); showBtns();
+}
+function paintQ(){
+  if(!Q) return;
+  var st=document.getElementById('stage');
+  if(PDIR==='read'){
+    st.innerHTML='<div class="row" style="justify-content:center">'+glyphsFor(Q.ans)+'</div><div class="choices">'+Q.opts.map(function(o){return '<button type="button" data-o="'+esc(o)+'">'+esc(o)+'</button>'}).join('')+'</div>';
+    if(answered) st.querySelectorAll('.choices button').forEach(function(x){if(x.dataset.o===Q.ans)x.classList.add('right');if(x.dataset.o===Q.picked&&Q.picked!==Q.ans)x.classList.add('wrong')});
+  } else {
+    var html='<div class="prompt">'+esc(Q.ans)+'</div>'+(Q.gloss?'<div class="prompt-gloss">\u201c'+esc(Q.gloss)+'\u201d</div>':'');
+    if(revealed){
+      html+='<div class="reveal"><div class="row" style="justify-content:center">'+glyphsFor(Q.ans)+'</div>';
+      var sy=syls(Q.ans).syls;
+      if(PSET!=='words'&&sy.length===1){
+        var list=glyphStrokes(sy[0],ID,7.5), max=list.length?list[list.length-1].n:0, strip='';
+        for(var k=1;k<=max;k++) strip+='<figure>'+soSVG(list,k,false,true)+'<figcaption>'+k+'</figcaption></figure>';
+        html+='<div class="so-strip" aria-label="stroke order">'+strip+'</div>';
+      }
+      html+='</div>';
+    } else html+='<div class="prompt-gloss">Write it on paper first.</div>';
+    st.innerHTML=html;
+  }
 }
 document.getElementById('stage').addEventListener('click',function(e){
-  var b=e.target.closest('button[data-o]'); if(!b||answered) return;
-  answered=true; SC.tried++;
+  var b=e.target.closest('button[data-o]'); if(!b||answered||PDIR!=='read') return;
+  answered=true; Q.picked=b.dataset.o;
   var ok=b.dataset.o===Q.ans, fb=document.getElementById('feedback');
-  document.querySelectorAll('.choices button').forEach(function(x){if(x.dataset.o===Q.ans)x.classList.add('right')});
-  if(ok){SC.right++;SC.streak++;if(SC.streak>SC.best){SC.best=SC.streak;store('lunaji-brush-best',String(SC.best));}fb.textContent='Right'+(Q.gloss?': '+Q.ans+' means “'+Q.gloss+'”.':'.');fb.className='feedback ok';}
-  else{b.classList.add('wrong');SC.streak=0;fb.textContent='That one is '+Q.ans+(Q.gloss?', “'+Q.gloss+'”.':'.');fb.className='feedback no';}
-  renderScore();
+  grade(ok); paintQ();
+  if(ok){fb.textContent='Right'+(Q.gloss?': '+Q.ans+' means \u201c'+Q.gloss+'\u201d.':'.');fb.className='feedback ok';}
+  else{fb.textContent='That one is '+Q.ans+(Q.gloss?', \u201c'+Q.gloss+'\u201d.':'.');fb.className='feedback no';}
+  showBtns();
 });
-function renderScore(){document.getElementById('score').innerHTML='<span>'+SC.right+' of '+SC.tried+' right</span><span>streak '+SC.streak+'</span><span>best '+SC.best+'</span>'}
-document.getElementById('nextBtn').addEventListener('click',newQ);
-document.querySelectorAll('input[name=pset]').forEach(function(r){r.addEventListener('change',function(){PSET=r.value;newQ();})});
-function renderPracticeGlyphs(){
-  if(!Q) return;
-  var stage=document.getElementById('stage'), row=stage.querySelector('.row');
-  if(row) row.innerHTML=PSET==='words'?'<div class="line">'+line(Q.ans,[])+'</div>':syls(Q.ans).syls.map(single).join('');
+document.getElementById('revealBtn').addEventListener('click',function(){revealed=true;paintQ();showBtns();});
+document.getElementById('gotBtn').addEventListener('click',function(){answered=true;grade(true);var fb=document.getElementById('feedback');fb.textContent='Good. It moves further back in the queue.';fb.className='feedback ok';showBtns();});
+document.getElementById('missBtn').addEventListener('click',function(){answered=true;grade(false);var fb=document.getElementById('feedback');fb.textContent='It will come back soon. Copy it once from the model before moving on.';fb.className='feedback no';showBtns();});
+function renderScore(){
+  document.getElementById('score').innerHTML='<span>'+SC.right+' of '+SC.tried+' right</span><span>streak '+SC.streak+'</span><span>best '+SC.best+'</span>';
+  var d=dueList().length;
+  document.getElementById('due').textContent=d?d+' to review in this set':'nothing waiting for review in this set';
 }
+function resetPractice(){ document.getElementById('pNote').textContent=PNOTES[PDIR]; document.getElementById('pFam').disabled=(PSET==='words'); renderScore(); newQ(); }
+document.getElementById('nextBtn').addEventListener('click',newQ);
+document.querySelectorAll('input[name=pset]').forEach(function(r){r.addEventListener('change',function(){PSET=r.value;resetPractice();})});
+document.querySelectorAll('input[name=pdir]').forEach(function(r){r.addEventListener('change',function(){PDIR=r.value;store('lunaji-brush-pdir',PDIR);resetPractice();})});
+document.getElementById('pFam').addEventListener('change',function(e){PFAM=e.target.value;resetPractice();});
+document.addEventListener('keydown',function(e){
+  if(current!=='practice'||e.target.closest&&e.target.closest('input,select,textarea')) return;
+  if(PDIR==='write'&&!revealed&&(e.key===' '||e.key==='Enter')){e.preventDefault();document.getElementById('revealBtn').click();}
+  else if(answered&&(e.key==='Enter'||e.key===' ')){e.preventDefault();newQ();}
+});
+function renderPracticeGlyphs(){ paintQ(); }
+
+/* ================= sheets tab ================= */
+var SHEET_WORDS=['l\u00f5ji','\u00fcwiki','sofu','koime','hena','nuswa','lwaji','hotori','sa\u0129ko','kunwe'];
+function baseSyl(c){return {c:c,v:'u',nasal:false,label:c}}
+function sheetItems(){
+  var what=document.getElementById('shWhat').value, items=[];
+  function addText(str){
+    str.split(/[\s,]+/).filter(Boolean).forEach(function(w){
+      var r=syls(w.replace(/[-+*]/g,'')); if(!r.syls.length) return;
+      items.push(r.syls.length===1?{kind:'syl',s:r.syls[0],label:r.syls[0].label}:{kind:'word',list:r.syls,label:w.replace(/[-+*]/g,'').normalize('NFC')});
+    });
+  }
+  if(what.indexOf('fam:')===0) FAMS[what.slice(4)].forEach(function(c){items.push({kind:'syl',s:baseSyl(c),label:c})});
+  else if(what==='vowels') addText('u a i e o \u00fc \u00f6 \u00e3 \u0129 \u00f5');
+  else if(what==='vmarks') addText('ku ka ki ke ko k\u00fc k\u00f6 k\u00e3 k\u0129 k\u00f5');
+  else if(what==='marks'){ addText('ga zo kya twa pra blo prya'); items.push({kind:'syl',s:{c:'l',v:null,nasal:false,label:'l\u00b7'},label:'l\u00b7 (coda)'}); addText('kilsu otto'); }
+  else if(what==='words') addText(SHEET_WORDS.join(' '));
+  else addText(document.getElementById('shCustom').value);
+  return items;
+}
+function sheetCell(s,mode,nums){
+  var g='<rect x="1" y="1" width="98" height="98" fill="none" stroke="#9aa3ae" stroke-width="1"/>'+
+    '<path d="M50 2V98M2 50H98" stroke="#d3d8df" stroke-width=".8" stroke-dasharray="4 4" fill="none"/>';
+  if(s&&mode!=='empty'){
+    var list=glyphStrokes(s,[.84,.84,8,9],7.5), inner='', labels='';
+    list.forEach(function(x){inner+=brushStroke(x.type,x.d,x.W,x.T,mode==='model'?'sk':'st')});
+    if(nums&&mode==='model'){
+      var seen={};
+      list.forEach(function(x){
+        if(seen[x.n]) return; seen[x.n]=1;
+        var m=/^M\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/.exec(x.d), px=+m[1]*x.T[0]+x.T[2], py=+m[2]*x.T[1]+x.T[3];
+        px=Math.max(6,Math.min(94,px-6)); py=Math.max(6,Math.min(94,py-6));
+        labels+='<g class="sh-n"><circle cx="'+f1(px)+'" cy="'+f1(py)+'" r="4.6"/><text x="'+f1(px)+'" y="'+f1(py)+'">'+x.n+'</text></g>';
+      });
+    }
+    g+='<g transform="translate(0 3) skewY(-4)">'+inner+labels+'</g>';
+  }
+  return '<div class="sh-cell"><svg viewBox="0 0 100 100" aria-hidden="true">'+g+'</svg></div>';
+}
+function renderSheet(){
+  var cellMM=+document.getElementById('shSize').value, trace=+document.getElementById('shTrace').value, nums=document.getElementById('shNums').checked;
+  var cols=Math.max(4,Math.floor((186-14)/cellMM));
+  var items=sheetItems(), rows='';
+  items.forEach(function(it){
+    if(it.kind==='syl'){
+      var cells=sheetCell(it.s,'model',nums);
+      for(var i=0;i<Math.min(trace,cols-2);i++) cells+=sheetCell(it.s,'trace');
+      for(var j=1+Math.min(trace,cols-2);j<cols;j++) cells+=sheetCell(null,'empty');
+      rows+='<div class="sh-row"><div class="sh-lab">'+esc(it.label)+'</div>'+cells+'</div>';
+    } else {
+      var n=it.list.length, model=it.list.map(function(s){return sheetCell(s,'model',nums)}).join('');
+      var line1=model, used=n, copies=0;
+      while(used+n+1<=cols&&copies<trace){line1+='<div class="sh-gap"></div>'+it.list.map(function(s){return sheetCell(s,'trace')}).join('');used+=n+1;copies++;}
+      var line2=''; for(var e=0;e<cols;e++) line2+=sheetCell(null,'empty');
+      rows+='<div class="sh-row"><div class="sh-lab">'+esc(it.label)+'</div>'+line1+'</div><div class="sh-row"><div class="sh-lab"></div>'+line2+'</div>';
+    }
+  });
+  var title=document.getElementById('shTitle').value||'Lunaji writing practice';
+  document.getElementById('sheet').style.setProperty('--cell',cellMM+'mm');
+  document.getElementById('sheet').innerHTML='<div class="sh-head"><span class="sh-title">'+esc(title)+'</span><span class="sh-fields">Name ____________ &nbsp; Date ________</span></div>'+
+    (rows||'<p class="sh-foot">Nothing to show. Type some syllables or words in the list.</p>')+
+    '<div class="sh-foot">Copy the dark model, trace the faint ones, then fill the empty squares from memory. Numbers show the stroke order. '+esc(BUILD)+'</div>';
+}
+['shWhat','shSize','shTrace','shNums','shTitle','shCustom'].forEach(function(id){
+  var el=document.getElementById(id); el.addEventListener(el.tagName==='INPUT'&&el.type==='text'?'input':'change',function(){
+    document.getElementById('shCustomWrap').hidden=document.getElementById('shWhat').value!=='custom';
+    renderSheet();
+  });
+});
+document.getElementById('shPrint').addEventListener('click',function(){
+  try{window.print();document.getElementById('shStatus').textContent='Opened the print dialog. Choose your printer, or Save as PDF.';}
+  catch(e){document.getElementById('shStatus').textContent='This browser blocked printing here. Open the app from your GitHub Pages copy to print.';}
+});
 
 /* ================= lists tab ================= */
 var lLoans=document.getElementById('lLoans'), lComp=document.getElementById('lComp'), lStems=document.getElementById('lStems'), listStatus=document.getElementById('listStatus');
@@ -897,7 +1111,7 @@ document.getElementById('resetLists').addEventListener('click',function(){
 });
 
 /* ================= tabs ================= */
-var TABS=['write','chart','practice','lists','help'], current='write';
+var TABS=['write','chart','practice','sheets','lists','help'], current='write';
 function show(t){
   current=t;
   TABS.forEach(function(x){
@@ -906,7 +1120,8 @@ function show(t){
   });
   store('lunaji-brush-tab',t);
   if(t==='chart') renderChart();
-  if(t==='practice'&&!Q) newQ();
+  if(t==='practice'&&!Q) resetPractice();
+  if(t==='sheets') renderSheet();
 }
 TABS.forEach(function(x){document.getElementById('tab-'+x).addEventListener('click',function(){show(x)})});
 document.querySelector('.tabs').addEventListener('keydown',function(e){
@@ -945,6 +1160,8 @@ optColor.checked=load('lunaji-brush-color','0')==='1'; app.dataset.parts=optColo
 optLabel.checked=load('lunaji-brush-label','1')==='1'; app.classList.toggle('nolabel',!optLabel.checked);
 optSize.value=load('lunaji-brush-size','84'); outEl.style.setProperty('--bw',optSize.value+'px');
 var t0=load('lunaji-brush-text',null); if(t0!==null) src.value=t0;
+var pd0=load('lunaji-brush-pdir','read'); if(pd0==='write'){PDIR='write';document.getElementById('pdWrite').checked=true;}
+document.getElementById('pNote').textContent=PNOTES[PDIR];
 renderScore();
 renderWrite();
 var tab0=load('lunaji-brush-tab','write'); if(TABS.indexOf(tab0)<0) tab0='write'; show(tab0);
