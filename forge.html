@@ -38,6 +38,7 @@ input,select,textarea{
   border-radius:4px; padding:8px 10px; font:inherit; width:100%;
 }
 textarea{resize:vertical}
+input[type=checkbox],input[type=radio]{width:auto; flex:0 0 auto; padding:0}
 .row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px}
 .row>div{flex:1 1 130px}
 .toggles{margin:4px 0 12px}
@@ -101,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-29-1950</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-30-1718</div>
 <p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -196,7 +197,7 @@ details.panel>summary{cursor:pointer}
     <div class="toggles">
       <label><input type="checkbox" id="fParticle" checked><span>Reject a word that splits into a particle sequence <em>— ani is a + ni</em></span></label>
       <label><input type="checkbox" id="fNoGlide"><span>Reject any glide <em>— y or w before a vowel; ny is not a glide</em></span></label>
-      <label><input type="checkbox" id="fEnglish" checked><span>Reject a common English word <em>\u2014 Lunaji and English share an inventory, so some legal draws land on one</em></span></label>
+      <label><input type="checkbox" id="fEnglish" checked><span>Reject a common English word <em>— Lunaji and English share an inventory, so some legal draws land on one</em></span></label>
       <label><input type="checkbox" id="fHead"><span>Reject a first syllable an existing word already has</span></label>
     </div>
     <div class="row" style="margin-top:8px">
@@ -281,7 +282,7 @@ details.panel>summary{cursor:pointer}
 
   <button class="btn" id="gen">Generate stock</button>
   <button class="btn ghost" id="newslot">New slot</button>
-  <label class="toggles" style="margin-top:8px;display:block"><span><input type="checkbox" id="forcedOn"> Second draw hands you a single root (the old §6 rule — off by default)</span></label>
+  <div class="toggles" style="margin-top:8px"><label><input type="checkbox" id="forcedOn"><span>Second draw hands you a single root <em>— the old §6 rule, off by default</em></span></label></div>
   <p class="hint">Tap roots to pick them — up to three. Picks are held through new draws, so you can take two from this stack and one from the next. <b>Shortlist</b> saves them for the Confirm pass and loads the next queue word. <b>Keep now</b> takes a single pick straight to Derive. Draw position is logged as data only.</p>
   <div class="row" style="margin-top:6px">
     <button class="btn" id="slGo" disabled>Shortlist picks</button>
@@ -352,21 +353,21 @@ details.panel>summary{cursor:pointer}
   </div>
   <div id="cfWork"></div>
   <details class="panel" id="bankPanel">
-    <summary><b>Sentence bank</b> <span class="hint" style="display:inline">\u00b7 your sentences, written once, filled in for every word of that class</span></summary>
+    <summary><b>Sentence bank</b> <span class="hint" style="display:inline">· your sentences, written once, filled in for every word of that class</span></summary>
     <p class="hint" style="margin-top:8px">One line each, <b>___</b> for the word, | and the English if you like. Verbs have no separate adjective or adverb class, so a good verb bank tests every job a verb does: predicate, past, negated, with an object, before a noun, before a verb. Switch a line off for a single word in its Confirm card when it doesn't fit that meaning.</p>
     <label for="bankVerb">Verbs</label>
     <textarea id="bankVerb" rows="6" class="lun" spellcheck="false" autocapitalize="off"></textarea>
     <label for="bankNoun" style="margin-top:8px">Nouns</label>
     <textarea id="bankNoun" rows="5" class="lun" spellcheck="false" autocapitalize="off"></textarea>
-    <p class="hint">Bank lines show on every candidate but aren't saved to the phrasebook \u2014 only the sentences you write for a word are. Saved in the lexicon file.</p>
+    <p class="hint">Bank lines show on every candidate but aren't saved to the phrasebook — only the sentences you write for a word are. Saved in the lexicon file.</p>
   </details>
 </section>
 
 <section id="borrow" hidden>
   <p class="hint">Nativization is <em>repair</em>, not decoration. This only changes what the phonotactics force — it never pads a word to make it feel native, because that is how you get a fake root with a loan's meaning.</p>
   <div class="panel">
-    <label for="bwIn">The source word \u2014 paste it as it is written, accents and all</label>
-    <input id="bwIn" placeholder="lim\u00e3o, caf\u00e9, t\u014dfu" spellcheck="false">
+    <label for="bwIn">The source word — paste it as it is written, accents and all</label>
+    <input id="bwIn" placeholder="limão, café, tōfu" spellcheck="false">
     <label for="bwGloss">Meaning</label>
     <input id="bwGloss" placeholder="a lemon" spellcheck="false">
     <div class="row" style="margin-top:8px">
@@ -588,8 +589,10 @@ details.panel>summary{cursor:pointer}
   <div class="panel">
     <button class="btn ghost" id="lxAudit">Audit the lexicon</button>
     <button class="btn ghost" id="lxR13">Apply R13 — u → ü</button>
+    <button class="btn ghost" id="lxTilde">Respell old nasals — hin → hĩ</button>
     <p class="hint">Checks every stored word for what the Borrow tab and the hand-add box let through: <em>en</em>/<em>un</em> spellings, identical-vowel and back-rounded (R11) hiatus, nouns in <em>–u</em>, words that open on numeral + counter or split into particles, shared glosses, missing glosses.</p>
     <p class="hint">R13 (2026-09-29): a native word's <em>u</em> is <em>ü</em> when the next syllable has <em>i</em> or <em>ĩ</em> — <em>uwiki</em> → <em>üwiki</em>. It is a completed change, so it respells stems once and never touches a suffix (<em>kominuri</em> stays). Loans are skipped. You see the list before anything changes; the phrasebook, sentence bank and review progress follow the new spellings.</p>
+    <p class="hint">Old nasals (2026-09-30): any word still stored in the old <em>an in on</em> spelling — <em>hin</em>, <em>helan</em> — is respelled with the tilde, <em>hĩ</em>, <em>helã</em>. Phrasebook lines, the sentence bank and review progress follow. You see the list first.</p>
     <div id="lxAuditOut"></div>
   </div>
   <div class="panel">
@@ -2462,7 +2465,8 @@ function wordRisks(w, cls){
   const heads = ["zo","van","ki","ra","bai"].filter(n => LEX[n]).flatMap(n => [n+"re", n+"ko"]);
   const h = heads.find(x => w.startsWith(x) && w !== x);
   if(h) block.push("opens on " + h + " \u2014 numeral + counter, which stands directly before nouns");
-  if(/[eu]n(?![aeiouüöyw'])/.test(w)) block.push("spells a nasal vowel the language lacks \u2014 only an in on");
+  // 2026-09-30: a tilde vowel is a vowel, so the n in rikunã is an onset (ri.ku.nã)
+  if(/[eu]n(?![aeiouüöãĩõẽũyw'])/.test(w) || /[ẽũ]/.test(w)) block.push("spells a nasal vowel the language lacks \u2014 only ã ĩ õ");
   if(/([aeiouüö])\1/.test(w)) block.push("identical-vowel hiatus \u2014 unrecoverable without oral length");
   if(/ou|uo/.test(w)) block.push("back-rounded hiatus (ou/uo) \u2014 R11 collapses it: sofou \u2192 sofu");
   // the fona failure: a clitic joined onto a word that already ends in it
@@ -2481,6 +2485,15 @@ function wordRisks(w, cls){
   return {block, warn, note};
 }
 
+/* 2026-09-30. A block can be a false alarm (kojo: two bound pieces that never
+   meet in speech), so a loan can be kept over one — with a reason, logged.
+   Never over a collision: that would overwrite a word already in the lexicon. */
+const bwOverridable = block => block.length && !block.some(b => /^collides with|^same result as/.test(b));
+function bwForceReason(w, block){
+  const why = prompt(`Keep ${w} anyway?\n\nBlocked: ${block.join("; ")}\n\nWhy is it fine? (goes in the log)`);
+  if(why === null) return null;
+  return why.trim() || "judged a false alarm";
+}
 function paintBorrow(){
   const raw = $("bwIn").value.trim();
   if(!raw){ $("bwOut").innerHTML = ""; return; }
@@ -2510,7 +2523,18 @@ function paintBorrow(){
     ${(risk.note||[]).map(x => `<p class="hint" style="opacity:.55;margin-top:4px">${x}</p>`).join("")}
     <label style="display:block;margin-top:12px">Loanword table row</label>
     <pre>| *${w}* | *${raw}* | ${LANGNAME[lang]} | ${r.log.length ? r.log.map(l=>l.split(":")[0]).join("; ") : "nothing changed"} |</pre>
-    <button class="btn" id="bwKeep" ${risk.block.length ? "disabled" : ""}>Add to the lexicon</button>`;
+    <button class="btn" id="bwKeep" ${risk.block.length ? "disabled" : ""}>Add to the lexicon</button>
+    ${risk.block.length && bwOverridable(risk.block) ? `<button class="btn ghost" id="bwForce">Keep anyway</button>
+      <p class="hint">Blocked, but not by a collision. Keep it if you've judged the block a false alarm \u2014 the reason goes in the log and the entry.</p>` : ""}`;
+  $("bwForce") && ($("bwForce").onclick = () => {
+    const why = bwForceReason(w, risk.block); if(why === null) return;
+    LEX[w] = {g: $("bwGloss").value.trim() || "(no gloss yet)",
+              c: $("bwCls").value === "noun" ? "noun" : "case", real: true,
+              src: raw, lang: LANGNAME[lang], d: stamp(), how: `borrowed; kept over a block (${risk.block.join("; ")}) \u2014 ${why}`};
+    saveLex(); renderLex();
+    logLine(`${stamp()}  BORROWED ${raw} (${LANGNAME[lang]}) \u2192 ${w}  ${$("bwGloss").value.trim()}  [KEPT OVER BLOCK: ${risk.block.join("; ")}] \u2014 ${why}`);
+    $("bwForce").textContent = "Added"; $("bwForce").disabled = true;
+  });
   $("bwKeep") && ($("bwKeep").onclick = () => {
     LEX[w] = {g: $("bwGloss").value.trim() || "(no gloss yet)",
               c: $("bwCls").value === "noun" ? "noun" : "case", real: true,
@@ -2686,8 +2710,10 @@ function joinSuffix(w, suf){
   if(!suf) return w;
   w = toN(w);                                   // work in the n-form, write tilde
   const nas = /[aeiou]n$/.test(w);
-  if(nas && /^[nyw]/.test(suf)) return toTilde(w + "'" + suf);  // nasal holds before n, y, w
+  // topic first: -na after a nasal dissolves it (aoyã → aoyana, Grammar §1a).
+  // 2026-09-30 — this line sat second, so the n-rule below caught -na too.
   if(nas && suf === "na") return toTilde(w + "a");
+  if(nas && /^[nyw]/.test(suf)) return toTilde(w + "'" + suf);  // nasal holds before n, y, w
   if(!nas && suf === "a") return toTilde(w + "na");
   return toTilde(w + suf);
 }
@@ -3871,8 +3897,8 @@ function paintCfWork(){
   const bk = bankKind((it.cands[0] || {}).cls);
   const all = bk ? sentLines(BANK[bk] || "") : [];
   $("cfBank").innerHTML = all.length ? `<label style="margin-top:10px">From the ${bk} bank \u2014 untick what doesn't fit this meaning</label>` +
-    all.map((l, k) => `<label style="display:flex;gap:8px;align-items:baseline;font-weight:normal;margin:4px 0">
-      <input type="checkbox" data-bank="${k}" ${(it.bankOff || []).includes(l.lu) ? "" : "checked"}>
+    all.map((l, k) => `<label style="display:flex;gap:10px;align-items:flex-start;font-weight:normal;margin:6px 0;color:var(--text);font-size:14px">
+      <input type="checkbox" style="width:20px;height:20px;margin:1px 0 0" data-bank="${k}" ${(it.bankOff || []).includes(l.lu) ? "" : "checked"}>
       <span><span class="lun">${esc(l.lu)}</span>${l.en ? ` <span class="hint" style="display:inline">${esc(l.en)}</span>` : ""}</span></label>`).join("")
     : (bk ? `<p class="hint">The ${bk} bank is empty. Fill it in under Sentence bank, below.</p>` : "");
   $("cfBank").onchange = ev => {
@@ -4112,10 +4138,23 @@ function paintBatch(){
       const tick = !blocked && !r.added && !r.risk.warn.length && !r.tw.length;
       return `<tr><td>${r.added ? "✓" : `<input type="checkbox" data-bwi="${i}" ${tick ? "checked" : ""} ${blocked ? "disabled" : ""} aria-label="Keep ${esc(r.w)}">`}</td>
         <td class="lun">${esc(r.w || "—")}</td><td>${esc(r.raw)}<br><span class="hint" style="display:inline">${esc(LANGNAME[r.lang] || r.lang)}</span></td>
-        <td>${esc(r.gloss || "(no gloss yet)")}</td><td style="font-size:13px">${flags.join("<br>") || "clean"}</td></tr>`;
+        <td>${esc(r.gloss || "(no gloss yet)")}</td><td style="font-size:13px">${flags.join("<br>") || "clean"}${blocked && !r.added && bwOverridable(r.risk.block) ? `<br><a href="#" data-bwforce="${i}" style="color:var(--cool)">keep anyway</a>` : ""}</td></tr>`;
     }).join("")}</tbody></table></div>
     <div class="row" style="margin:10px 0 0"><button class="btn" id="bwKeepAll">Add the ticked words</button>
     <button class="btn ghost" id="bwTickAll">Tick every row that isn't blocked</button></div>`;
+  document.querySelectorAll("[data-bwforce]").forEach(a => a.onclick = ev => {
+    ev.preventDefault();
+    const r = bwRows[Number(a.dataset.bwforce)];
+    if(COINED.includes(r.w)) return;
+    const why = bwForceReason(r.w, r.risk.block); if(why === null) return;
+    LEX[r.w] = {g: r.gloss || "(no gloss yet)", c: r.cls === "noun" ? "noun" : "case", real: true,
+                src: r.raw, lang: LANGNAME[r.lang], d: stamp(), how: `borrowed; kept over a block (${r.risk.block.join("; ")}) \u2014 ${why}`};
+    r.added = true;
+    logLine(`${stamp()}  BORROWED ${r.raw} (${LANGNAME[r.lang]}) \u2192 ${r.w}  ${r.gloss}  [KEPT OVER BLOCK: ${r.risk.block.join("; ")}] \u2014 ${why}`);
+    saveLex(); renderLex();
+    bwRows.forEach(x => { if(!x.added && x.w){ x.risk = wordRisks(x.w); x.tw = nearTwins(x.w); } });
+    paintBatch();
+  });
   $("bwTickAll").onclick = () => document.querySelectorAll("[data-bwi]:not(:disabled)").forEach(x => x.checked = true);
   $("bwKeepAll").onclick = () => {
     const pick = [...document.querySelectorAll("[data-bwi]:checked")].map(x => bwRows[Number(x.dataset.bwi)]);
@@ -4257,6 +4296,43 @@ $("lxR13").onclick = () => {
     if(!pick.length) return;
     const r = applyR13(pick);
     $("lxAuditOut").innerHTML = `<p class="hint">Respelled ${pick.length}: ${pick.map(([a, b]) => esc(a) + " \u2192 " + esc(b)).join(", ")}. Phrasebook lines changed: ${r.pb}. Review cards carried over: ${r.rev}. <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
+  };
+};
+
+/* ══════════ old nasal spellings on the stored lexicon ══════════
+   2026-09-30. A word that came in before the tilde orthography (or through a
+   path that skipped the conversion) is stored as hin, not hĩ, so sentences
+   can't find it. toTilde is safe on whole text: n before a consonant is never
+   a coda, so it is always vowel nasality. */
+function tildePairs(){
+  return Object.keys(LEX).map(w => [w, toTilde(w)]).filter(([a, b]) => a !== b);
+}
+const tildeText = t => t ? t.split(/(\s+)/).map(tok => /^\s+$/.test(tok) ? tok : toTilde(tok)).join("") : t;
+$("lxTilde").onclick = () => {
+  const pairs = tildePairs();
+  const pbHits = PB.filter(e => tildeText(e.lu) !== e.lu).length;
+  const bankHit = ["verb","noun"].some(k => tildeText(BANK[k]) !== BANK[k]);
+  if(!pairs.length && !pbHits && !bankHit){ $("lxAuditOut").innerHTML = `<p class="hint">Nothing to respell \u2014 every word, phrasebook line and bank line already uses the tilde.</p>`; return; }
+  const clash = pairs.filter(([a, b]) => LEX[b]);
+  $("lxAuditOut").innerHTML = `<label style="display:block">${pairs.length} word${pairs.length === 1 ? "" : "s"} in the old spelling${pbHits ? ` \u00b7 ${pbHits} phrasebook line${pbHits === 1 ? "" : "s"}` : ""}${bankHit ? " \u00b7 the sentence bank" : ""}</label>
+    ${pairs.length ? `<table>${pairs.map(([a, b]) => `<tr><td class="lun">${esc(a)}</td><td>\u2192</td><td class="lun">${esc(b)}</td><td class="hint">${esc(LEX[a].g || "")}${LEX[b] ? ` <span style="color:var(--lamp)">\u2014 ${esc(b)} already exists; the two are merged</span>` : ""}</td></tr>`).join("")}</table>` : ""}
+    <button class="btn" id="lxTildeGo" style="margin-top:8px">Respell them</button>`;
+  $("lxTildeGo").onclick = () => {
+    let rev = 0, pb = 0, bank = 0;
+    // a duplicate keeps the tilde entry and fills anything it lacks from the old copy
+    pairs.forEach(([a, b]) => { LEX[b] = LEX[b] ? Object.assign({}, LEX[a], LEX[b]) : Object.assign({}, LEX[a], {was: a}); delete LEX[a]; });
+    Object.keys(REV).forEach(k => {
+      const m = k.match(/^w:(.+):(en|lu)$/); if(!m) return;
+      const t = toTilde(m[1]); if(t === m[1]) return;
+      REV[`w:${t}:${m[2]}`] = REV[k]; delete REV[k]; rev++;
+    });
+    PB.forEach(e => { const n = tildeText(e.lu); if(n !== e.lu){ e.lu = n; pb++; } });
+    ["verb","noun"].forEach(k => { const n = tildeText(BANK[k]); if(n !== BANK[k]){ BANK[k] = n; bank++; } });
+    saveLex(); saveRev(); savePB(); saveBank();
+    $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
+    renderLex(); paintPB();
+    logLine(`${stamp()}  respelled old nasals: ${pairs.map(([a, b]) => a + " \u2192 " + b).join(", ") || "(no words)"}  [phrasebook lines ${pb}, bank ${bank}, review cards ${rev}]`);
+    $("lxAuditOut").innerHTML = `<p class="hint">Respelled ${pairs.length} word${pairs.length === 1 ? "" : "s"}${clash.length ? ` (${clash.length} merged into a tilde entry that already existed)` : ""}. Phrasebook lines changed: ${pb}. <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
   };
 };
 
