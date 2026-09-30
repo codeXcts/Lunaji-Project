@@ -101,8 +101,8 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-29-1738</div>
-<p class="sub">Blind root draw and R1–R8 derivation. Runs offline.</p>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-29-1950</div>
+<p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
   <button role="tab" aria-selected="true" data-tab="draw">Draw</button>
@@ -587,7 +587,9 @@ details.panel>summary{cursor:pointer}
   </div>
   <div class="panel">
     <button class="btn ghost" id="lxAudit">Audit the lexicon</button>
+    <button class="btn ghost" id="lxR13">Apply R13 — u → ü</button>
     <p class="hint">Checks every stored word for what the Borrow tab and the hand-add box let through: <em>en</em>/<em>un</em> spellings, identical-vowel and back-rounded (R11) hiatus, nouns in <em>–u</em>, words that open on numeral + counter or split into particles, shared glosses, missing glosses.</p>
+    <p class="hint">R13 (2026-09-29): a native word's <em>u</em> is <em>ü</em> when the next syllable has <em>i</em> or <em>ĩ</em> — <em>uwiki</em> → <em>üwiki</em>. It is a completed change, so it respells stems once and never touches a suffix (<em>kominuri</em> stays). Loans are skipped. You see the list before anything changes; the phrasebook, sentence bank and review progress follow the new spellings.</p>
     <div id="lxAuditOut"></div>
   </div>
   <div class="panel">
@@ -657,7 +659,10 @@ details.panel>summary{cursor:pointer}
 "use strict";
 
 /* ══════════ inventory ══════════ */
-const VOW = "aeiou".split("");
+/* 2026-09-29 — ü is a modern vowel (R13, native: u before an i-syllable) and ö is
+   loan-only (French eu). Proto still has five; the generator draws from VOW_W,
+   which is unchanged, so neither is ever drawn. VOW is what the parser accepts. */
+const VOW = "aeiouüö".split("");
 const CONS = "pbtdkgmnfvszhrlwy".split("");
 // Generator bias (Phonology §1.1, Lexicology §6): sonorant-weighted, soft obstruents,
 // vowels skewed to o and u. Frequency, not legality — CONS above is what's legal.
@@ -690,17 +695,17 @@ const T_NAS = {"ã":"an", "ĩ":"in", "õ":"on", "ẽ":"en", "ũ":"un"};
    consonant, never a nasal vowel. */
 const toTilde = w => typeof w === "string"
   ? w.replace(/([aeiou])n'/g, (m,v) => NAS_T[v])
-     .replace(/([aeiou])n(?![aeiouãĩõyw'])/g, (m,v) => NAS_T[v])
+     .replace(/([aeiou])n(?![aeiouüöãĩõyw'])/g, (m,v) => NAS_T[v])
      .replace(/([ãĩõẽũ])'/g, "$1")
   : w;
 const toN = w => typeof w === "string"
-  ? w.replace(/[ãĩõẽũ]'?(?=[aeiouãĩõẽũywn])/g, m => T_NAS[m[0]] + "'")
+  ? w.replace(/[ãĩõẽũ]'?(?=[aeiouüöãĩõẽũywn])/g, m => T_NAS[m[0]] + "'")
      .replace(/[ãĩõẽũ]'?/g, m => T_NAS[m[0]])
   : w;
 
 /* ══════════ parse ══════════ */
 function parse(str){
-  const s = toN(str.trim().toLowerCase()).replace(/[^a-z']/g,"");
+  const s = toN(str.trim().toLowerCase()).replace(/[^a-züö']/g,"");
   const w = []; let i = 0;
   while(i < s.length){
     let c = s[i];
@@ -877,6 +882,25 @@ function R8(w){
   return fired;
 }
 
+/* R13 — u-fronting. Added 2026-09-29, Proto R13 / Phonology §2.
+   u → ü when the next syllable's vowel is i or ĩ. A word-final u has no next
+   syllable, so the verb theme vowel is never touched. Ordered after R9: tsuri
+   had already affricated and stays tsüri. A COMPLETED change — it does not
+   re-fire across a suffix (kominuri keeps its u) or a modern compound seam, so
+   it lives here, in the derivation of a proto root, and nowhere else.
+   The front rounded vowel the French half of the blend was missing: the vowel of
+   French tu and lune, produced by the Japanese weak vowel. */
+function R13(w){
+  let fired = false;
+  for(let i=0;i<w.length;i++){
+    const v = w[i];
+    if(v.t!=="V" || v.s!=="u" || v.nasal) continue;
+    let j = i+1; while(j<w.length && w[j].t!=="V") j++;
+    if(j<w.length && w[j].s==="i"){ v.s = "ü"; fired = true; }
+  }
+  return fired;
+}
+
 /* R12 — sequential voicing at a compound seam. Added 2026-09-28, Phonology §4.3.
    The second element of a compound voices its initial obstruent, unless it
    already contains a voiced one (Lyman's Law). Japanese rendaku, producing the
@@ -903,7 +927,8 @@ const RULES = [
   ["R5","nasalization",R5],
   ["R6","ũ → õ",R6],
   ["R7","stress bookkeeping",R7],
-  ["R8","palatalization",R8]
+  ["R8","palatalization",R8],
+  ["R13","u-fronting",R13]
 ];
 
 /* ══════════ render ══════════ */
@@ -923,7 +948,8 @@ function spell(w){
       // (the nasal-seam apostrophe was written here until 2026-09-28 — no longer
       //  needed with nasality on the vowel; toN() restores it internally)
     }
-    const tsu = s.onset==="t" && !s.glide && s.v.s==="u" && !s.v.nasal;
+    // R9 — t affricates before u, and so before the ü that R13 later made of it
+    const tsu = s.onset==="t" && !s.glide && (s.v.s==="u" || s.v.s==="ü") && !s.v.nasal;
     if(s.onset) out += tsu ? "ts" : s.onset.split("").map(c=>SPELL[c]||c).join("");
     if(s.glide) out += s.glide.s;
     out += s.v.nasal ? NAS_T[s.v.s] : s.v.s;   // Phonology §6 — the tilde
@@ -935,6 +961,8 @@ function spell(w){
    person reads. A few helpers below carry phonotactic regexes written against
    the older `an in on` form; each of those normalizes its input with toN(). */
 const spellN = w => toN(spell(w));
+// IPA for the two front rounded vowels — ü is /y/, ö is /ø/ (Phonology §2)
+const OVIPA = {"ü":"y", "ö":"ø"};
 function ipa(w){
   const sy = syllables(w);
   /* Phonology §5, rewritten 2026-09-28 — the accent falls on the last HEAVY
@@ -950,12 +978,12 @@ function ipa(w){
   const NAS = {a:"ã",e:"ẽ",i:"ĩ",o:"õ",u:"ũ"};
   return sy.map((s,i)=>{
     let o = (i===str ? "ˈ" : "");
-    const tsu = s.onset==="t" && !s.glide && s.v.s==="u" && !s.v.nasal;
+    const tsu = s.onset==="t" && !s.glide && (s.v.s==="u" || s.v.s==="ü") && !s.v.nasal;
     if(s.onset) o += tsu ? "ts"
       : s.onset === "ny" ? "ɲ"
       : s.onset.split("").map(c => c==="r" ? "ɾ" : c==="y" ? "j" : c).join("");
     if(s.glide) o += s.glide.s==="y" ? "j" : "w";
-    o += s.v.nasal ? NAS[s.v.s]+"ː" : s.v.s;
+    o += s.v.nasal ? NAS[s.v.s]+"ː" : (OVIPA[s.v.s] || s.v.s);
     if(s.coda) o += s.coda === "r" ? "ɾ" : s.coda;
     return o;
   }).join(".");
@@ -1029,7 +1057,7 @@ const LEX_SEED = {
   /* nouns */
   "helan":["person","pnoun"],"nowireta":["company; the ones with you","dnoun"],
   "onankonzan":["the dead of night","pnoun"],"noaye":["the wind","pnoun"],
-  "tsuri":["a doctor","pnoun"],"uwiki":["the moon","pnoun"],"lonji":["night","pnoun"],
+  "tsüri":["a doctor","pnoun"],"üwiki":["the moon","pnoun"],"lonji":["night","pnoun"],
   "akyoza":["a name","pnoun"],"aoyan":["a road","pnoun"],"ani":["a flower","pnoun"],
   "hiba":["a trace","pnoun"],"fanvonedi":["a dream","pnoun"],"okison":["silence","pnoun"],
   "omime":["a door","pnoun"],"vanonla":["hello; a greeting","dnoun"],
@@ -1080,9 +1108,13 @@ function tildeKeys(o){
   if(Array.isArray(o)) return o.map(toTilde);
   const out = {}; for(const k in o) out[toTilde(k)] = o[k]; return out;
 }
+/* Seed words the language has since replaced. "Add any missing built-in words"
+   used to put these straight back — and in the old n-spelling, beside the tilde
+   forms. Fixed 2026-09-29. */
+const SEED_SUPERSEDED = ["gan","win","ishin","ganwin","ganta","sofou","uwiki","tsuri"];
 function seedObj(){
   const o = {};
-  for(const w in LEX_SEED) o[w] = {g:LEX_SEED[w][0], c:CMAP[LEX_SEED[w][1]] || "noun", real:true};
+  for(const w in LEX_SEED) o[toTilde(w)] = {g:LEX_SEED[w][0], c:CMAP[LEX_SEED[w][1]] || "noun", real:true};
   return o;
 }
 function loadLex(){
@@ -1135,7 +1167,7 @@ function check(res, cls){
   const sp  = res.spellingN || toN(spT);    // n-form — what the regexes below expect
   // a glide before its own vowel is inaudible — /yi/ and /wu/. ny + i is ɲi and is left alone.
   // Phonology §4.1b — no oral length, so /o.o/ cannot be heard as two beats
-  if(/([aeiou])\1/.test(sp)) t.push({ok:false, s:"identical-vowel hiatus — unrecoverable without oral length"});
+  if(/([aeiouüö])\1/.test(sp)) t.push({ok:false, s:"identical-vowel hiatus — unrecoverable without oral length"});
   // R11, running since 2026-09-18: /o.u/ and /u.o/ collapse in speech, so a word
   // coined with one would be undone the moment it was said.
   if(/ou|uo/.test(sp)) t.push({ok:false, s:"back-rounded hiatus (ou/uo) — R11 collapses it: sofou → sofu"});
@@ -1169,6 +1201,11 @@ function weighted(pairs){
   return pairs[0][0];
 }
 // All six shapes stay reachable (Phonology §4.1). Weights are a design choice — edit them.
+/* 2026-09-29 — consonant + glide leans to y. Cy (kya, ryo, nyu, hyo) is a
+   Japanese signature; Cw after a consonant (nuswa, lwaji, zwawashi) was reading
+   as Bantu. w stays fully legal and still turns up about one draw in four; this
+   is frequency, not a ban. A bare glide with no consonant (wa, yo) is untouched. */
+const CG_GLIDE = [["y",3],["w",1]];
 const SHAPES = [["CV",48],["CVN",14],["CGV",10],["V",13],["VN",8],["GV",7]];
 function makeSyllable(shape, prevSeg){
   let s = "";
@@ -1179,7 +1216,7 @@ function makeSyllable(shape, prevSeg){
   }
   if(shape[0]==="C" && shape[1]==="G"){
     const c = s[s.length-1];
-    const g = "rkgfv".includes(c) ? "y" : pick(GLIDES);   // no w after velar, labiodental or r
+    const g = "rkgfv".includes(c) ? "y" : weighted(CG_GLIDE);   // no w after velar, labiodental or r
     if(g!==c) s += g;
   }
   else if(shape[0]==="G") s += pick(GLIDES);
@@ -1233,7 +1270,7 @@ function generateRoot(cls, nSyl){
   }
   if(onsetShape.includes("G")){
     const c = fin[fin.length-1];
-    const g = "rkgfv".includes(c) ? "y" : pick(GLIDES);
+    const g = "rkgfv".includes(c) ? "y" : weighted(CG_GLIDE);
     if(g!==c) fin += g;
   }
   const gl2 = fin[fin.length-1];
@@ -1253,7 +1290,7 @@ function endsOK(sp, req){
   sp = toN(sp);
   if(!req) return true;
   if(req==="NAS")  return /[aio]n$/.test(sp);
-  if(req==="ORAL") return /[aeiou]$/.test(sp);
+  if(req==="ORAL") return /[aeiouüö]$/.test(sp);
   return sp.endsWith(req);
 }
 function startsOK(sp, req){
@@ -1261,13 +1298,13 @@ function startsOK(sp, req){
   if(!req) return true;
   if(req==="SON")  return /^[nmrlwy]/.test(sp);
   if(req==="NAS")  return /^[nm]/.test(sp);
-  if(req==="V")    return /^[aeiou]/.test(sp);
+  if(req==="V")    return /^[aeiouüö]/.test(sp);
   return sp.startsWith(req);
 }
 /* The written filter, enforced. Lexicology §6 exists to stop a root being tuned
    toward an output; a filter you state before the draw is what makes that
    checkable, so it should shape the stack rather than merely annotate it. */
-const V = "aeiou";
+const V = "aeiouüö";
 // Work on spellings, not parsed structures: the lexicon is stored as spellings
 // and a rhyme is a fact about the written tail either way.
 const rhymeTail = w => (w = toN(w)).length >= 4 ? w.slice(-3) : w;
@@ -1338,7 +1375,7 @@ function splitsIntoParticles(w){
 }
 function firstSyl(w){
   w = toN(w);
-  const m = w.match(/^[^aeiou]*[aeiou]n?(?![aeiou])/) || w.match(/^[^aeiou]*[aeiou]/);
+  const m = w.match(/^[^aeiouüö]*[aeiouüö]n?(?![aeiouüö])/) || w.match(/^[^aeiouüö]*[aeiouüö]/);
   return m ? m[0] : w;
 }
 
@@ -1369,7 +1406,7 @@ function passesFilter(res, f){
   if(f.banSeq.some(e => w.includes(e))) return false;
   // A glide is y or w before a vowel. ny is the consonant ɲ, not a glide, so it
   // survives this — which is why a bare "no y" substring ban would over-reach.
-  if(f.noGlide && /(^|[^n])y[aeiou]|w[aeiou]/.test(w)) return false;
+  if(f.noGlide && /(^|[^n])y[aeiouüö]|w[aeiouüö]/.test(w)) return false;
   if(res.moras < f.moraMin || res.moras > f.moraMax) return false;
   if(f.onsets.length && !f.onsets.includes(themeOnset(w))) return false;
   // Grammar §8: a content word should not be homophonous with a particle
@@ -1830,7 +1867,7 @@ const Prosody = (() => {
    anchored to the edge, not to the stressed syllable — which is why a frame can
    be legal and still have no melody in it.                                    */
 const ENCL = ["na","ba","ni","pe","wa","di","a"];   // longest-first below
-const PVOW = "aeiou";
+const PVOW = "aeiouüö";
 const isV = c => !!c && PVOW.includes(c);
 
 function sylsOf(w){
@@ -2034,6 +2071,37 @@ function analyse(line){
   return {phrases: out, warn, hasVerb};
 }
 
+/* Devoicing — Phonology §5, adopted 2026-09-29. A LIVE pronunciation rule, not
+   spelled: an oral i, u or ü between voiceless consonants is whispered, as in
+   Japanese desu, sukiyaki. It runs across a word boundary inside a phrase and
+   across a suffix, since it is phonetics rather than history. Two things block
+   it: the vowel carrying the phrase accent, and a closed or nasal syllable.
+   Voiceless here: p t k f s sh ts h. Returns the line with each whispered
+   vowel ringed (i̥ u̥ ü̥), or "" when nothing devoices. */
+const VL = "ptkfsh";
+function devoiced(line){
+  let any = false;
+  const out = phrasesOf(line).map(p => {
+    const flat = [];
+    p.toks.forEach(t => sylsOf(t.toLowerCase()).forEach((s, si) => flat.push({s, first: si === 0})));
+    let k = -1; flat.forEach((x, i) => { if(heavySyl(x.s)) k = i; });
+    if(k < 0) k = flat.length - 1;
+    return flat.map((x, i) => {
+      let t = toTilde(x.s.t);
+      const m = x.s.t.match(/^([^aeiouüö]*)([iuü])$/);
+      const nxt = flat[i + 1];
+      if(m && i !== k && !x.s.nasal && !x.s.coda && nxt){
+        const on = m[1].replace(/y$/, "");
+        if(on && VL.includes(on.slice(-1)) && VL.includes(nxt.s.t[0])){
+          t = m[1] + m[2] + "\u0325"; any = true;
+        }
+      }
+      return (i > 0 ? (x.first ? " " : ".") : "") + t;
+    }).join("");
+  }).join(" | ");
+  return any ? out : "";
+}
+
 function marked(a){
   return a.phrases.map((p,i)=>{
     const txt = p.toks.join(" ");
@@ -2041,7 +2109,7 @@ function marked(a){
     return txt + (a.phrases[i+1].kind === "verb" ? " \u2016 " : " | ");
   }).join("");
 }
-  return {analyse, marked, ipaWord, morasOfWord, stressIdx, sylsOf};
+  return {analyse, marked, ipaWord, morasOfWord, stressIdx, sylsOf, devoiced};
 })();
 const analyse = Prosody.analyse, marked = Prosody.marked;
 
@@ -2127,6 +2195,7 @@ function paintFramesInner(w, cls){
         <div class="hint" style="opacity:.7">${f.l}${f.why ? " \u2014 " + f.why : ""}</div>
         <div style="font-size:19px;margin:2px 0">${marked(a)}</div>
         <div class="hint">${total} moras total</div>
+        ${(d => d ? `<div class="hint" style="opacity:.75">whispered: ${d}</div>` : "")(Prosody.devoiced(f.line))}
         ${a.phrases.map(p=>`<div class="hint" style="opacity:.75;margin-top:3px">
             ${p.toks.join(" ")} \u00b7 ${p.moras}m \u00b7 ${TONE[p.contour]} on
             \u00ab${p.edge}\u00bb${p.weakEdge ? " (weak edge \u2014 toma is not a clitic)" : ""}
@@ -2175,6 +2244,7 @@ function rulePhrases(res, src){
       case "R5": out.push("R5 nasalized"); break;
       case "R6": out.push("R6 lowered"); break;
       case "R8": out.push("R8 palatalized"); break;
+      case "R13": out.push("R13 fronted the *u* before an *i*"); break;
       case "R9": out.push("R9 affricated *t* before *u*"); break;
       case "R10": out.push("R10 elided"); break;
       default: out.push(st.id + " fired");
@@ -2258,27 +2328,31 @@ const TRANSLIT = {
   ],
 
   fr: [
+    /* 2026-09-29 — French u is /y/ and now enters as ü; eu and œu are /ø/ and
+       enter as ö, which is loan-only (Phonology §2). ou is /u/, so it is parked
+       on a placeholder (Ʊ) until every u left over has been fronted. */
     // é is protected: it must survive the silent-final-e rule below
     [/é/g,"\u00c9"], [/[èêë]/g,"e"], [/[àâ]/g,"a"], [/[îï]/g,"i"], [/[ôö]/g,"o"],
-    [/[ùûü]/g,"u"], [/ç/g,"s"], [/œ/g,"e"],
+    [/où/g,"\u01b1"], [/[ûü]/g,"u"], [/ç/g,"s"], [/œu/g,"ö"], [/œ/g,"ö"],
     // silent finals, judged on the original spelling and so applied first
     [/(er|ez)$/g,"\u00c9"], [/[stdxzpg]$/g,""],
     // an oral nasal consonant survives a doubled spelling: bonne is /bɔn/
     [/([aeiou])nn?e$/g,"$1na"], [/([aeiou])mm?e$/g,"$1ma"],
     // nasal vowels — only where no vowel follows
-    [/(ain|aim|ein|eim|in|im|yn|ym)(?![aeiouy])/g,"in"],
-    [/oin(?![aeiouy])/g,"win"], [/ien(?![aeiouy])/g,"yin"],
-    [/(an|am|en|em)(?![aeiouy])/g,"an"],
-    [/(on|om)(?![aeiouy])/g,"on"], [/(un|um)(?![aeiouy])/g,"on"],
+    [/(ain|aim|ein|eim|in|im|yn|ym)(?![aeiouyüö])/g,"in"],
+    [/oin(?![aeiouyüö])/g,"win"], [/ien(?![aeiouyüö])/g,"yin"],
+    [/(an|am|en|em)(?![aeiouyüö])/g,"an"],
+    [/(on|om)(?![aeiouyüö])/g,"on"], [/(un|um)(?![aeiouyüö])/g,"on"],
     [/tion/g,"syon"],
-    [/eau|au/g,"o"], [/oi/g,"wa"], [/ou/g,"u"], [/eu|oeu/g,"o"], [/ai|ei/g,"e"],
+    [/eau|au/g,"o"], [/oi/g,"wa"], [/ou/g,"\u01b1"], [/eu|oeu/g,"ö"], [/ai|ei/g,"e"],
     [/ill/g,"y"], [/gn/g,"ny"], [/ch/g,"\u00c7"], [/ph/g,"f"], [/th/g,"t"],
     [/gu(?=[eiy\u00c9])/g,"\u01e4"], [/qu/g,"k"],
     [/h/g,""],                                     // ch is already Ç, so safe
     [/c(?=[eiy\u00c9])/g,"s"], [/c/g,"k"], [/g(?=[eiy\u00c9])/g,"j"],
     [/([bcdfgklmnprstvz])\1/g,"$1"],
     [/e$/g,""],                                    // silent final e
-    [/\u00c7/g,"sh"], [/\u00c9/g,"e"], [/\u01e4/g,"g"]   // restore the protected letters
+    [/u/g,"ü"],                                    // every u still standing is French /y/
+    [/\u00c7/g,"sh"], [/\u00c9/g,"e"], [/\u01e4/g,"g"], [/\u01b1/g,"u"]   // restore the protected letters
   ],
   ja: [
     [/ō|ô/g,"o"], [/ū|û/g,"u"], [/ā|â/g,"a"], [/ē|ê/g,"e"], [/ī|î/g,"i"],
@@ -2302,8 +2376,8 @@ function translit(raw, lang){
   (TRANSLIT[lang] || []).forEach(([re, to]) => { w = w.replace(re, to); });
   // anything still outside the alphabet had no rule; drop it rather than
   // silently mangling the word, and say so
-  const leftover = w.replace(/[a-z']/g, "");
-  w = w.replace(/[^a-z']/g, "");
+  const leftover = w.replace(/[a-züö']/g, "");
+  w = w.replace(/[^a-züö']/g, "");
   return {out: w, changed: w !== before, leftover};
 }
 
@@ -2321,8 +2395,8 @@ function nativize(raw, cls){
   w = w.replace(/ão|ões|õe/g, "on").replace(/ã/g, "an").replace(/õ/g, "on")
        .replace(/ç/g, "s").replace(/ñ/g, "ny")
        .replace(/[áàâäāă]/g, "a").replace(/[éèêëē]/g, "e")
-       .replace(/[íìîïī]/g, "i").replace(/[óòôöō]/g, "o")
-       .replace(/[úùûüū]/g, "u").replace(/[^a-z']/g, "");
+       .replace(/[íìîïī]/g, "i").replace(/[óòôō]/g, "o")
+       .replace(/[úùûū]/g, "u").replace(/[^a-züö']/g, "");   // ü and ö are Lunaji letters now
   if(w !== before0) log.push("source spelling read into Lunaji letters: " + before0 + " \u2192 " + w);
   const step = (next, why) => { if(next !== w){ log.push(why + ": " + w + " \u2192 " + next); w = next; } };
 
@@ -2332,7 +2406,7 @@ function nativize(raw, cls){
   step(w.replace(/([bcdfgklmnprstvz])\1/g,"$1"), "no doubled consonants (rule 1)");
   step(w.replace(/wu/g,"u").replace(/yi/g,"i"), "a glide may not precede its own vowel (rule 7a)");
   step(w.replace(/([kgfv r])w/g,"$1"), "no w after a velar, labiodental or r (rule 5)");
-  step(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/tu/g,"tsu"),
+  step(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/t([uü])/g,"ts$1"),
        "coronal obstruents before a high vowel (rule 2)");
 
   // clusters: obstruent + liquid survive as onsets, everything else needs the
@@ -2350,19 +2424,19 @@ function nativize(raw, cls){
   if(w !== before) log.push("clusters opened with the weak vowel: " + before + " \u2192 " + w);
 
   // rule 2 again: opening a cluster can create a new si, zi or tu
-  step(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/tu(?!\u0166)/g,"tsu"),
+  step(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/t([uü])(?!\u0166)/g,"ts$1"),
        "coronal obstruents, after the clusters opened");
 
   // Modern Lunaji has ã ĩ õ only. ẽ and ũ are not in the inventory, so the
   // spellings en and un have no reading. This is inventory repair, not R6,
   // which stopped running long before any loan arrived.
-  step(w.replace(/en(?![aeiouyw])/g,"an").replace(/un(?![aeiouyw])/g,"on"),
+  step(w.replace(/en(?![aeiouüöyw])/g,"an").replace(/un(?![aeiouüöyw])/g,"on"),
        "ẽ and ũ are not modern vowels (Phonology §2)");
   // The modern inventory has three nasal vowels: ã ĩ õ. A spelling in en or un
   // denotes a vowel the language does not have, so no loan may land on one.
-  step(w.replace(/e(n)(?![aeiou])/g,"a$1").replace(/u(n)(?![aeiou])/g,"o$1"),
+  step(w.replace(/e(n)(?![aeiouüö])/g,"a$1").replace(/u(n)(?![aeiouüö])/g,"o$1"),
        "only ã ĩ õ exist, so en and un are not legal spellings");
-  step(w.replace(/([^aeioun])$/,"$1a"), "every word ends in a vowel (§4.1)");
+  step(w.replace(/([^aeiouüön])$/,"$1a"), "every word ends in a vowel (§4.1)");
   step(w.replace(/n$/, m => /[aeiou]n$/.test(w) ? m : "na"), "a final n needs a vowel before it to be nasality");
   if(cls === "noun") step(w.replace(/u$/,"o"), "nouns may never end in -u (Lexicology §1.1)");
   return {out: w, log};
@@ -2388,8 +2462,8 @@ function wordRisks(w, cls){
   const heads = ["zo","van","ki","ra","bai"].filter(n => LEX[n]).flatMap(n => [n+"re", n+"ko"]);
   const h = heads.find(x => w.startsWith(x) && w !== x);
   if(h) block.push("opens on " + h + " \u2014 numeral + counter, which stands directly before nouns");
-  if(/[eu]n(?![aeiouyw'])/.test(w)) block.push("spells a nasal vowel the language lacks \u2014 only an in on");
-  if(/([aeiou])\1/.test(w)) block.push("identical-vowel hiatus \u2014 unrecoverable without oral length");
+  if(/[eu]n(?![aeiouüöyw'])/.test(w)) block.push("spells a nasal vowel the language lacks \u2014 only an in on");
+  if(/([aeiouüö])\1/.test(w)) block.push("identical-vowel hiatus \u2014 unrecoverable without oral length");
   if(/ou|uo/.test(w)) block.push("back-rounded hiatus (ou/uo) \u2014 R11 collapses it: sofou \u2192 sofu");
   // the fona failure: a clitic joined onto a word that already ends in it
   const nas = /[aeiou]n$/.test(w);
@@ -2402,7 +2476,7 @@ function wordRisks(w, cls){
   if(rhOther.length) note.push(`rhymes with ${rhOther.join(", ")}, but across classes \u2014 usually harmless`);
   const fs = firstSyl(w);
   // a bare-vowel head (a-, o-) is shared by half the vowel-initial lexicon and says nothing
-  const sh = /^[aeiou]n?$/.test(fs) ? [] : others.filter(o => (o.length > 2 || ["mi","na"].includes(o)) && firstSyl(o) === fs);
+  const sh = /^[aeiouüö]n?$/.test(fs) ? [] : others.filter(o => (o.length > 2 || ["mi","na"].includes(o)) && firstSyl(o) === fs);
   if(sh.length) warn.push(`shares its first syllable \u00ab${fs}\u00bb with ${sh.join(", ")}`);
   return {block, warn, note};
 }
@@ -2574,7 +2648,8 @@ $("lxImport").onclick = () => {
 // since the file was built, so a button that overwrites it is a footgun.
 $("lxReset").onclick = () => {
   const seed = seedObj(); let added = 0;
-  for(const w in seed) if(!LEX[w]){ LEX[w] = seed[w]; added++; }
+  for(const w in seed) if(!LEX[w] && !isRetired(w) && !SEED_SUPERSEDED.includes(toN(w))
+                          && !Object.values(LEX).some(e => e.was === w)){ LEX[w] = seed[w]; added++; }
   saveLex(); renderLex();
   logLine(`${stamp()}  merged in ${added} built-in word${added===1?"":"s"}`);
 };
@@ -2640,7 +2715,9 @@ function statusOf(e){
 }
 function prosodyBlock(line){
   let a; try{ a = analyse(line); }catch(err){ return ""; }
+  const dv = Prosody.devoiced(line);
   return `<div style="font-size:18px;margin:4px 0" class="lun">${esc(marked(a))}</div>` +
+    (dv ? `<div class="hint" style="opacity:.75">whispered: ${esc(dv)}</div>` : "") +
     a.warn.filter(x => x.lvl !== "note").map(x =>
       `<div class="hint" style="color:#c77">${esc(x.t)}</div>`).join("");
 }
@@ -2767,15 +2844,15 @@ paintPB();
 // nasal vowel is written Vn but held: /ãː/.
 const NASV = {a:"ãː", e:"ẽː", i:"ĩː", o:"õː", u:"ũː"};
 function ipaSyl(t, nasal){
-  const m = t.match(/^([^aeiou]*)([aeiou])(n?)$/);
+  const m = t.match(/^([^aeiouüö]*)([aeiouüö])(n?)$/);
   if(!m) return t;
   let [, ons, v] = m, out = "";
-  if(ons === "ts" || (ons === "t" && v === "u" && !nasal)) out = "ts";
+  if(ons === "ts" || (ons === "t" && (v === "u" || v === "ü") && !nasal)) out = "ts";
   else if(ons === "ny") out = "ɲ";
   else if(ons === "sh" || (ons === "s" && v === "i")) out = "ʃ";
   else if(ons === "j" || (ons === "z" && v === "i")) out = "ʒ";
   else out = ons.split("").map(c => c === "r" ? "ɾ" : c === "y" ? "j" : c).join("");
-  return out + (nasal ? NASV[v] : v);
+  return out + (nasal ? NASV[v] : (OVIPA[v] || v));
 }
 function ipaOf(w){
   w = toN(w);
@@ -4076,6 +4153,12 @@ $("lxAudit").onclick = () => {
     if(!e.g || e.g === "(no gloss yet)") bits.push("no gloss");
     if(e.c === "noun" && /u$/.test(w)) bits.push("noun ends in \u2013u");
     if(e.c === "verb" && !/(u|[aio]n)$/.test(toN(w))) bits.push("class is verb, but no theme \u2013u or nasal final");
+    // R13, 2026-09-29 — native words only; ö is loan-only
+    if(!isLoan(e)){
+      if(r13Spell(w) !== w) bits.push("R13 \u2014 should be " + r13Spell(w) + " (u before an i-syllable)");
+      if(r13Stray(w)) bits.push("\u00fc outside R13\u2019s environment \u2014 native \u00fc stands only before an i-syllable");
+      if(/ö/.test(w)) bits.push("\u00f6 is loan-only (Phonology \u00a72)");
+    }
     if(content(w) || e.c === "pron"){
       // run the word as if it were new: lift it out so it does not collide with itself
       delete LEX[w];
@@ -4100,17 +4183,99 @@ $("lxAudit").onclick = () => {
   logLine(`${stamp()}  audited lexicon: ${out.length} word${out.length===1?"":"s"} flagged, ${shared.length} shared gloss${shared.length===1?"":"es"}, ${ear.length} for the ear`);
 };
 
+/* ══════════ R13 on the stored lexicon ══════════
+   R13 is a sound change, so a root drawn from now on gets it in Derive. Words
+   already in the lexicon were derived before it existed and need respelling once.
+   This works on the spelling: a u whose next vowel is i or ĩ becomes ü. */
+const R13V = "aeiouüöãĩõẽũ";
+function r13Spell(w){
+  const c = w.split("");
+  for(let i = 0; i < c.length; i++){
+    if(c[i] !== "u") continue;
+    let j = i + 1; while(j < c.length && !R13V.includes(c[j])) j++;
+    if(j < c.length && (c[j] === "i" || c[j] === "ĩ")) c[i] = "ü";
+  }
+  return c.join("");
+}
+function r13Stray(w){           // a native ü with no i-syllable after it
+  const c = w.split("");
+  return c.some((ch, i) => {
+    if(ch !== "ü") return false;
+    let j = i + 1; while(j < c.length && !R13V.includes(c[j])) j++;
+    return !(j < c.length && (c[j] === "i" || c[j] === "ĩ"));
+  });
+}
+const isLoan = e => !!(e && (e.how === "borrowed" || e.src));
+function r13Pairs(){
+  return Object.keys(LEX).filter(w => !isLoan(LEX[w]))
+    .map(w => [w, r13Spell(w)]).filter(([a, b]) => a !== b);
+}
+function r13Text(text, pairs){
+  if(!text) return text;
+  const ps = pairs.slice().sort((a, b) => b[0].length - a[0].length);
+  return text.split(/(\s+)/).map(tok => {
+    if(/^\s+$/.test(tok)) return tok;
+    for(const [a, b] of ps){
+      const lead = tok.match(/^[^a-züöãĩõ]*/)[0], body = tok.slice(lead.length);
+      if(body.startsWith(a)) return lead + b + body.slice(a.length);
+      const k = body.indexOf(a);
+      if(k > 0 && LEX[body.slice(0, k)]) return lead + body.slice(0, k) + b + body.slice(k + a.length);  // a compound
+    }
+    return tok;
+  }).join("");
+}
+function applyR13(pairs){
+  let pb = 0, bank = 0, rev = 0;
+  pairs.forEach(([a, b]) => {
+    if(LEX[b] || !LEX[a]) return;
+    LEX[b] = Object.assign({}, LEX[a], {was: a, r13: stamp()});
+    delete LEX[a];
+  });
+  Object.keys(REV).forEach(k => {
+    const m = k.match(/^w:(.+):(en|lu)$/); if(!m) return;
+    const hit = pairs.find(([a]) => a === m[1]); if(!hit) return;
+    REV[`w:${hit[1]}:${m[2]}`] = REV[k]; delete REV[k]; rev++;
+  });
+  PB.forEach(e => { const n = r13Text(e.lu, pairs); if(n !== e.lu){ e.lu = n; pb++; } });
+  ["verb", "noun"].forEach(k => { const n = r13Text(BANK[k], pairs); if(n !== BANK[k]){ BANK[k] = n; bank++; } });
+  saveLex(); saveRev(); savePB(); saveBank();
+  $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
+  renderLex(); paintPB();
+  logLine(`${stamp()}  R13 respelled ${pairs.length} word${pairs.length === 1 ? "" : "s"}: ${pairs.map(([a, b]) => a + " \u2192 " + b).join(", ")}  [phrasebook lines ${pb}, bank ${bank}, review cards ${rev}]`);
+  return {pb, bank, rev};
+}
+$("lxR13").onclick = () => {
+  const pairs = r13Pairs();
+  if(!pairs.length){ $("lxAuditOut").innerHTML = `<p class="hint">Nothing to respell \u2014 every native word already agrees with R13.</p>`; return; }
+  $("lxAuditOut").innerHTML = `<label style="display:block">R13 would respell ${pairs.length} word${pairs.length === 1 ? "" : "s"}</label>
+    <p class="hint">Untick anything you want to hold back. Each changed entry keeps its old spelling under <em>was</em>.</p>
+    <table>${pairs.map(([a, b], i) => `<tr><td><input type="checkbox" data-r13="${i}" checked></td>
+      <td class="lun">${esc(a)}</td><td>\u2192</td><td class="lun">${esc(b)}</td><td class="hint">${esc(LEX[a].g || "")}</td></tr>`).join("")}</table>
+    <button class="btn" id="lxR13Go" style="margin-top:8px">Respell the ticked words</button>`;
+  $("lxR13Go").onclick = () => {
+    const pick = pairs.filter((p, i) => document.querySelector(`[data-r13="${i}"]`).checked);
+    if(!pick.length) return;
+    const r = applyR13(pick);
+    $("lxAuditOut").innerHTML = `<p class="hint">Respelled ${pick.length}: ${pick.map(([a, b]) => esc(a) + " \u2192 " + esc(b)).join(", ")}. Phrasebook lines changed: ${r.pb}. Review cards carried over: ${r.rev}. <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
+  };
+};
+
 /* ══════════ verify ══════════ */
+// Documented forms are written in the old n-spelling; compared in the tilde spelling.
 const TESTS = [
   ["KIN","kin"],["KUN","kon"],["KEN","kan"],["SATUNA","sana"],["TAPURA","tapra"],
   ["NOKURAN","nokuran"],["KANUTA","kanta"],["HIRUN","hin"],["KASI","kashi"],
   ["SITU","shitsu"],["NOWIRETU","nowiretsu"],["NIURA","niura"],["KARUA","karua"],
-  ["KANUE","kanwe"],["HELAN","helan"],["HERUNA","hena"]
+  ["KANUE","kanwe"],["HELAN","helan"],
+  ["HERUNA","herna"],   // grandfathered (Proto §1.3): the word stays hena; this is what the rules now give
+  // R13, 2026-09-29 — fires before an i-syllable, never on the theme vowel
+  ["UWIHUKI","üwiki"],["TUYURI","tsüri"],["KOMINU","kominu"],["KUWANU","kuwanu"]
 ];
 $("runTest").onclick = () => {
   let pass=0;
   const rows = TESTS.map(([root,want])=>{
     let got; try{ got = derive(root).spelling; }catch(e){ got = "error"; }
+    want = toTilde(want);
     const ok = got===want; if(ok) pass++;
     return `<tr><td class="proto">${root}</td><td class="lun">${want}</td>
       <td class="lun ${ok?"p":"f"}">${got}</td><td class="${ok?"p":"f"}">${ok?"match":"differs"}</td></tr>`;

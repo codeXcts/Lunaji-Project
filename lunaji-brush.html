@@ -135,7 +135,7 @@ kbd{font:500 12px var(--mono);padding:1px 5px;border:1px solid var(--line);borde
 <main class="app" id="app" data-parts="on">
   <header>
     <h1>Lunaji Brush</h1>
-    <span class="stamp" id="stamp">build 2026-09-29-1154</span>
+    <span class="stamp" id="stamp">build 2026-09-29-1955</span>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
@@ -162,7 +162,7 @@ kbd{font:500 12px var(--mono);padding:1px 5px;border:1px solid var(--line);borde
 
   <section class="view" id="view-write" role="tabpanel" aria-labelledby="tab-write">
     <label class="sub" for="src">Type Lunaji in the Latin spelling. Each line of text becomes a line of script.</label>
-    <textarea id="src" spellcheck="false" autocomplete="off">Lõjiwa uwikini sofuze hena.
+    <textarea id="src" spellcheck="false" autocomplete="off">Lõjiwa üwikini sofuze hena.
 Nuswape koime, lwajipe koime.</textarea>
     <div class="bar">
       <button class="btn primary" type="button" id="savePng">Save as image</button>
@@ -213,6 +213,8 @@ Nuswape koime, lwajipe koime.</textarea>
     <div><h3>Typing</h3>
     <ul>
       <li>Nasal vowels: type <kbd>ã</kbd> <kbd>ĩ</kbd> <kbd>õ</kbd>, or <kbd>a~</kbd> <kbd>i~</kbd> <kbd>o~</kbd>.</li>
+      <li>Front rounded vowels: type <kbd>ü</kbd> <kbd>ö</kbd>, or <kbd>u:</kbd> <kbd>o:</kbd>.</li>
+      <li>Inside a native stem, <i>u</i> before an <i>i</i>-syllable is spelled <i>ü</i> (R13). The app flags an old spelling like <i>uwiki</i>; suffixes, compound seams and loans are exempt.</li>
       <li><kbd>-</kbd> splits a stem from its endings yourself: <kbd>lõji-wa</kbd>. Use it when the app guesses the stem wrong, or to stop a split.</li>
       <li><kbd>+</kbd> joins compound blocks: <kbd>koime+zaĩko</kbd>.</li>
       <li><kbd>*</kbd> in front of a word writes it as a loan: <kbd>*jura</kbd>.</li>
@@ -224,7 +226,7 @@ Nuswape koime, lwajipe koime.</textarea>
     <div><h3>The letters</h3>
     <ul>
       <li>Consonant families follow the mouth: the lips share an open frame, the tongue tip a central vertical, the palate a cliff stroke, the back of the mouth a Z-shaped turn. A nasal consonant adds one horizontal. Voicing is the two ticks Japanese uses.</li>
-      <li>Vowels: none for u, a sweep on the right for a, a vertical on the left for i, two short bars for e, a left sweep for o. A nasal vowel adds a long sweep along the foot.</li>
+      <li>Vowels: none for u, a sweep on the right for a, a vertical on the left for i, two short bars for e, a left sweep for o. Rounding closes a front vowel's stroke: ü is the i vertical with a bar along its foot, ö the two e bars joined on the left. A nasal vowel adds a long sweep along the foot.</li>
       <li>Glides and clusters are a stroke over the letter: a dot for y, two dots for w, a short sweep for r, a short bar for l. When a cluster and a glide come together (prya), both strokes sit over the letter, the cluster on the left.</li>
       <li>A coda ends with a heavy stop dot. A long consonant is written as a coda of the same consonant followed by the syllable, like Japanese small tsu.</li>
     </ul></div>
@@ -250,7 +252,7 @@ Nuswape koime, lwajipe koime.</textarea>
 <script>
 (function(){
 'use strict';
-var BUILD='build 2026-09-29-1154';
+var BUILD='build 2026-09-29-1955';
 document.getElementById('stamp').textContent=BUILD;
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function load(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
@@ -388,6 +390,9 @@ function glyph(s,T,W){
   if(s.v==='i'){out+=stroke('v','M15 22V80',W,T,'bv');x0=32;}
   if(s.v==='e'){out+=stroke('h','M5 36H25',W,T,'bv')+stroke('h','M5 64H25',W,T,'bv');x0=32;}
   if(s.v==='o'){out+=stroke('l','M27 14Q23 58 5 88',W,T,'bv');x0=32;}
+  /* front rounded vowels: the front vowel's stroke, closed by rounding */
+  if(s.v==='ü'){out+=stroke('v','M12 22V80',W,T,'bv')+stroke('h','M12 80H30',W,T,'bv');x0=34;}
+  if(s.v==='ö'){out+=stroke('v','M6 34V66',W,T,'bv')+stroke('h','M6 36H25',W,T,'bv')+stroke('h','M6 64H25',W,T,'bv');x0=32;}
   if(s.v===null){out+=stroke('d','M81 78l7 12',W*1.15,T,'bm');x1=Math.min(x1,76);y1=Math.min(y1,80);}
   if(s.nasal){out+=stroke('r','M10 90Q50 82 95 95',W,T,'bm');y1=Math.min(y1,76);}
   if(voiced){out+=stroke('d','M81 -3l5 10',W*.9,T,'bm')+stroke('d','M91 -5l5 10',W*.9,T,'bm');x1=Math.min(x1,80);}
@@ -423,41 +428,50 @@ function block(list,label){
 /* ================= spelling ================= */
 var CONS=/^(sh|ts|ny|[bdfghjklmnprstvwyz])$/;
 var STARTERS=['p','b','t','d','k','g','f','v'], LONGBAD=['m','n','ny','r','h','y','w'];
-function nfd(s){return s.toLowerCase().normalize('NFD').replace(/~/g,'̃')}
+/* u: and o: type ü and ö; ~ types the nasal tilde */
+function nfd(s){return s.toLowerCase().normalize('NFD').replace(/~/g,'̃').replace(/([uo]):/g,'$1̈')}
 function syls(word){
   var w=nfd(word);
-  var toks=w.match(/sh|ts|ny|[aeiou]̃?|[bdfghjklmnprstvwyz]|./g)||[], out=[], warn=[], i=0;
+  var toks=w.match(/sh|ts|ny|[aeiou][̃̈]{0,2}|[bdfghjklmnprstvwyz]|./g)||[], out=[], warn=[], i=0;
   function V(t){return t&&/^[aeiou]/.test(t)}
   function lab(parts){return parts.join('').normalize('NFC')}
+  /* a vowel token: its letter (ü and ö included) and whether it is nasal */
+  function vi(t){
+    var base=t[0], uml=t.indexOf('̈')>0, nas=t.indexOf('̃')>0, v=base;
+    if(uml){ if(base==='u') v='ü'; else if(base==='o') v='ö'; else warn.push('"'+t.normalize('NFC')+'" is not a Lunaji letter'); }
+    if(nas&&['e','u','ü','ö'].indexOf(v)>=0) warn.push(v+' has no nasal form');
+    return {v:v,nasal:nas};
+  }
   while(i<toks.length){
-    var a=toks[i], b=toks[i+1], c=toks[i+2];
+    var a=toks[i], b=toks[i+1], c=toks[i+2], x;
     if(V(a)){
-      if(a.length>1&&(a[0]==='e'||a[0]==='u')) warn.push(a[0]+' has no nasal form');
-      out.push({c:null,v:a[0],nasal:a.length>1,label:lab([a])});i++;continue;
+      x=vi(a); out.push({c:null,v:x.v,nasal:x.nasal,label:lab([a])});i++;continue;
     }
     if(!CONS.test(a)){warn.push('"'+a.normalize('NFC')+'" is not a Lunaji letter');i++;continue;}
     if(V(b)){
-      if((a==='y'&&b[0]==='i')||(a==='w'&&b[0]==='u')||(a==='ny'&&b[0]==='i')) warn.push(a+b[0]+' is not allowed');
-      if((a==='s'||a==='z')&&b[0]==='i') warn.push(a+'i is written '+(a==='s'?'shi':'ji'));
-      if(a==='t'&&b[0]==='u') warn.push('tu is written tsu');
-      out.push({c:a,v:b[0],nasal:b.length>1,label:lab([a,b])});i+=2;continue;
+      x=vi(b);
+      if((a==='y'&&x.v==='i')||(a==='w'&&x.v==='u')||(a==='ny'&&x.v==='i')) warn.push(a+x.v+' is not allowed');
+      if((a==='s'||a==='z')&&x.v==='i') warn.push(a+'i is written '+(a==='s'?'shi':'ji'));
+      if(a==='t'&&(x.v==='u'||x.v==='ü')) warn.push('t'+x.v+' is written ts'+x.v);
+      out.push({c:a,v:x.v,nasal:x.nasal,label:lab([a,b])});i+=2;continue;
     }
     if(b===a){
       if(LONGBAD.indexOf(a)>=0) warn.push(a+' cannot be long');
       out.push({c:a,v:null,nasal:false,label:a+'·'});i++;continue;
     }
     if((b==='y'||b==='w')&&V(c)&&!(b==='y'&&(a==='s'||a==='z'))){
-      out.push({c:a,med:b,v:c[0],nasal:c.length>1,label:lab([a,b,c])});i+=3;continue;
+      x=vi(c); out.push({c:a,med:b,v:x.v,nasal:x.nasal,label:lab([a,b,c])});i+=3;continue;
     }
     if((b==='r'||b==='l')&&STARTERS.indexOf(a)>=0&&(c==='y'||c==='w')&&V(toks[i+3])){
-      var d4=toks[i+3];
+      var d4=toks[i+3]; x=vi(d4);
       if(b==='l'&&(a==='t'||a==='d')) warn.push(a+b+' is not a legal cluster');
       if(b==='r'&&c==='w') warn.push('w cannot follow r');
-      out.push({c:a,med:b,med2:c,v:d4[0],nasal:d4.length>1,label:lab([a,b,c,d4])});i+=4;continue;
+      out.push({c:a,med:b,med2:c,v:x.v,nasal:x.nasal,label:lab([a,b,c,d4])});i+=4;continue;
     }
     if((b==='r'||b==='l')&&STARTERS.indexOf(a)>=0&&V(c)){
+      x=vi(c);
       if(b==='l'&&(a==='t'||a==='d')) warn.push(a+b+' is not a legal cluster');
-      out.push({c:a,med:b,v:c[0],nasal:c.length>1,label:lab([a,b,c])});i+=3;continue;
+      out.push({c:a,med:b,v:x.v,nasal:x.nasal,label:lab([a,b,c])});i+=3;continue;
     }
     if(!b) warn.push('a word cannot end on a consonant');
     else if(['l','r','s'].indexOf(a)<0) warn.push(a+' cannot be a coda');
@@ -466,11 +480,22 @@ function syls(word){
   return {syls:out,warn:warn};
 }
 
+/* R13 is completed: inside a native stem, an oral u before an i-syllable is spelled ü.
+   Suffixes, compound seams and loans are exempt, so this only looks inside one stem. */
+function r13(list){
+  var vs=list.filter(function(s){return s.v!==null}), out=[];
+  for(var k=0;k<vs.length-1;k++){
+    if(vs[k].v==='u'&&!vs[k].nasal&&vs[k+1].v==='i') out.push('u before an i-syllable is spelled ü inside a stem (R13): '+vs[k].label+' → '+vs[k].label.replace('u','ü'));
+  }
+  if(vs.some(function(s){return s.v==='ö'})) out.push('ö occurs only in French loans — put * in front or add the word to the loanword list');
+  return out;
+}
+
 /* ================= word lists ================= */
 var DEFAULTS={
-  loans:['filma','jura','kojo','liman','saban','shokola','gitara','mwa'],
-  comp:['lõji+uwiki','koime+zaĩko','lõji+gunwe'],
-  stems:['hotori','ohari','fãvonedi','tsuri','shokola','gitara']
+  loans:['filma','jura','kojo','liman','saban','shokola','gitara','mwa','jü','menü','blö','motöra','supa'],
+  comp:['lõji+üwiki','koime+zaĩko','lõji+gunwe'],
+  stems:['hotori','ohari','fãvonedi','tsüri','shokola','gitara']
 };
 var LISTS={};
 function parseList(text){return text.split(/\n/).map(function(s){return s.trim()}).filter(Boolean)}
@@ -496,7 +521,7 @@ function peel(w){
       var e=ENDINGS[i];
       if(w.length>e.length&&w.slice(-e.length)===e){
         var r=w.slice(0,-e.length);
-        if(/[aeiou]̃?$/.test(r)&&vcount(r)>=2){hit=e;break;}
+        if(/[aeiou][̃̈]?$/.test(r)&&vcount(r)>=2){hit=e;break;}
       }
     }
     if(!hit) break;
@@ -530,6 +555,7 @@ function word(tok,warn){
   if(a.kind==='native'){
     html+='<span class="cmp">'+a.parts.map(function(p){
       var r=syls(p); r.warn.forEach(function(x){warn.push(tok+': '+x)});
+      r13(r.syls).forEach(function(x){warn.push(tok+': '+x)});
       return r.syls.length?block(r.syls,p.normalize('NFC')):'';
     }).join('')+'</span>';
   } else if(a.kind==='loan'){
@@ -556,7 +582,7 @@ function punct(p){
 }
 /* elision is spoken only: d'itsuze is written as the whole particle di, then itsuze */
 function unElide(str){
-  return str.replace(/(^|[\s“«「"])(sh|ts|ny|[bdfghjklmnprstvwyz])['’]([aeiouãĩõ])/gi,function(m,pre,c,v){
+  return str.replace(/(^|[\s“«「"])(sh|ts|ny|[bdfghjklmnprstvwyz])['’]([aeiouãĩõüö])/gi,function(m,pre,c,v){
     return pre+c+v.normalize('NFD')[0]+' '+v;
   });
 }
@@ -653,10 +679,11 @@ document.getElementById('savePng').addEventListener('click',function(){
 });
 
 /* ================= chart tab ================= */
-var V=['u','a','i','e','o','ã','ĩ','õ'];
+var V=['u','a','i','e','o','ü','ö','ã','ĩ','õ'];
 var FAM=[['Lips',['p','b','f','v','m','w']],['Tongue tip',['t','d','s','z','sh','j','ts','n','r','l']],['Palate',['y','ny']],['Back',['k','g','h']]];
 var KEYS=[
   ['Vowels','u a i e o','No stroke for u. A sweep on the right for a. A vertical, two bars or a sweep on the left for i, e, o.'],
+  ['Front rounded','kü tsü kö','Rounding closes the front vowel’s stroke: ü is the i vertical with a bar along its foot, ö is the two e bars joined on the left. Neither is nasal. ö is in French loans only.'],
   ['Nasal vowels','ã ĩ õ','A long sweep along the foot. Only ã, ĩ, õ exist.'],
   ['Voicing','ka ga sa za','The two ticks Japanese uses for voicing.'],
   ['Glides','kya twa','A dot over the letter for y, two dots for w.'],
@@ -685,12 +712,12 @@ function renderChart(){
 
 /* ================= practice tab ================= */
 var WORDLIST=[
-  ['lõji','night'],['uwiki','moon'],['sofu','to see'],['hena','a faint sound; not'],['koime','fire'],['koimu','to feed the fire'],['ani','flower'],
+  ['lõji','night'],['üwiki','moon'],['sofu','to see'],['hena','a faint sound; not'],['koime','fire'],['koimu','to feed the fire'],['ani','flower'],
   ['nuswa','I'],['lwaji','you'],['nwoli','he, she'],['hotori','spouse'],['onãkõzã','dead of night'],['minoskã','work, effort'],
   ['saĩko','house, home'],['kunwe','sky'],['wokonya','daytime'],['mumã','bird'],['zwawashi','window'],['noaye','wind'],
   ['kominu','to be tired'],['inoyu','to be dark'],['wiõku','to sleep'],['kyõku','to hear'],['emose','what'],['mõzo','who'],
   ['kuwanu','to know'],['howeru','to be good'],['onu','to say'],['dã','yes'],['aoyã','road'],['okisõ','silence'],['omime','door'],
-  ['kazõ','to come'],['fãvonedi','dream'],['vanõla','hello'],['helã','person'],['tsuri','doctor'],['ohari','(held word)'],['yosami','letter, note'],['orimĩ','cute']
+  ['kazõ','to come'],['fãvonedi','dream'],['vanõla','hello'],['helã','person'],['tsüri','doctor'],['ohari','(held word)'],['yosami','letter, note'],['orimĩ','cute']
 ];
 var PSET='plain', Q=null, answered=false, SC={right:0,tried:0,streak:0,best:+load('lunaji-brush-best','0')||0};
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
@@ -707,9 +734,10 @@ function randSyl(marks){
     }
     if(['a','i','o'].indexOf(v)>=0&&Math.random()<.3) v+='̃';
   }
+  if(marks&&Math.random()<.18) v=Math.random()<.7?'ü':'ö';
   if(v==='i'&&/(^|[^s])s$|z$/.test(s)) v='a';
   if((s==='y'&&v==='i')||(s==='w'&&v==='u')||(s==='ny'&&v==='i')) v='o';
-  if(s==='t'&&v==='u') s='ts';
+  if(s==='t'&&(v==='u'||v==='ü')) s='ts';
   return (s+v).normalize('NFC');
 }
 function newQ(){
