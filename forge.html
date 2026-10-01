@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-30-1718</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-30-2033</div>
 <p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -590,9 +590,11 @@ details.panel>summary{cursor:pointer}
     <button class="btn ghost" id="lxAudit">Audit the lexicon</button>
     <button class="btn ghost" id="lxR13">Apply R13 — u → ü</button>
     <button class="btn ghost" id="lxTilde">Respell old nasals — hin → hĩ</button>
+    <button class="btn ghost" id="lxLoans">Check loans</button>
     <p class="hint">Checks every stored word for what the Borrow tab and the hand-add box let through: <em>en</em>/<em>un</em> spellings, identical-vowel and back-rounded (R11) hiatus, nouns in <em>–u</em>, words that open on numeral + counter or split into particles, shared glosses, missing glosses.</p>
     <p class="hint">R13 (2026-09-29): a native word's <em>u</em> is <em>ü</em> when the next syllable has <em>i</em> or <em>ĩ</em> — <em>uwiki</em> → <em>üwiki</em>. It is a completed change, so it respells stems once and never touches a suffix (<em>kominuri</em> stays). Loans are skipped. You see the list before anything changes; the phrasebook, sentence bank and review progress follow the new spellings.</p>
     <p class="hint">Old nasals (2026-09-30): any word still stored in the old <em>an in on</em> spelling — <em>hin</em>, <em>helan</em> — is respelled with the tilde, <em>hĩ</em>, <em>helã</em>. Phrasebook lines, the sentence bank and review progress follow. You see the list first.</p>
+    <p class="hint">Check loans (2026-09-30): (1) words R13 fronted that are really loans — the <em>u</em> in <em>takushi</em> is filler, not a sound change — tick them to undo R13 and tag them as loans so it never fires again; (2) French loans whose source, run through today's Borrow rules, comes out differently — <em>usine</em> now gives <em>ü</em>. You choose every change.</p>
     <div id="lxAuditOut"></div>
   </div>
   <div class="panel">
@@ -2334,6 +2336,8 @@ const TRANSLIT = {
     /* 2026-09-29 — French u is /y/ and now enters as ü; eu and œu are /ø/ and
        enter as ö, which is loan-only (Phonology §2). ou is /u/, so it is parked
        on a placeholder (Ʊ) until every u left over has been fronted. */
+    // 2026-09-30 — y not before a vowel is the vowel /i/ (stylo, cycle); before a vowel it stays a glide (yeux, payer)
+    [/y(?![aeiouéèêàâîôûœ])/g,"i"],
     // é is protected: it must survive the silent-final-e rule below
     [/é/g,"\u00c9"], [/[èêë]/g,"e"], [/[àâ]/g,"a"], [/[îï]/g,"i"], [/[ôö]/g,"o"],
     [/où/g,"\u01b1"], [/[ûü]/g,"u"], [/ç/g,"s"], [/œu/g,"ö"], [/œ/g,"ö"],
@@ -4333,6 +4337,56 @@ $("lxTilde").onclick = () => {
     renderLex(); paintPB();
     logLine(`${stamp()}  respelled old nasals: ${pairs.map(([a, b]) => a + " \u2192 " + b).join(", ") || "(no words)"}  [phrasebook lines ${pb}, bank ${bank}, review cards ${rev}]`);
     $("lxAuditOut").innerHTML = `<p class="hint">Respelled ${pairs.length} word${pairs.length === 1 ? "" : "s"}${clash.length ? ` (${clash.length} merged into a tilde entry that already existed)` : ""}. Phrasebook lines changed: ${pb}. <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
+  };
+};
+
+/* ══════════ check loans ══════════
+   2026-09-30. Loans entered before the src tag existed look native to R13, so
+   it fronted epenthetic u in takushi, plasutika, elekutrishite. And loans taken
+   before French u → ü (2026-09-29) never got it: usine gave ushin. */
+function loanFixes(){
+  const r13 = Object.keys(LEX).filter(w => LEX[w].r13 && LEX[w].was && !isLoan(LEX[w]))
+    .map(w => ({w, back: LEX[w].was, g: LEX[w].g || ""}));
+  const fr = [];
+  Object.keys(LEX).forEach(w => {
+    const e = LEX[w];
+    if(!e.src || !/french/i.test(e.lang || "")) return;
+    let out = "";
+    try{ out = toTilde(nativize(translit(e.src, "fr").out, e.c === "noun" ? "noun" : "other").out); }catch(err){ return; }
+    if(out && out !== w && !LEX[out]) fr.push({w, to: out, src: e.src, g: e.g || ""});
+  });
+  return {r13, fr};
+}
+$("lxLoans").onclick = () => {
+  const {r13, fr} = loanFixes();
+  if(!r13.length && !fr.length){ $("lxAuditOut").innerHTML = `<p class="hint">Nothing to fix \u2014 no untagged loans carry R13, and every French loan matches today's Borrow rules.</p>`; return; }
+  $("lxAuditOut").innerHTML =
+    (r13.length ? `<label style="display:block">Fronted by R13 \u2014 tick the loans</label>
+      <p class="hint">Ticked words go back to their spelling before R13 and are tagged as loans. Leave native words unticked.</p>
+      <table>${r13.map((x, i) => `<tr><td><input type="checkbox" data-lf13="${i}"></td><td class="lun">${esc(x.w)}</td><td>\u2192</td><td class="lun">${esc(x.back)}</td><td class="hint">${esc(x.g)}</td></tr>`).join("")}</table>` : "") +
+    (fr.length ? `<label style="display:block;margin-top:12px">French loans that today's rules spell differently</label>
+      <table>${fr.map((x, i) => `<tr><td><input type="checkbox" data-lffr="${i}" ${/ü/.test(x.to) && x.to.replace(/ü/g, "u") === x.w ? "checked" : ""}></td><td class="lun">${esc(x.w)}</td><td>\u2192</td><td class="lun">${esc(x.to)}</td><td class="hint">${esc(x.src)} \u00b7 ${esc(x.g)}</td></tr>`).join("")}</table>
+      <p class="hint">Pre-ticked where the only difference is u \u2192 \u00fc. Anything else changed because a Borrow rule changed since \u2014 look before ticking.</p>` : "") +
+    `<button class="btn" id="lxLoansGo" style="margin-top:8px">Apply the ticked changes</button>`;
+  $("lxLoansGo").onclick = () => {
+    const moves = [];
+    r13.forEach((x, i) => { if(document.querySelector(`[data-lf13="${i}"]`).checked) moves.push([x.w, x.back, true]); });
+    fr.forEach((x, i) => { if(document.querySelector(`[data-lffr="${i}"]`).checked) moves.push([x.w, x.to, false]); });
+    if(!moves.length) return;
+    moves.forEach(([a, b, untag]) => {
+      if(LEX[b] && b !== a) return;
+      const e = Object.assign({}, LEX[a], {was: a});
+      if(untag){ delete e.r13; e.how = e.how || "borrowed"; e.src = e.src || b; }
+      delete LEX[a]; LEX[b] = e;
+    });
+    const pairs = moves.map(([a, b]) => [a, b]);
+    let pb = 0;
+    PB.forEach(ent => { const n = r13Text(ent.lu, pairs); if(n !== ent.lu){ ent.lu = n; pb++; } });
+    ["verb","noun"].forEach(k => { BANK[k] = r13Text(BANK[k], pairs); });
+    saveLex(); savePB(); saveBank(); renderLex(); paintPB();
+    $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
+    logLine(`${stamp()}  loans fixed: ${moves.map(([a, b, u]) => a + " \u2192 " + b + (u ? " (R13 undone, tagged loan)" : "")).join(", ")}`);
+    $("lxAuditOut").innerHTML = `<p class="hint">Changed ${moves.length}: ${moves.map(([a, b]) => esc(a) + " \u2192 " + esc(b)).join(", ")}. Phrasebook lines changed: ${pb}. <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
   };
 };
 
