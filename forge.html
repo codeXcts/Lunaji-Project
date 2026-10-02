@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-30-2033</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-02-0302</div>
 <p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -589,11 +589,11 @@ details.panel>summary{cursor:pointer}
   <div class="panel">
     <button class="btn ghost" id="lxAudit">Audit the lexicon</button>
     <button class="btn ghost" id="lxR13">Apply R13 — u → ü</button>
-    <button class="btn ghost" id="lxTilde">Respell old nasals — hin → hĩ</button>
+    <button class="btn ghost" id="lxTilde">Respell old nasals — hin → hĩ, ẽ → ã</button>
     <button class="btn ghost" id="lxLoans">Check loans</button>
     <p class="hint">Checks every stored word for what the Borrow tab and the hand-add box let through: <em>en</em>/<em>un</em> spellings, identical-vowel and back-rounded (R11) hiatus, nouns in <em>–u</em>, words that open on numeral + counter or split into particles, shared glosses, missing glosses.</p>
     <p class="hint">R13 (2026-09-29): a native word's <em>u</em> is <em>ü</em> when the next syllable has <em>i</em> or <em>ĩ</em> — <em>uwiki</em> → <em>üwiki</em>. It is a completed change, so it respells stems once and never touches a suffix (<em>kominuri</em> stays). Loans are skipped. You see the list before anything changes; the phrasebook, sentence bank and review progress follow the new spellings.</p>
-    <p class="hint">Old nasals (2026-09-30): any word still stored in the old <em>an in on</em> spelling — <em>hin</em>, <em>helan</em> — is respelled with the tilde, <em>hĩ</em>, <em>helã</em>. Phrasebook lines, the sentence bank and review progress follow. You see the list first.</p>
+    <p class="hint">Old nasals (2026-09-30): any word still stored in the old <em>an in on</em> spelling — <em>hin</em>, <em>helan</em> — is respelled with the tilde, <em>hĩ</em>, <em>helã</em>. An <em>ẽ</em> or <em>ũ</em> is repaired to <em>ã</em> or <em>õ</em>, since only ã ĩ õ exist (<em>dẽshimero</em> → <em>dãshimero</em>). Phrasebook lines, the sentence bank and review progress follow. You see the list first.</p>
     <p class="hint">Check loans (2026-09-30): (1) words R13 fronted that are really loans — the <em>u</em> in <em>takushi</em> is filler, not a sound change — tick them to undo R13 and tag them as loans so it never fires again; (2) French loans whose source, run through today's Borrow rules, comes out differently — <em>usine</em> now gives <em>ü</em>. You choose every change.</p>
     <div id="lxAuditOut"></div>
   </div>
@@ -612,7 +612,16 @@ details.panel>summary{cursor:pointer}
       <button class="btn" id="lxAdd">Add</button>
       <button class="btn ghost" id="lxRetire">Retire</button>
     </div>
-    <p class="hint">Tap a word above to load it here. Retire removes it, keeps the shape and reason, and blocks the shape in Draw and Borrow.</p>
+    <div class="row" style="margin-top:8px">
+      <input id="lxSrc" placeholder="loan? the source word — stylo" spellcheck="false" autocapitalize="off">
+      <select id="lxLang">
+        <option value="">not a loan</option>
+        <option value="French">French</option><option value="Japanese">Japanese</option>
+        <option value="Portuguese">Portuguese</option><option value="Latin / Greek">Latin / Greek</option>
+        <option value="as spelled">other</option>
+      </select>
+    </div>
+    <p class="hint">Tap a word above to load it here. For a loan, fill in the source word and its language — that tag is what keeps R13 and the audit from treating it as native. Retire removes it, keeps the shape and reason, and blocks the shape in Draw and Borrow.</p>
     <div id="lxRetOut"></div>
     <details style="margin-top:10px"><summary class="hint" style="cursor:pointer" id="lxRetSum">Retired shapes</summary><div id="lxRetList"></div></details>
   </div>
@@ -669,10 +678,16 @@ details.panel>summary{cursor:pointer}
    which is unchanged, so neither is ever drawn. VOW is what the parser accepts. */
 const VOW = "aeiouüö".split("");
 const CONS = "pbtdkgmnfvszhrlwy".split("");
-// Generator bias (Phonology §1.1, Lexicology §6): sonorant-weighted, soft obstruents,
-// vowels skewed to o and u. Frequency, not legality — CONS above is what's legal.
-const CONS_W = "nnnnnmmmrrrrllllwwwyykkkkssszzhhpbtdfgv".split("");
-const VOW_W  = "aeiiooooouuuu".split("");
+// Generator bias (Phonology §1.1, Lexicology §6): sonorant-weighted, soft obstruents.
+// Frequency, not legality — CONS above is what's legal.
+// 2026-10-02, recalibrated for the French–Japanese blend. Vowels were
+// "aeiiooooouuuu": o was 38% of every draw, and o plus nasal vowels read as
+// Portuguese. u is left alone — it feeds the codas and ü. t went from 1 to 3 of
+// the table: both parent languages are t-heavy and Lunaji stood at 2%.
+const CONS_W = "nnnnnmmmrrrrllllwwwyykkkkssszzhhpbtttdfgv".split("");   // t ×3 since 2026-10-02
+const VOW_W  = "aaaeeeiiiiooouuuu".split("");                            // a3 e3 i4 o3 u4 since 2026-10-02
+// Theme onset for verbs only: still sonorant-leaning, but evened out a little.
+const THEME_W = "nnnnlllrrrmmmyywwbbddggvvkksszhptf".split("");
 const OBSTRUENT = "pbtdkgfvsz", LIQUID = "rl";   // sh, j, ny are derived, never proto
 /* Which obstruents may lead an onset cluster — Phonology §4.2 rule 6:
    pr br tr dr kr gr fr vr pl bl kl gl fl vl. NOT s or z. Aligned 2026-09-28:
@@ -1108,6 +1123,16 @@ const CMAP = {pnoun:"noun", dnoun:"noun", verb:"verb", adjv:"verb", irreg:"verb"
 /* 2026-09-28 — the lexicon is tilde-spelled. Anything arriving in the old
    `an in on` form (an older export, the built-in seed, a hand-typed word) is
    converted on the way in, so both spellings load and only one is stored. */
+/* 2026-10-01. Only ã ĩ õ exist. An old en / un spelling is ã / õ — what R6 did
+   to native words and what Borrow's inventory repair does to loans. toTilde
+   alone gave dẽshimero and jitẽsha; this is the spelling a stored word gets. */
+const fixNasal = w => typeof w === "string" ? toTilde(w).replace(/ẽ/g, "ã").replace(/ũ/g, "õ") : w;
+function lexKeys(o){
+  if(!o || typeof o !== "object" || Array.isArray(o)) return o;
+  const out = {};
+  for(const k in o){ const t = fixNasal(k); if(!(t in out) || t === k) out[t] = o[k]; }
+  return out;
+}
 function tildeKeys(o){
   if(!o || typeof o !== "object") return o;
   if(Array.isArray(o)) return o.map(toTilde);
@@ -1254,15 +1279,71 @@ const IRREG_RATE = 0.25;   // share of verb draws given a nasal proto final
    CONFIRMED BY EAR, 2026-09-28. kilsu and nõlasyu were said aloud — the first
    closed syllables ever spoken in the language — and judged to sound like
    Lunaji. Lexicology §6 step 6, on the new texture rather than on a word. The
-   same session rejected the long r. */
-const CODA_BIAS = 0.16;
+   same session rejected the long r.
+
+   RECALIBRATED 2026-10-02 for the French–Japanese blend (Lexicology §6).
+   - CODA_BIAS 0.16 → 0.14, to make room for the two branches below.
+   - CLUSTER_SEED 0.08. In a four-syllable root the second syllable is drawn as
+     {p t k b d g f} + u and the next syllable's onset is forced to r or l
+     (r only after t and d — Phonology §4.2 rule 6 has no tl or dl). R3 deletes
+     the u and R4 leaves an obstruent + liquid onset: TAPURA → tapra.
+   - LONG_SEED 0.05. Same position: {p t k s} + u, and the next syllable's onset
+     is forced to the same consonant. R3 and R4 fuse them: ATUTA → atta.
+   - The forced syllable is plain CV or CVn and never takes u, so R3 cannot
+     delete it and pile three consonants together.
+   - Order in the medial branch: coda bias, cluster seed, long seed, normal draw.
+   - VOW_W "aeiiooooouuuu" → "aaaeeeiiiiooouuuu"; CONS_W gained two t.
+   Clusters, codas and long consonants are still never drawn directly — every
+   one is produced by R3 and R4 from an open-syllable proto-root.
+
+   Measured over two runs of 30,000 draws. Mix: 50% primary nouns, 30% verbs,
+   12% adjectival verbs, 8% deverbal nouns; three syllables 60%, four 40%.
+   Shares are of legal words (86% of draws), except vowels and t.
+
+                              before    now    target
+     o + õ, of vowels          36.8     20.0     20
+     a                         11.0     17.3     18
+     e                          8.0     14.3     15
+     i                         10.5     14.0     14
+     u + ü                     21.0     19.1     (left alone)
+     t (with ts), of consonants 2.1      5.4      6
+     words with a coda         18.5     14.7     16
+     words with a cluster       0.6      2.8      3
+     words with a long consonant 1.4     2.8      3
+     words with ü               5.7      5.8      —
+     words with a nasal vowel  53.9     53.2      —
+     mean syllables            2.91     2.96
+
+   Every target is within a third, so nothing was adjusted after measuring.
+   "Before" is build 2026-10-01-2035 under the same count. It reads clusters
+   lower than the 2026-09-28 table above (0.6 against 2.1), which was counted
+   differently; compare before with now, not with that table. */
+const CODA_BIAS = 0.14;
+const CLUSTER_SEED = 0.08, CLUSTER_SEED_C = ["p","t","k","b","d","g","f"];
+const LONG_SEED = 0.05, LONG_SEED_C = ["p","t","k","s"];
 function generateRoot(cls, nSyl){
   if(cls==="func" && !nSyl) nSyl = 1;   // only when no explicit count is chosen
-  let body = "";
+  let body = "", forced = "";
   for(let i=0;i<nSyl-1;i++){
     const prev = body[body.length-1];
     // medial only: never the first syllable, and the last one carries the theme
+    // A seed in the previous syllable fixed this one's onset. It is an ordinary
+    // CV or CVN syllable otherwise, and it takes no seed of its own.
+    if(forced){
+      // never u: R3 would delete it too and the seed would give a three-consonant
+      // pile (syoppru, kĩsdle) instead of tapra or atta
+      let v; do{ v = pick(VOW_W); }while(v === "u");
+      body += forced + v + (Math.random() < 14/62 ? "n" : "");   // CVN at its SHAPES rate against CV
+      forced = ""; continue;
+    }
+    // Order matters: coda bias, then the cluster seed, then the long-consonant
+    // seed, then the normal draw.
     if(i > 0 && Math.random() < CODA_BIAS){ body += pick(CODA_OK.split("")) + "u"; continue; }
+    if(nSyl === 4 && i === 1){
+      // t and d take r only: Phonology §4.2 rule 6 lists tr dr but no tl dl
+      if(Math.random() < CLUSTER_SEED){ const c = pick(CLUSTER_SEED_C); body += c + "u"; forced = "td".includes(c) ? "r" : pick(["r","l"]); continue; }
+      if(Math.random() < LONG_SEED){ const c = pick(LONG_SEED_C); body += c + "u"; forced = c; continue; }
+    }
     body += makeSyllable(weighted(SHAPES), prev);
   }
   // final syllable carries the theme
@@ -1270,7 +1351,11 @@ function generateRoot(cls, nSyl){
   const onsetShape = weighted([["C",68],["CG",14],["",10],["G",8]]);
   if(onsetShape.includes("C")){
     let c; let guard=0;
-    do{ c=pick(CONS_W); guard++; } while(guard<20 && body && body[body.length-1]==="n" && c==="n");
+    // 2026-10-01 — the consonant before a verb's final -u is drawn from a gentler
+    // table than the rest of the word. Verbs end sentences, and under CONS_W about
+    // one verb in five ended in -nu while b d g v came up once in twenty-five each.
+    const table = (cls==="verb" || cls==="adjv") ? THEME_W : CONS_W;
+    do{ c=pick(table); guard++; } while(guard<20 && body && body[body.length-1]==="n" && c==="n");
     fin += c;
   }
   if(onsetShape.includes("G")){
@@ -2583,6 +2668,8 @@ $("lexList").onclick = e => {
     const w = tag.dataset.w;
     $("lxWord").value = w; $("lxGloss").value = LEX[w].g;
     $("lxClass").value = LEX[w].c;
+    $("lxSrc").value = LEX[w].src || "";
+    $("lxLang").value = [...$("lxLang").options].some(o => o.value === LEX[w].lang) ? LEX[w].lang : (LEX[w].src ? "as spelled" : "");
     $("lxAdd").textContent = "Update " + w;
     $("lxWord").scrollIntoView({behavior:"smooth", block:"center"});
     return;
@@ -2597,9 +2684,13 @@ $("lxAdd").onclick = () => {
   const w = toTilde($("lxWord").value.trim().toLowerCase());
   if(!w) return;
   LEX[w] = Object.assign({d: stamp()}, LEX[w] || {}, {g: $("lxGloss").value.trim() || "(no gloss yet)", c: $("lxClass").value, real: true});
+  // loan tags: set when given, cleared when the language is set back to "not a loan"
+  const src = $("lxSrc").value.trim(), lang = $("lxLang").value;
+  if(src || lang){ LEX[w].src = src || LEX[w].src || w; LEX[w].lang = lang || LEX[w].lang || "as spelled"; LEX[w].how = LEX[w].how || "borrowed"; delete LEX[w].r13; }
+  else if(LEX[w].src && $("lxAdd").textContent.startsWith("Update")){ delete LEX[w].src; delete LEX[w].lang; if(LEX[w].how === "borrowed") delete LEX[w].how; }
   saveLex(); renderLex();
-  logLine(`${stamp()}  added ${w} to the lexicon by hand`);
-  $("lxWord").value = ""; $("lxGloss").value = ""; $("lxAdd").textContent = "Add";
+  logLine(`${stamp()}  added ${w} to the lexicon by hand${src || lang ? `  [loan: ${LEX[w].src}, ${LEX[w].lang}]` : ""}`);
+  $("lxWord").value = ""; $("lxGloss").value = ""; $("lxSrc").value = ""; $("lxLang").value = ""; $("lxAdd").textContent = "Add";
 };
 $("lxExport").onclick = () => { $("lxIO").value = JSON.stringify(LEX); };
 
@@ -2652,7 +2743,7 @@ $("lxFile").onchange = async () => {
   const now = Object.keys(LEX).length;
   const more = extra && extra.RETIRED ? `\nAlso in the file: ${Object.keys(extra.RETIRED).length} retired shapes, review progress and drift counts.` : "";
   if(!confirm(`${f.name}\n\n${words.length} words in the file, ${now} in the Forge now.${more}\nReplace the Forge's copy with the file?`)) return;
-  LEX = tildeKeys(next); saveLex(); renderLex();
+  LEX = lexKeys(next); saveLex(); renderLex();
   if(extra){
     if(extra.RETIRED){ RET = tildeKeys(extra.RETIRED); saveRet(); }
     if(extra.REVIEW){ REV = extra.REVIEW; saveRev(); }
@@ -2669,7 +2760,7 @@ $("lxFile").onchange = async () => {
 $("lxImport").onclick = () => {
   try{
     const next = JSON.parse($("lxIO").value);
-    if(next && typeof next === "object"){ LEX = tildeKeys(next); saveLex(); renderLex(); $("lxIO").value = "Imported."; }
+    if(next && typeof next === "object"){ LEX = lexKeys(next); saveLex(); renderLex(); $("lxIO").value = "Imported."; }
   }catch(e){ $("lxIO").value = "That is not valid JSON. Export from the other device and paste the whole line."; }
 };
 // Merge, never replace. The saved lexicon is the only copy of anything coined
@@ -4309,9 +4400,9 @@ $("lxR13").onclick = () => {
    can't find it. toTilde is safe on whole text: n before a consonant is never
    a coda, so it is always vowel nasality. */
 function tildePairs(){
-  return Object.keys(LEX).map(w => [w, toTilde(w)]).filter(([a, b]) => a !== b);
+  return Object.keys(LEX).map(w => [w, fixNasal(w)]).filter(([a, b]) => a !== b);
 }
-const tildeText = t => t ? t.split(/(\s+)/).map(tok => /^\s+$/.test(tok) ? tok : toTilde(tok)).join("") : t;
+const tildeText = t => t ? t.split(/(\s+)/).map(tok => /^\s+$/.test(tok) ? tok : fixNasal(tok)).join("") : t;
 $("lxTilde").onclick = () => {
   const pairs = tildePairs();
   const pbHits = PB.filter(e => tildeText(e.lu) !== e.lu).length;
@@ -4324,10 +4415,10 @@ $("lxTilde").onclick = () => {
   $("lxTildeGo").onclick = () => {
     let rev = 0, pb = 0, bank = 0;
     // a duplicate keeps the tilde entry and fills anything it lacks from the old copy
-    pairs.forEach(([a, b]) => { LEX[b] = LEX[b] ? Object.assign({}, LEX[a], LEX[b]) : Object.assign({}, LEX[a], {was: a}); delete LEX[a]; });
+    pairs.forEach(([a, b]) => { LEX[b] = LEX[b] ? Object.assign({}, LEX[a], LEX[b]) : Object.assign({}, LEX[a], {was: LEX[a].was || a}); delete LEX[a]; });
     Object.keys(REV).forEach(k => {
       const m = k.match(/^w:(.+):(en|lu)$/); if(!m) return;
-      const t = toTilde(m[1]); if(t === m[1]) return;
+      const t = fixNasal(m[1]); if(t === m[1]) return;
       REV[`w:${t}:${m[2]}`] = REV[k]; delete REV[k]; rev++;
     });
     PB.forEach(e => { const n = tildeText(e.lu); if(n !== e.lu){ e.lu = n; pb++; } });
