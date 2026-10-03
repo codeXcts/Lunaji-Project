@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-02-0302</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-03-0636</div>
 <p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -226,9 +226,9 @@ details.panel>summary{cursor:pointer}
     <div>
       <label for="cls">Class</label>
       <select id="cls">
-        <option value="verb">Verb — rules decide regular or irregular</option>
+        <option value="verb">Verb — rules decide –u or nasal-final</option>
         <option value="adjv">Verb, adjectival — stands before a noun</option>
-        <option value="irreg">Irregular verb — forces a nasal final</option>
+        <option value="irreg">Nasal-final verb — forces a nasal final</option>
         <option value="dnoun">Deverbal noun (–a)</option>
         <option value="pnoun">Primary noun (–a/e/i/o or nasal)</option>
         <option value="func">Function root (1–2 syllables)</option>
@@ -308,8 +308,8 @@ details.panel>summary{cursor:pointer}
     <label for="cls2">Check against class</label>
     <select id="cls2">
       <option value="any">Don't check</option>
-      <option value="verb">Verb — rules decide regular or irregular</option>
-      <option value="irreg">Irregular verb (–on)</option>
+      <option value="verb">Verb — rules decide –u or nasal-final</option>
+      <option value="irreg">Nasal-final verb (–õ)</option>
       <option value="dnoun">Deverbal noun (–a)</option>
       <option value="pnoun">Primary noun</option>
       <option value="func">Function root</option>
@@ -559,7 +559,7 @@ details.panel>summary{cursor:pointer}
       <div><label for="lnCls">Class</label>
         <select id="lnCls">
           <option value="verb">verb</option>
-          <option value="irreg">irregular verb (–on)</option>
+          <option value="irreg">nasal-final verb (–õ)</option>
           <option value="dnoun">deverbal noun</option>
           <option value="pnoun">primary noun</option>
           <option value="func">function word</option>
@@ -589,12 +589,15 @@ details.panel>summary{cursor:pointer}
   <div class="panel">
     <button class="btn ghost" id="lxAudit">Audit the lexicon</button>
     <button class="btn ghost" id="lxR13">Apply R13 — u → ü</button>
-    <button class="btn ghost" id="lxTilde">Respell old nasals — hin → hĩ, ẽ → ã</button>
+    <button class="btn ghost" id="lxTilde">Respell old spellings — hin → hĩ, ẽ → ã, sy → sh</button>
     <button class="btn ghost" id="lxLoans">Check loans</button>
+    <button class="btn ghost" id="lxGram">Update to the new verb endings — hena → -ena</button>
     <p class="hint">Checks every stored word for what the Borrow tab and the hand-add box let through: <em>en</em>/<em>un</em> spellings, identical-vowel and back-rounded (R11) hiatus, nouns in <em>–u</em>, words that open on numeral + counter or split into particles, shared glosses, missing glosses.</p>
     <p class="hint">R13 (2026-09-29): a native word's <em>u</em> is <em>ü</em> when the next syllable has <em>i</em> or <em>ĩ</em> — <em>uwiki</em> → <em>üwiki</em>. It is a completed change, so it respells stems once and never touches a suffix (<em>kominuri</em> stays). Loans are skipped. You see the list before anything changes; the phrasebook, sentence bank and review progress follow the new spellings.</p>
+    <p class="hint">2026-10-03: <em>sy</em> and <em>zy</em> are respelled <em>sh</em> and <em>j</em> by the same button (<em>izyubã</em> → <em>ijubã</em>), since <em>s</em> and <em>z</em> now palatalize before <em>y</em> as they do before <em>i</em>. Proto-roots are untouched.</p>
     <p class="hint">Old nasals (2026-09-30): any word still stored in the old <em>an in on</em> spelling — <em>hin</em>, <em>helan</em> — is respelled with the tilde, <em>hĩ</em>, <em>helã</em>. An <em>ẽ</em> or <em>ũ</em> is repaired to <em>ã</em> or <em>õ</em>, since only ã ĩ õ exist (<em>dẽshimero</em> → <em>dãshimero</em>). Phrasebook lines, the sentence bank and review progress follow. You see the list first.</p>
     <p class="hint">Check loans (2026-09-30): (1) words R13 fronted that are really loans — the <em>u</em> in <em>takushi</em> is filler, not a sound change — tick them to undo R13 and tag them as loans so it never fires again; (2) French loans whose source, run through today's Borrow rules, comes out differently — <em>usine</em> now gives <em>ü</em>. You choose every change.</p>
+    <p class="hint">2026-10-03: negation is the ending <em>-ena</em> before the tense (<em>sofuze hena</em> → <em>sofuenaze</em>), <em>can</em> and <em>want to</em> are the endings <em>-bi</em> and <em>-du</em>, and <em>mi</em> is retired. The last button finds every phrasebook line, bank line and waiting Confirm sentence still written the old way and shows each change before making it. A noun with <em>hena</em> (<em>Noaye hena</em>) is left alone.</p>
     <div id="lxAuditOut"></div>
   </div>
   <div class="panel">
@@ -898,6 +901,13 @@ function R8(w){
       a.s = a.s==="s" ? "ʃ" : "ʒ"; fired=true;
     }
     if(a.t==="C" && a.s==="n" && b.t==="G" && b.s==="y"){ a.s="ɲ"; w.splice(i+1,1); fired=true; }
+    /* 2026-10-03 — s and z palatalize before the glide y exactly as before the
+       vowel i, and the glide is absorbed: SYODANMU → shodamu, IZYUBAN → ijubã.
+       Phonology §4.2 rule 2, extended. /sj/ against /ʃ/ and /zj/ against /ʒ/ is
+       a contrast one speaker cannot hold, so sy and zy never surface. */
+    if(a.t==="C" && (a.s==="s"||a.s==="z") && b.t==="G" && b.s==="y"){
+      a.s = a.s==="s" ? "ʃ" : "ʒ"; w.splice(i+1,1); fired=true;
+    }
   }
   return fired;
 }
@@ -1051,9 +1061,10 @@ const LEX_SEED = {
   "ba":["subject particle","func"],"ni":["object particle","func"],
   "pe":["possessive particle","func"],"wa":["location particle","func"],
   "di":["oblique particle","func"],"toma":["from; than","func"],
-  "mi":["negation, opening half","func"],"hena":["not","func"],
+  "hena":["not (on a noun); no","func"],
   "ta":["plural, animates only","suffix"],"ze":["past tense","suffix"],
-  "ri":["ongoing aspect","suffix"],
+  "ri":["ongoing aspect","suffix"],"ena":["negation, before the tense","suffix"],
+  "bi":["can — ability","suffix"],"du":["want to — desire","suffix"],
   "la":["evidential — direct non-visual","func"],"po":["evidential — inference","func"],
   "ke":["evidential — assumption","func"],"jin":["question particle","func"],
   "noron":["but; and yet","func"],"oyan":["might; maybe","func"],
@@ -1127,6 +1138,12 @@ const CMAP = {pnoun:"noun", dnoun:"noun", verb:"verb", adjv:"verb", irreg:"verb"
    to native words and what Borrow's inventory repair does to loans. toTilde
    alone gave dẽshimero and jitẽsha; this is the spelling a stored word gets. */
 const fixNasal = w => typeof w === "string" ? toTilde(w).replace(/ẽ/g, "ã").replace(/ũ/g, "õ") : w;
+/* 2026-10-03. sy → sh and zy → j (Phonology §4.2 rule 2). The t guard keeps the
+   affricate ts apart: ts never stands before y, but the letters could. No
+   lookbehind, so it runs on any phone. */
+const palSpell = w => typeof w === "string" ? w.replace(/(^|[^t])sy/g, "$1sh").replace(/zy/g, "j") : w;
+const hasSyZy = w => /(^|[^t])sy|zy/.test(w);
+const respell = w => palSpell(fixNasal(w));
 function lexKeys(o){
   if(!o || typeof o !== "object" || Array.isArray(o)) return o;
   const out = {};
@@ -1210,9 +1227,9 @@ function check(res, cls){
     const endsU = /u$/.test(sp), endsNas = /[aio]n$/.test(sp), endsA = /a$/.test(sp);
     const nasalEnd = endsNas;
     if(cls==="verb" || cls==="adjv")  t.push(endsU ? {ok:true,s:"verb theme –u"}
-                            : endsNas ? {ok:true,s:"verb — nasal-vowel irregular (Lexicology §1.2)"}
+                            : endsNas ? {ok:true,s:"verb — nasal-final, a regular class (Lexicology §1.2)"}
                             : {ok:false,s:"not a verb: needs final –u or a nasal vowel"});
-    if(cls==="irreg") t.push(endsNas ? {ok:true,s:"nasal-vowel irregular"} : {ok:false,s:"not a nasal-vowel irregular"});
+    if(cls==="irreg") t.push(endsNas ? {ok:true,s:"nasal-final verb"} : {ok:false,s:"not a nasal-final verb"});
     if(cls==="dnoun") t.push(endsA ? {ok:true,s:"deverbal –a"} : {ok:false,s:"not a deverbal noun: needs final –a"});
     if(cls==="pron" && endsU) t.push({ok:false,s:"a pronoun may not end in –u"});
     if(cls==="pnoun") t.push(!endsU ? {ok:true,s:nasalEnd?"primary noun, nasal-final":"primary noun"}
@@ -1948,6 +1965,62 @@ function renderDerivation(){
   };
 }
 
+/* ══════════ the verb word ══════════
+   2026-10-03 — Grammar §4. root + -bi (can) + -du (want to) + -ri (ongoing)
+   + -ena (not) + -ze (past), each at most once and in that order, then at most
+   one clause particle: -na if, -wa when, -di because. Nasal-final verbs are a
+   regular class: the nasal stays before a consonant (kazõze) and links before
+   -ena and the clause particle -a (kazonena, kazona). Theme -u never drops
+   (sofuena). mi is retired; free hena stands only where there is no verb. */
+const VSLOTS = [["na","wa","di","a"],["ze"],["ena"],["ri"],["du"],["bi"]];   // peeled right to left
+const VORDER = ["bi","du","ri","ena","ze"];                                   // written left to right
+function verbForm(w){
+  let out = w;
+  for(let i = 1; i < arguments.length; i++) if(arguments[i]) out = joinSuffix(out, arguments[i]);
+  return out;
+}
+function lexVerbKey(x){
+  x = x.replace(/'$/, "");
+  const k = [toTilde(x), x].find(y => Object.prototype.hasOwnProperty.call(LEX, y));
+  return k && (LEX[k].c === "verb" || LEX[k].c === "aux" || k === "gu") ? k : null;
+}
+// kazonenaze → {stem:"kazõ", ends:["ena","ze"]}; null when the token is not a verb form
+function verbStem(tok){
+  const s = toN(String(tok || "").toLowerCase().replace(/[.?!,]/g, ""));
+  if(!s) return null;
+  const k0 = lexVerbKey(s);
+  if(k0) return {stem: k0, ends: []};
+  const walk = (x, from, ends) => {
+    for(let i = from; i < VSLOTS.length; i++){
+      for(const e of VSLOTS[i]){
+        if(x.length <= e.length || !x.endsWith(e)) continue;
+        const rest = x.slice(0, -e.length).replace(/'$/, "");
+        const nas = /[aeiou]n$/.test(rest);
+        if(e === "a" && !nas) continue;            // -a is the topic after a nasal only
+        if(e === "na" && nas) continue;            // and -na never is
+        const k = lexVerbKey(rest);
+        if(k) return {stem: k, ends: [e].concat(ends)};
+        const deeper = walk(rest, i + 1, [e].concat(ends));
+        if(deeper) return deeper;
+      }
+    }
+    return null;
+  };
+  return walk(s, 0, []);
+}
+const VEND_GLOSS = {bi:"can", du:"want to", ri:"ongoing", ena:"not", ze:"past", na:"if", a:"if", wa:"when", di:"because"};
+// every form a verb can take: 2^5 ending sets × (bare + three clause particles)
+function allVerbForms(w){
+  const out = [];
+  for(let m = 0; m < 32; m++){
+    const ends = [m&1 && "bi", m&2 && "du", m&4 && "ri", m&8 && "ena", m&16 && "ze"].filter(Boolean);
+    const base = verbForm.apply(null, [w].concat(ends));
+    if(ends.length) out.push({f: base, ends});
+    ["na","wa","di"].forEach(c => out.push({f: joinSuffix(base, c), ends: ends.concat(c)}));
+  }
+  return out;
+}
+
 // Namespaced: several of these helper names already exist above.
 const Prosody = (() => {
 /* ══════════ phrase prosody ══════════
@@ -2065,15 +2138,12 @@ function splitClitic(tok){
   for(const c of ENCL.slice().sort((a,b)=>b.length-a.length)){
     // helan'ni, aoyan'wa — the apostrophe belongs to the seam, not the stem
     const stem = tok.slice(0, -c.length).replace(/'$/, "");
-    if(tok.length > c.length && tok.endsWith(c) && LEX[stem])
-      return {stem, clitic: c};
+    // 2026-10-03: aoyana → aoyan → aoyã; the stored key is the tilde spelling
+    const key = LEX[stem] ? stem : (LEX[toTilde(stem)] ? toTilde(stem) : null);
+    if(tok.length > c.length && tok.endsWith(c) && key)
+      return {stem: key, clitic: c};
   }
   return null;
-}
-const isVerbish = t => LEX[t] && (LEX[t].c === "verb" || LEX[t].c === "aux");
-function stripSuffix(t){
-  for(const s of ["ze","ri"]) if(t.endsWith(s) && LEX[t.slice(0,-s.length)]) return t.slice(0,-s.length);
-  return t;
 }
 
 function phrasesOf(line){
@@ -2082,10 +2152,13 @@ function phrasesOf(line){
   let verbAt = -1;
   // Named rather than inferred from class: the tail is a closed list, and the
   // stored class of a word like jin says what it is, not where it stands.
-  const TAIL = ["mi","hena","la","po","ke","jin","noron","byon","lon","gu"];
-  const tailish = t => TAIL.includes(t) || isVerbish(stripSuffix(t));
+  // 2026-10-03: mi is retired and negation is inside the verb word, so a verb
+  // is found by peeling its endings (verbStem), not by a two-suffix strip.
+  const TAIL = ["hena","la","po","ke","jin","noron","byon","lon","gu"];
+  const isVb = t => !!verbStem(t);
+  const tailish = t => TAIL.includes(toN(t.toLowerCase())) || isVb(t);
   for(let i = 0; i < toks.length; i++){
-    if(!(toks[i] === "mi" || isVerbish(stripSuffix(toks[i])))) continue;
+    if(!isVb(toks[i])) continue;
     if(toks.slice(i).every(tailish)){ verbAt = i; break; }   // nothing but verb material after it
   }
   toks.forEach((t,i)=>{
@@ -2104,7 +2177,7 @@ function phrasesOf(line){
 
 function analyse(line){
   const ph = phrasesOf(line);
-  const isQ = /\bjin\b/.test(line);
+  const isQ = /(^|\s)jin(\s|$)/.test(toN(line.toLowerCase()).replace(/[.?!,]/g, ""));
   const warn = [];
   const out = ph.map((p,i)=>{
     const last = ph.length - 1;
@@ -2213,49 +2286,53 @@ const withNi = w => toTilde(toN(w) + (nasEnd(w) ? "'ni" : "ni"));
 const withTop = w => toTilde(toN(w) + (nasEnd(w) ? "a" : "na"));
 
 function framesFor(w, cls){
-  const F = [], put = (l, line, why) => F.push({l, line, why});
+  // 2026-10-03: negation is the ending -ena before the tense; mi and the free
+  // hena after a verb are gone (Grammar §4.3). Lines are written in the tilde
+  // spelling, particles joined.
+  const F = [], put = (l, line, why) => F.push({l, line: toTilde(line), why});
+  const nas = nasEnd(w);
   if(cls === "adjv"){
-    // Grammar §5.1 and §5.2: no adjective class and no adverb class. The bare
-    // verb before a noun modifies the noun; before a verb it modifies the verb.
-    // The head carries a clitic, so the phrase has a real edge to judge. A bare
-    // attributive is a noun phrase that has not been case-marked yet.
-    put("Attributive — the commonest use", w + " helanba", "directly before the head noun, no particle between");
+    put("Attributive \u2014 the commonest use", w + " helãba", "directly before the head noun, no particle between");
     put("Attributive, marked head", w + " hotorina", "a three-syllable head, for the other rhythm");
-    put("Ongoing attributive", w + "ri helanba", "where the -ri stutter would show");
-    put("Adverbial", "noaye ni " + w + " kyonkuze", "bare verb before the main verb");
-    put("Predicate", w + " hena", "it is still a verb, so it negates like one");
-    put("Comparative", "onankonzanba lonji toma " + w, "the separative comparative (§5.4)");
-    put("Full clause", "Lonjiwa " + w + " helanba hin.", "against the benchmark");
+    put("Ongoing attributive", verbForm(w, "ri") + " helãba", "where the -ri stutter would show");
+    put("Adverbial", "noayeni " + w + " kyõkuze", "bare verb before the main verb");
+    put("Negated", verbForm(w, "ena"), nas ? "the nasal links \u2014 no tilde" : "theme -u stays: u.e in hiatus");
+    put("Comparative", "onãkõzãba lõji toma " + w, "the separative comparative (\u00a75.4)");
+    put("Full clause", "Lõjiwa " + w + " helãba hĩ.", "against the benchmark");
     F.push({l:"Bare", line:w, why:"legality only", legality:true});
   } else if(cls === "verb" || cls === "irreg"){
-    put("Negated — the seam", w + " hena", "where loman failed");
-    put("Past", w + "ze", nasEnd(w) ? "no theme vowel protecting the suffix" : "");
-    put("With an object", "noaye ni " + w + "ze", "the beat after ni, then the run-up");
+    put("Negated \u2014 the seam", verbForm(w, "ena"), nas ? "the nasal links \u2014 no tilde" : "theme -u stays: u.e in hiatus");
+    put("Past", verbForm(w, "ze"), nas ? "no theme vowel protecting the suffix" : "");
+    put("Past negative", verbForm(w, "ena", "ze"), "-ena sits before the tense");
+    put("Can / want to", verbForm(w, "bi") + ", " + verbForm(w, "du"), /du$/.test(w) ? "the -dudu watch item (Grammar \u00a78)" : "");
+    put("With an object", "noayeni " + verbForm(w, "ze"), "the beat after ni, then the run-up");
+    put("If", verbForm(w, "na") + " nuswani onu", "the clause particle, straight on the verb");
     put("Adverbial stack", "kominu " + w, "two bare verbs, neither suffixed");
-    put("Full clause", "Lonjiwa noaye ni " + w + "ze hena.", "against the benchmark");
+    put("Full clause", "Lõjiwa noayeni " + verbForm(w, "ena", "ze") + ".", "against the benchmark");
     F.push({l:"Bare", line:w, why:"legality only", legality:true});
   } else if(cls === "pnoun" || cls === "dnoun"){
-    put("Topic-marked", withTop(w), nasEnd(w) ? "the nasal dissolves, the stress moves" : "");
-    put("Object before the verb", withNi(w) + " sofouze", nasEnd(w) ? "the apostrophe holds the nasal before ni" : "the compression site");
+    put("Topic-marked", withTop(w), nas ? "the nasal dissolves, the weight moves" : "");
+    put("Object before the verb", withNi(w) + " sofuze", "the compression site");
+    put("Not a \u2026", w + " hena", "free hena \u2014 the one place it survives");
     put("Clause in front of it", "nialipu " + w, "the shape it wears as a head noun");
     put("Modified", "kominu " + w, "an adjectival verb in front");
     put("Counted", "rako " + w, "numeral plus inanimate counter");
-    put("Full clause", "Lonjiwa " + withNi(w) + " sofouze hena.", "against the benchmark");
+    put("Full clause", "Lõjiwa " + withNi(w) + " sofuenaze.", "against the benchmark");
     F.push({l:"Bare", line:w, why:"legality only", legality:true});
   } else if(cls === "pron"){
     // A pronoun is spoken only when it is doing contrastive work (Grammar §2.3),
     // so the OVERT PRONOUN warning is expected on the subject frame.
-    put("Subject, contrastive", w + "ba sainkowa kazonze.", "the only place a subject pronoun is said — the warning is expected here");
-    put("Object", withNi(w) + " kyonkuze", nasEnd(w) ? "nasal-final, so the apostrophe holds the nasal" : "ni joins");
-    put("Possessor", w + "pe akyozana", "my/your name — the most-said pronoun form");
-    put("Topic", withTop(w) + " kominu", nasEnd(w) ? "the nasal dissolves, the stress moves" : "");
+    put("Subject, contrastive", w + "ba saĩkowa kazõze.", "the only place a subject pronoun is said \u2014 the warning is expected here");
+    put("Object", withNi(w) + " kyõkuze", "ni joins");
+    put("Possessor", w + "pe akyozana", "my/your name \u2014 the most-said pronoun form");
+    put("Topic", withTop(w) + " kominu", nas ? "the nasal dissolves, the weight moves" : "");
     put("Plural", w + "ta", "-ta, as every pronoun takes");
-    put("Answer to monzo", w, "a bare pronoun as a whole reply");
+    put("Answer to mõzo", w, "a bare pronoun as a whole reply");
   } else {
-    put("After the negator", "sofouze hena " + w, "its commonest left neighbour");
-    put("Joined to a long noun", "onankonzan" + w, "if it cliticizes");
-    put("Braced", "helan ba lonji" + w + " sofouze", "long words both sides — §1b.5");
-    put("Full clause", "Lonjiwa noaye ni kyonkuze hena " + w + ".", "in the tail");
+    put("After the verb", "sofuenaze " + w, "its commonest left neighbour");
+    put("Joined to a long noun", "onãkõzã" + w, "if it cliticizes");
+    put("Braced", "helãba lõji" + w + " sofuze", "long words both sides \u2014 \u00a71b.5");
+    put("Full clause", "Lõjiwa noayeni kyõkuenaze " + w + ".", "in the tail");
   }
   return F;
 }
@@ -2343,7 +2420,7 @@ function rulePhrases(res, src){
   return out.join(", ") + ".";
 }
 
-const CLASSLABEL = {verb:"verb", adjv:"verb — adjectival", irreg:"verb — irregular (nasal-vowel class)",
+const CLASSLABEL = {verb:"verb", adjv:"verb — adjectival", irreg:"verb — nasal-final",
   dnoun:"deverbal noun", pnoun:"primary noun", func:"function word", pron:"pronoun", any:"class"};
 
 function keepWord(res, src){
@@ -2498,8 +2575,8 @@ function nativize(raw, cls){
   step(w.replace(/([bcdfgklmnprstvz])\1/g,"$1"), "no doubled consonants (rule 1)");
   step(w.replace(/wu/g,"u").replace(/yi/g,"i"), "a glide may not precede its own vowel (rule 7a)");
   step(w.replace(/([kgfv r])w/g,"$1"), "no w after a velar, labiodental or r (rule 5)");
-  step(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/t([uü])/g,"ts$1"),
-       "coronal obstruents before a high vowel (rule 2)");
+  step(palSpell(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/t([uü])/g,"ts$1")),
+       "coronal obstruents before a high vowel or y (rule 2)");
 
   // clusters: obstruent + liquid survive as onsets, everything else needs the
   // weak vowel between. An n before a consonant is nasality, not a cluster.
@@ -2516,7 +2593,7 @@ function nativize(raw, cls){
   if(w !== before) log.push("clusters opened with the weak vowel: " + before + " \u2192 " + w);
 
   // rule 2 again: opening a cluster can create a new si, zi or tu
-  step(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/t([uü])(?!\u0166)/g,"ts$1"),
+  step(palSpell(w.replace(/si/g,"shi").replace(/zi/g,"ji").replace(/t([uü])(?!\u0166)/g,"ts$1")),
        "coronal obstruents, after the clusters opened");
 
   // Modern Lunaji has ã ĩ õ only. ẽ and ũ are not in the inventory, so the
@@ -2554,6 +2631,16 @@ function wordRisks(w, cls){
   const heads = ["zo","van","ki","ra","bai"].filter(n => LEX[n]).flatMap(n => [n+"re", n+"ko"]);
   const h = heads.find(x => w.startsWith(x) && w !== x);
   if(h) block.push("opens on " + h + " \u2014 numeral + counter, which stands directly before nouns");
+  // 2026-10-03 — Grammar §8: no word may match a verb with its endings, and no
+  // form of a new verb may match a word already there.
+  const vs = verbStem(w);
+  if(vs && vs.ends.length)
+    block.push("reads as " + vs.stem + " + -" + vs.ends.join(" -") + " \u2014 \u00ab" + (LEX[vs.stem].g || "") + "\u00bb, " + vs.ends.map(e => VEND_GLOSS[e]).join(", ") + " (Grammar \u00a78)");
+  if(mine === "verb" || mine === "aux"){
+    const hit = allVerbForms(w).find(x => x.f !== w && Object.prototype.hasOwnProperty.call(LEX, x.f));
+    if(hit) block.push("its form " + hit.f + " (-" + hit.ends.join(" -") + ") is already a word \u2014 " + (LEX[hit.f].g || ""));
+  }
+  if(hasSyZy(w)) block.push("sy / zy do not occur \u2014 they surface as sh / j: " + palSpell(w));
   // 2026-09-30: a tilde vowel is a vowel, so the n in rikunã is an onset (ri.ku.nã)
   if(/[eu]n(?![aeiouüöãĩõẽũyw'])/.test(w) || /[ẽũ]/.test(w)) block.push("spells a nasal vowel the language lacks \u2014 only ã ĩ õ");
   if(/([aeiouüö])\1/.test(w)) block.push("identical-vowel hiatus \u2014 unrecoverable without oral length");
@@ -2788,9 +2875,15 @@ const SLOT = /\{([^}]+)\}([a-z]*)/g;
 const PEEL = ["ba","ni","pe","wa","di","na","a","ze","ri","ta","jo","re","ko"];
 function known(t){
   t = t.replace(/^[a-z]'/, m => "");            // d'itsuze
-  if(LEX[t]) return true;
+  if(LEX[t] || LEX[toTilde(t)]) return true;
   if(t.endsWith("'")) return known(t.slice(0, -1));
+  if(verbStem(t)) return true;                  // sofubiduenaze, kazonena, guenaze
   return PEEL.some(p => t.length > p.length && t.endsWith(p) && known(t.slice(0, -p.length)));
+}
+// 2026-10-03: a line still written with mi … hena or a free auxiliary
+function oldShapeHint(lu){
+  let n = lu; try{ n = gramFixLine(lu); }catch(e){}
+  return n !== lu ? `<div class="hint" style="color:var(--lamp)">old shape \u2014 since 2026-10-03 this is: <span class="lun">${esc(n)}</span></div>` : "";
 }
 function unknownWords(lu){
   return lu.replace(SLOT, "").toLowerCase().replace(/[.?!,]/g, "").split(/\s+/)
@@ -2856,8 +2949,8 @@ function paintPB(){
     if(st === "blank") body = `<div class="hint">Not written yet.</div>`;
     else if(st === "needs") body = `<div class="lun" style="font-size:18px;margin:4px 0">${esc(e.lu)}</div>` +
       (slots.length ? `<div class="hint">needs a word for: ${slots.map(esc).join(", ")}</div>` : "") +
-      (unk.length ? `<div class="hint" style="color:#c77">not in the lexicon: ${unk.map(esc).join(", ")}</div>` : "");
-    else body = prosodyBlock(e.lu) + `<div class="row" style="margin:8px 0 0;align-items:center">
+      (unk.length ? `<div class="hint" style="color:#c77">not in the lexicon: ${unk.map(esc).join(", ")}</div>` : "") + oldShapeHint(e.lu);
+    else body = prosodyBlock(e.lu) + oldShapeHint(e.lu) + `<div class="row" style="margin:8px 0 0;align-items:center">
         <button class="btn ghost" data-act="said" data-i="${i}">Said it today</button>
         <span class="hint" style="margin:0">said on ${said} of the last 7 days</span></div>
       <select data-act="verdict" data-i="${i}" style="margin-top:8px">
@@ -3055,43 +3148,81 @@ function pronTables(w){
   ]);
 }
 function verbTables(w){
-  const irr = nasalFinal(w);
-  return [
+  // 2026-10-03 — Grammar §4: five endings in a fixed order, then one clause
+  // particle. Nasal-final verbs are regular; only §1a's link sets them apart.
+  const nas = nasalFinal(w), V = function(){ return verbForm.apply(null, [w].concat([].slice.call(arguments))); };
+  const link = nas ? "the nasal links \u2014 it leaves the vowel and becomes an onset" : "theme <em>-u</em> never drops";
+  const aux = !!(LEX[w] && LEX[w].c === "aux");
+  const T = [
     pdTable("Tense and aspect", [
       pdRow("non-past", w, "present and future", w),
-      pdRow("past", w + "ze", irr ? "no theme vowel before <em>-ze</em> — the dissimilation watch item" : "", w),
-      pdRow("ongoing", w + "ri", "", w),
-      pdRow("ongoing, past", w + "rize", "", w),
-      pdRow("completed", w + " byon", "auxiliary verb takes the tense", w),
-      pdRow("completed, past", w + " byonze", "", w),
-      pdRow("habitual", w + "ri lon", "", w),
-      pdRow("used to", w + "ri lonze", "", w)
+      pdRow("past", V("ze"), nas ? "the nasal stays in the vowel before a consonant" : "", w),
+      pdRow("ongoing", V("ri"), "", w),
+      pdRow("ongoing, past", V("ri", "ze"), "", w),
+      pdRow("completed", w + " byõ", "the auxiliary takes the negation and the tense", w),
+      pdRow("completed, past", w + " byõze", "", w),
+      pdRow("habitual", V("ri") + " lõ", "", w),
+      pdRow("used to", V("ri") + " lõze", "", w)
     ]),
-    pdTable("Negation, mood, evidence", [
-      pdRow("negative", w + " hena", "neutral", w),
-      pdRow("negative, careful", "mi " + w + " hena", "<em>mi</em> leans onto the verb", null),
-      pdRow("past negative", w + "ze hena", "", w),
-      pdRow("question", w + " jin", "", w),
-      pdRow("past question", w + "ze jin", "answered by echo: <em>" + esc(w) + "ze</em> or <em>" + esc(w) + "ze hena</em>", w),
+    pdTable("Negation \u2014 the ending -ena, before the tense", [
+      pdRow("negative", V("ena"), link, w),
+      pdRow("past negative", V("ena", "ze"), "", w),
+      pdRow("ongoing negative", V("ri", "ena"), "", w),
+      pdRow("hasn't", w + " byonena", "<em>-ena</em> goes on the auxiliary, like the tense", w),
+      pdRow("hadn't", w + " byonenaze", "", w),
+      pdRow("doesn't habitually", V("ri") + " lonena", "", w),
+      pdRow("don't!", V("ena"), "the bare negative is the command", w)
+    ])];
+  if(!aux) T.push(
+    pdTable("Can and want to \u2014 -bi, then -du", [
+      pdRow("can", V("bi"), "", w),
+      pdRow("could", V("bi", "ze"), "", w),
+      pdRow("can't", V("bi", "ena"), "", w),
+      pdRow("couldn't", V("bi", "ena", "ze"), "", w),
+      pdRow("want to", V("du"), /du$/.test(w) ? "the syllable doubles \u2014 legal, a watch item (Grammar \u00a78)" : "", w),
+      pdRow("wanted to", V("du", "ze"), "", w),
+      pdRow("don't want to", V("du", "ena"), "", w),
+      pdRow("want to be able to", V("bi", "du"), "the order is fixed: never <em>-du-bi</em>", w),
+      pdRow("has been able to", V("bi") + " byõ", "<em>byõ</em> and <em>lõ</em> never take <em>-bi</em> or <em>-du</em>", w),
+      pdRow("make (him) \u2026", w + " tsumobã", "the causer is the subject", w),
+      pdRow("can make (him) \u2026", w + " tsumobãbi", "<em>tsumobã</em> is a full verb, so position carries scope", w),
+      pdRow("didn't make (him) \u2026", w + " tsumobanenaze", "", w)
+    ]));
+  T.push(
+    pdTable("Clause particles \u2014 after every ending, at most one", [
+      pdRow("if", V("na"), nas ? "after a nasal the topic is <em>-a</em> and the nasal dissolves" : "the topic particle on a clause", w),
+      pdRow("if \u2026 not", V("ena", "na"), "", w),
+      pdRow("if \u2026 did", V("ze", "na"), "", w),
+      pdRow("if \u2026 didn't", V("ena", "ze", "na"), "", w),
+      pdRow("when", V("wa"), "", w),
+      pdRow("when \u2026 did", V("ze", "wa"), "", w),
+      pdRow("because", V("di"), "", w),
+      pdRow("because \u2026 didn't", V("ena", "ze", "di"), "", w)
+    ]),
+    pdTable("Mood and evidence \u2014 free words after the verb", [
+      pdRow("question", w + " jĩ", "", w),
+      pdRow("past question", V("ze") + " jĩ", "answered by echo: <em>" + esc(V("ze")) + "</em> or <em>" + esc(V("ena", "ze")) + "</em>", w),
+      pdRow("negative question", V("ena", "ze") + " jĩ", "", w),
       pdRow("command", w, "the bare verb", w),
-      pdRow("don't", "mi " + w + " hena", "", null),
-      pdRow("heard, not seen", w + "ze la", "direct non-visual", w),
-      pdRow("inferred", w + "ze po", "from evidence", w),
-      pdRow("assumed", w + "ze ke", "from what I generally know", w),
-      pdRow("… but", w + "ze noron", "clause-final coordinator", w)
+      pdRow("heard, not seen", V("ze") + " la", "direct non-visual", w),
+      pdRow("inferred", V("ze") + " po", "from evidence", w),
+      pdRow("assumed", V("ze") + " ke", "from what I generally know", w),
+      pdRow("\u2026 but", V("ze") + " norõ", "clause-final coordinator", w)
     ]),
     pdTable("Before a noun or verb", [
-      pdRow("attributive", w + " helan", "before a noun — also the relative clause", null),
-      pdRow("adverbial", w + " sofou", "before a verb — no suffix", null),
-      pdRow("comparative", "lonjiba onankonzan toma " + w, "only meaningful on adjectival verbs (§5.4)", null)
-    ])
-  ].join("");
+      pdRow("attributive", w + " helã", "before a noun \u2014 also the relative clause", null),
+      pdRow("attributive, negative", V("ena") + " helã", "each clause carries its own negation (\u00a76.2)", null),
+      pdRow("adverbial", w + " sofu", "before a verb \u2014 no suffix", null),
+      pdRow("comparative", "lõjiba onãkõzã toma " + w, "only meaningful on adjectival verbs (\u00a75.4)", null)
+    ]));
+  return T.join("");
 }
 function paintParadigm(){
   const w = $("pdWord").value.trim().toLowerCase();
   if(!w){ $("pdOut").innerHTML = ""; return; }
   const e = LEX[w];
   let c = $("pdClass").value || (e && e.c) || "";
+  if(c === "aux") c = "verb";                    // byõ and lõ are verbs (Grammar §4.2)
   if(!["noun","verb","pron"].includes(c)){
     $("pdOut").innerHTML = e
       ? `<p class="hint">${esc(w)} is stored as a ${esc(e.c)}. Function words don't inflect, so there is no paradigm — choose a class above if the stored one is wrong.</p>`
@@ -3106,7 +3237,7 @@ function paintParadigm(){
   } finally { if(!hadIt) delete LEX[w]; }
 }
 function fillPdList(){
-  $("pdList").innerHTML = Object.keys(LEX).filter(w => ["noun","verb","pron"].includes(LEX[w].c)).sort()
+  $("pdList").innerHTML = Object.keys(LEX).filter(w => ["noun","verb","pron","aux"].includes(LEX[w].c)).sort()
     .map(w => `<option value="${esc(w)}">`).join("");
 }
 $("pdWord").oninput = paintParadigm;
@@ -3870,7 +4001,7 @@ function sentPreview(w, cls, lines){
       return `<div style="margin:10px 0 0">${l.en || l.bank ? `<div class="hint" style="opacity:.7">${esc(l.en)}${l.bank ? ` <span style="opacity:.6">\u00b7 bank</span>` : ""}</div>` : ""}` +
         (/_{2,}/.test(l.lu) ? "" : `<div class="hint" style="color:var(--lamp)">no ___ in this line, so the word isn't in it</div>`) +
         prosodyBlock(line) + (() => { try{ return `<div class="hint" style="opacity:.8">stress: ${esc(analyse(line).phrases.map(p => p.stress).join(" \u2016 "))}</div>`; }catch(e){ return ""; } })() +
-        (unk.length ? `<div class="hint" style="color:#c77">not in the lexicon: ${unk.map(esc).join(", ")}</div>` : "") + `</div>`;
+        (unk.length ? `<div class="hint" style="color:#c77">not in the lexicon: ${unk.map(esc).join(", ")}</div>` : "") + oldShapeHint(line) + `</div>`;
     }).join("");
   } finally { if(!hadIt) delete LEX[w]; }
 }
@@ -3893,10 +4024,12 @@ function saveSentences(w, gloss, lines){
    written for it each time. Stored with the lexicon file. */
 const BANKKEY = "lunaji-bank";
 const BANK_DEFAULT = {
-  verb: ["lõjiwa ___ze hena | at night, (it) didn't ___",
+  verb: ["lõjiwa ___enaze | at night, (it) didn't ___",
          "noayeni ___ze | ___ed the wind",
          "___ helãba hĩ | there's a ___ person",
-         "___ri lõze | used to be ___ing",
+         "___bi jĩ | can (you) ___?",
+         "___du norõ ___biena | (I) want to ___ but can't",
+         "___na nuswani onu | if (you) ___, tell me",
          "___ kazõze | came, ___ing"].join("\n"),
   noun: ["___na kominu | the ___ is tired",
          "___ni sofuze | saw the ___",
@@ -3922,7 +4055,8 @@ function formStrip(w, cls){
   const k = bankKind(cls); if(!k || !w) return "";
   const T = x => toTilde(x);
   const forms = k === "verb"
-    ? [w, joinSuffix(w, "ze"), joinSuffix(w, "ri"), w + " hena", joinSuffix(w, "ze") + " hena", joinSuffix(w, "ze") + " la", joinSuffix(w, "ri") + " " + T("lonze")]
+    ? [w, verbForm(w, "ze"), verbForm(w, "ri"), verbForm(w, "ena"), verbForm(w, "ena", "ze"), verbForm(w, "bi"), verbForm(w, "du"),
+       verbForm(w, "bi", "ena"), verbForm(w, "na"), verbForm(w, "ena", "na"), verbForm(w, "ze") + " la"]
     : [w, joinSuffix(w, "na"), joinSuffix(w, "ba"), joinSuffix(w, "ni"), joinSuffix(w, "pe"), joinSuffix(w, "wa"), joinSuffix(w, "di")];
   const hadIt = COINED.includes(w);
   if(!hadIt) LEX[w] = {g:"(candidate)", c: CMAP[cls] || "noun", real:false};
@@ -4287,6 +4421,7 @@ $("lxAudit").onclick = () => {
     if(!e.g || e.g === "(no gloss yet)") bits.push("no gloss");
     if(e.c === "noun" && /u$/.test(w)) bits.push("noun ends in \u2013u");
     if(e.c === "verb" && !/(u|[aio]n)$/.test(toN(w))) bits.push("class is verb, but no theme \u2013u or nasal final");
+    if(hasSyZy(w)) bits.push("sy / zy \u2014 should be " + palSpell(w) + " (rule 2: s and z palatalize before y)");
     // R13, 2026-09-29 — native words only; ö is loan-only
     if(!isLoan(e)){
       if(r13Spell(w) !== w) bits.push("R13 \u2014 should be " + r13Spell(w) + " (u before an i-syllable)");
@@ -4400,16 +4535,16 @@ $("lxR13").onclick = () => {
    can't find it. toTilde is safe on whole text: n before a consonant is never
    a coda, so it is always vowel nasality. */
 function tildePairs(){
-  return Object.keys(LEX).map(w => [w, fixNasal(w)]).filter(([a, b]) => a !== b);
+  return Object.keys(LEX).map(w => [w, respell(w)]).filter(([a, b]) => a !== b);
 }
-const tildeText = t => t ? t.split(/(\s+)/).map(tok => /^\s+$/.test(tok) ? tok : fixNasal(tok)).join("") : t;
+const tildeText = t => t ? t.split(/(\s+)/).map(tok => /^\s+$/.test(tok) ? tok : respell(tok)).join("") : t;
 $("lxTilde").onclick = () => {
   const pairs = tildePairs();
   const pbHits = PB.filter(e => tildeText(e.lu) !== e.lu).length;
   const bankHit = ["verb","noun"].some(k => tildeText(BANK[k]) !== BANK[k]);
-  if(!pairs.length && !pbHits && !bankHit){ $("lxAuditOut").innerHTML = `<p class="hint">Nothing to respell \u2014 every word, phrasebook line and bank line already uses the tilde.</p>`; return; }
+  if(!pairs.length && !pbHits && !bankHit){ $("lxAuditOut").innerHTML = `<p class="hint">Nothing to respell \u2014 every word, phrasebook line and bank line is already in the current spelling.</p>`; return; }
   const clash = pairs.filter(([a, b]) => LEX[b]);
-  $("lxAuditOut").innerHTML = `<label style="display:block">${pairs.length} word${pairs.length === 1 ? "" : "s"} in the old spelling${pbHits ? ` \u00b7 ${pbHits} phrasebook line${pbHits === 1 ? "" : "s"}` : ""}${bankHit ? " \u00b7 the sentence bank" : ""}</label>
+  $("lxAuditOut").innerHTML = `<label style="display:block">${pairs.length} word${pairs.length === 1 ? "" : "s"} in an old spelling${pbHits ? ` \u00b7 ${pbHits} phrasebook line${pbHits === 1 ? "" : "s"}` : ""}${bankHit ? " \u00b7 the sentence bank" : ""}</label>
     ${pairs.length ? `<table>${pairs.map(([a, b]) => `<tr><td class="lun">${esc(a)}</td><td>\u2192</td><td class="lun">${esc(b)}</td><td class="hint">${esc(LEX[a].g || "")}${LEX[b] ? ` <span style="color:var(--lamp)">\u2014 ${esc(b)} already exists; the two are merged</span>` : ""}</td></tr>`).join("")}</table>` : ""}
     <button class="btn" id="lxTildeGo" style="margin-top:8px">Respell them</button>`;
   $("lxTildeGo").onclick = () => {
@@ -4418,7 +4553,7 @@ $("lxTilde").onclick = () => {
     pairs.forEach(([a, b]) => { LEX[b] = LEX[b] ? Object.assign({}, LEX[a], LEX[b]) : Object.assign({}, LEX[a], {was: LEX[a].was || a}); delete LEX[a]; });
     Object.keys(REV).forEach(k => {
       const m = k.match(/^w:(.+):(en|lu)$/); if(!m) return;
-      const t = fixNasal(m[1]); if(t === m[1]) return;
+      const t = respell(m[1]); if(t === m[1]) return;
       REV[`w:${t}:${m[2]}`] = REV[k]; delete REV[k]; rev++;
     });
     PB.forEach(e => { const n = tildeText(e.lu); if(n !== e.lu){ e.lu = n; pb++; } });
@@ -4426,8 +4561,98 @@ $("lxTilde").onclick = () => {
     saveLex(); saveRev(); savePB(); saveBank();
     $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
     renderLex(); paintPB();
-    logLine(`${stamp()}  respelled old nasals: ${pairs.map(([a, b]) => a + " \u2192 " + b).join(", ") || "(no words)"}  [phrasebook lines ${pb}, bank ${bank}, review cards ${rev}]`);
+    logLine(`${stamp()}  respelled old spellings: ${pairs.map(([a, b]) => a + " \u2192 " + b).join(", ") || "(no words)"}  [phrasebook lines ${pb}, bank ${bank}, review cards ${rev}]`);
     $("lxAuditOut").innerHTML = `<p class="hint">Respelled ${pairs.length} word${pairs.length === 1 ? "" : "s"}${clash.length ? ` (${clash.length} merged into a tilde entry that already existed)` : ""}. Phrasebook lines changed: ${pb}. <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
+  };
+};
+
+/* ══════════ the 2026-10-03 verb endings on stored sentences ══════════
+   Grammar §4.3, §4.10. The old shapes: mi before the verb, free hena after it,
+   kübiyã and mõdu as auxiliaries after a bare verb. Each becomes an ending on
+   the verb that holds the tense. Free hena after a noun stays. */
+function buildVerb(stem, ends){
+  const cl = ends.find(e => ["na","a","wa","di"].includes(e));
+  return verbForm.apply(null, [stem].concat(VORDER.filter(e => ends.includes(e)), cl ? [cl === "a" ? "na" : cl] : []));
+}
+function gramFixLine(line){
+  if(!line) return line;
+  // blanks and slots: ___ze hena → ___enaze, {see}ri hena → {see}riena
+  let out = line.replace(/(^|\s)mi\s+(?=_{2,}|\{)/gi, "$1")
+    .replace(/(_{2,}|\{[^}]+\})(ri)?(ze)?\s+hena(na)?(?![a-zãĩõüö])/g, (m, b, ri, ze, na) => b + (ri || "") + "ena" + (ze || "") + (na ? "na" : ""));
+  const T = out.split(" ");
+  const core = t => t.replace(/[.?!,"\u201c\u201d]/g, "");
+  const head = t => (t.match(/^["\u201c]+/) || [""])[0];
+  const tail = t => (t.match(/[.?!,"\u201d]+$/) || [""])[0];
+  const cap = (model, w) => /^[A-ZÃĨÕÜÖ]/.test(core(model)) ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+  for(let i = 0; i < T.length; i++){
+    const c = core(T[i]).toLowerCase();
+    if(c === "mi" && !tail(T[i]) && i + 1 < T.length && verbStem(core(T[i+1]))){
+      const nx = T[i+1];
+      T.splice(i, 2, head(T[i]) + head(nx) + cap(T[i], core(nx)) + tail(nx));
+      i--; continue;
+    }
+    if(i === 0 || tail(T[i-1])) continue;
+    const pv = verbStem(core(T[i-1]));
+    if(!pv) continue;
+    const clause = pv.ends.some(e => ["na","a","wa","di"].includes(e));
+    if((c === "hena" || c === "henana") && !clause && !pv.ends.includes("ena")){
+      T.splice(i - 1, 2, head(T[i-1]) + cap(T[i-1], buildVerb(pv.stem, pv.ends.concat("ena", c === "henana" ? ["na"] : []))) + tail(T[i]));
+      i -= 2; continue;
+    }
+    const v = verbStem(c);
+    if(v && (v.stem === "k\u00fcbiy\u00e3" || v.stem === "m\u00f5du") && LEX[pv.stem].c === "verb" &&
+       pv.stem !== v.stem && pv.ends.every(e => e === "ri" || e === "bi")){
+      const add = v.stem === "m\u00f5du" ? "du" : "bi";
+      if(!pv.ends.includes(add)){
+        T.splice(i - 1, 2, head(T[i-1]) + cap(T[i-1], buildVerb(pv.stem, pv.ends.concat(add, v.ends))) + tail(T[i]));
+        i -= 2; continue;
+      }
+    }
+  }
+  return T.join(" ");
+}
+const gramFixText = t => t ? t.split("\n").map(l => { const k = l.indexOf("|"); return k < 0 ? gramFixLine(l) : gramFixLine(l.slice(0, k)) + l.slice(k); }).join("\n") : t;
+function gramJobs(){
+  const jobs = [];
+  PB.forEach((e, i) => { const n = gramFixLine(e.lu); if(n !== e.lu) jobs.push({where: "phrasebook", from: e.lu, to: n, en: e.en || "", go: () => { e.lu = n; }}); });
+  ["verb","noun"].forEach(k => (BANK[k] || "").split("\n").forEach(l => {
+    const n = gramFixText(l); if(n !== l) jobs.push({where: "sentence bank", from: l, to: n, en: "", go: () => { BANK[k] = BANK[k].split("\n").map(x => x === l ? n : x).join("\n"); }});
+  }));
+  ((typeof QU !== "undefined" && QU && QU.items) || []).forEach(it => (it.sent || "").split("\n").forEach(l => {
+    const n = gramFixText(l); if(n !== l) jobs.push({where: "waiting: " + it.gloss, from: l, to: n, en: "", go: () => { it.sent = it.sent.split("\n").map(x => x === l ? n : x).join("\n"); }});
+  }));
+  return jobs;
+}
+const GRAM_ENDS = {bi: "can \u2014 ability (verb ending)", du: "want to \u2014 desire (verb ending)", ena: "not \u2014 negation, before the tense (verb ending)"};
+$("lxGram").onclick = () => {
+  const jobs = gramJobs();
+  const need = Object.keys(GRAM_ENDS).filter(k => !LEX[k]);
+  const hasMi = !!LEX["mi"];
+  if(!jobs.length && !need.length && !hasMi){ $("lxAuditOut").innerHTML = `<p class="hint">Nothing to update \u2014 no stored sentence uses the old negation or the old auxiliaries, the three endings are in the lexicon, and <em>mi</em> is retired.</p>`; return; }
+  $("lxAuditOut").innerHTML =
+    (need.length ? `<label style="display:block"><input type="checkbox" id="gramEnds" checked> Add the ending${need.length === 1 ? "" : "s"} ${need.map(k => "<em>-" + k + "</em>").join(", ")} to the lexicon</label>` : "") +
+    (hasMi ? `<label style="display:block"><input type="checkbox" id="gramMi" checked> Retire <em>mi</em> (Grammar \u00a74.3)</label>` : "") +
+    (jobs.length ? `<label style="display:block;margin-top:8px">${jobs.length} sentence${jobs.length === 1 ? "" : "s"} in the old shape \u2014 untick any that should stay</label>
+      <table>${jobs.map((j, i) => `<tr><td><input type="checkbox" data-gram="${i}" checked></td><td><div class="lun">${esc(j.from)}</div><div class="lun" style="color:var(--lamp)">\u2192 ${esc(j.to)}</div><div class="hint" style="margin:0">${esc(j.where)}${j.en ? " \u00b7 " + esc(j.en) : ""}</div></td></tr>`).join("")}</table>` : `<p class="hint">No stored sentence uses the old shapes.</p>`) +
+    `<button class="btn" id="lxGramGo" style="margin-top:8px">Update</button>`;
+  $("lxGramGo").onclick = () => {
+    let n = 0; const did = [];
+    jobs.forEach((j, i) => { if(document.querySelector(`[data-gram="${i}"]`).checked){ j.go(); n++; } });
+    if($("gramEnds") && $("gramEnds").checked){
+      const cls = (LEX["ze"] && LEX["ze"].c) || "case";
+      need.forEach(k => { LEX[k] = {g: GRAM_ENDS[k], c: cls, real: true, d: stamp()}; });
+      did.push("added -" + need.join(", -"));
+    }
+    if($("gramMi") && $("gramMi").checked){
+      const e = LEX["mi"];
+      RET["mi"] = {r: "retired 2026-10-03 \u2014 negation is the ending -ena (Grammar \u00a74.3)", d: stamp(), g: e.g || "", p: e.p || ""};
+      delete LEX["mi"]; saveRet(); did.push("retired mi");
+    }
+    saveLex(); savePB(); saveBank(); if(typeof saveQ === "function") saveQ();
+    $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
+    renderLex(); paintPB();
+    logLine(`${stamp()}  updated to the 2026-10-03 verb endings: ${n} sentence${n === 1 ? "" : "s"} rewritten${did.length ? "; " + did.join("; ") : ""}`);
+    $("lxAuditOut").innerHTML = `<p class="hint">${n} sentence${n === 1 ? "" : "s"} rewritten${did.length ? "; " + did.join("; ") : ""}. <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
   };
 };
 

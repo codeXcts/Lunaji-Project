@@ -35,8 +35,8 @@ mark{background:none;color:var(--accent)}
 </style>
 
 <header>
-  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-09-30-0939</div>
-  <p class="sub">Where things live, not what they say. Current to 2026-09-30.</p>
+  <h1>Lunaji <span>index</span></h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-03-0209</div>
+  <p class="sub">Where things live, not what they say. Current to 2026-10-03.</p>
   <input id="q" placeholder="flower, plural, negation, stress…" autocomplete="off">
   <div class="tags" id="tags"></div>
 </header>
@@ -47,7 +47,7 @@ mark{background:none;color:var(--accent)}
 <ul id="out"></ul>
 
 <footer>
-  <b>Files:</b> Grammar · Phonology · Lexicology · Dictionary · Proto &amp; Sound Changes · Script · Tooling (the Forge, ForgeFilters and Lunaji Brush).<br>
+  <b>Files:</b> Grammar · Phonology · Lexicology · Dictionary · Proto &amp; Sound Changes · Script · Tooling (the Forge, ForgeFilters, Lunaji Brush and the lesson kit).<br>
   Section numbers are the stable layer — they survive rewrites of the text inside them.<br>
   <span class="open">Orange</span> marks something still open.
 </footer>
@@ -260,9 +260,20 @@ const D = [
 ["Parts, not sounds","Script","§6.3","aoyã + a is written in two parts though said aoyana; d'itsuze is written di + itsuze. Liaison and elision are spoken only.","liaison elision morpheme aoyana"],
 ["Punctuation","Script","§7","Comma (and only), full stop, question (curl over a dot), exclamation (vertical over a dot), corner brackets 「 」 for quotations.","question mark exclamation quotes brackets comma"],
 ["Brush vs carved","Script","§8","Brush for everyday writing. Carved into bark: curves become straight cuts, stems lean off the grain, dots are pits, and the pale wood shows by moonlight.","carving bark moonlight touch knife"],
-["Script — still open","Script","§9","Vertical writing, the first real carving, numerals, voiced long obstruents. Stroke order closed 2026-09-30 (§2a).","vertical columns stroke order numerals digits",1],
+["Script — still open","Script","§9","Vertical writing, the first real carving, voiced long obstruents, the grouping of long numbers, and how fractions, dates and times are written. Stroke order closed 2026-09-30 (§2a); numerals closed 2026-10-03 (§7a).","vertical columns stroke order numerals digits dates times",1],
+["Numerals — the digits","Script","§7a","Ten separate signs, each opening with the moon curl. 1–9 are modelled on the Japanese numerals — 弌 弍 弎 for 1–3, then 四 五 六 七 八 九 — and 0 is an empty cup. Ruled 2026-10-03 after four rejected drafts.","digits numbers numerals japanese kanji zero cup counting"],
+["A digit is a symbol, not a spelling","Script","§7a","The one deliberate exception to one-to-one spelling: number words are spelled as they sound, digits show nothing of how they are said. So the digits do not show the five-plus-N build of baizo … baira.","digit symbol phonetic exception baizo quinary"],
+["Writing a number","Script","§7a","Place value, left to right. In Blocks and rows a number packs into a block like a stem (1241 is two by two); in Row only the digits stand in a row. The counter trails in a small glyph: 3re, 4ko. Never a comma inside a number.","place value ten counter 3re 4ko number block comma"],
+["Zero — the empty cup","Script","§7a","Two walls and a floor: the lip letters' frame turned over. Japanese 〇 is a circle, which the script does not have; a crescent and a brush ring were both tried and looked out of place.","zero cup crescent ring circle"],
+["7 — why it is not a crossed 七","Script","§7a","A crossed 七 was too close to the letter t. The bar sits on top, so nothing crosses; the foot still turns right.","seven shichi t collision"],
+["Numerals — rejected drafts","Script","§7a","Dots and a curl-bar (sprawled, row only, 12 vs 21 by spacing); dots inside moons (read as Roman numerals); unrelated one-stroke signs (alien beside the letters); plain 一 二 三 (kept as the fallback, passed over for 弌 弍 弎).","dots moons roman tally rejected drafts history"],
+["Numerals — watched","Script","§7a","1, 2 and 3 differ only by their inner bars, which get small in a six-digit block. 4 sits near the lip letters p and m.","watch 1 2 3 inner bars 4 p m",1],
+["Long numbers — grouping","Script","§7a","Up to six digits make one block; longer numbers are touching blocks of three. Provisional: it should follow whether the language counts in thousands or ten-thousands.","grouping thousands myriad long numbers blocks of three",1],
+["Numbers above ten","Grammar","§7","The files name 0–10 only. The script can already write any number by place value; how 11 and up are said is not ruled.","eleven twenty hundred tens teens",1],
+["No Unicode — the script on a page","Script","§8a","The script cannot be typed or pasted as text. Three routes: Brush › Save as image, the lesson kit for web pages, or a font (not built; row only at best).","unicode font encoding type paste image svg"],
+["Lesson kit","Tooling","LessonKit","lunaji-kit.js: the Brush engine as one script. A lesson writes romanization in an element marked class=\"lj\" and the page draws the script — row only or blocks — with the spelling as a small line underneath. Not stored in the project; attach the file to the chat that makes lessons. Build 2026-10-03-0209.","lesson kit embed renderer learning materials class lj romanization underneath"],
 ["Script — marks for ü and ö","Script","§3","Rounding closes the front vowel's stroke: ü is i's vertical with a bar along its foot (an L), ö is e's two bars joined on the left. Whole strokes, so they hold up by touch and when carved. Never nasal; ö appears only in loans, so never inside a block. Added 2026-09-29 (Script v1.1).","umlaut diaeresis vowel mark ü ö carved touch"],
-["Lunaji Brush — the script app","Tooling","Lunaji Brush","Writes any spelling in the script, both ways and both forms. Save as image or SVG, glyph chart, practice mode, editable loan, compound and stem lists. Build 2026-09-29-1955 added ü and ö (type u: o:) and the R13 and ö checks; build 2026-09-30-0753 added the stroke-order view (tap any glyph on Chart or Write); build 2026-09-30-0939 adds Write-it practice with spaced review, letter-family practice, and a Sheets tab for printable practice pages. After updating from before 1955, press Restore the starting lists.","app brush tool script writer practice ü ö r13 stroke order"],
+["Lunaji Brush — the script app","Tooling","Lunaji Brush","Writes any spelling in the script, both ways and both forms. Save as image or SVG, glyph chart, practice mode, editable loan, compound and stem lists. Build 2026-09-29-1955 added ü and ö (type u: o:) and the R13 and ö checks; build 2026-09-30-0753 added the stroke-order view (tap any glyph on Chart or Write); build 2026-09-30-0939 added Write-it practice with spaced review, letter-family practice, and a Sheets tab for printable practice pages; build 2026-10-03-0057 added numerals (type digits; 3re for a counter) to Write, Chart, Practice, Sheets and the stroke-order view; build 2026-10-03-0209 replaces those dot numerals with the ten Japanese-modelled digits and packs numbers into blocks. After updating from before 1955, press Restore the starting lists.","app brush tool script writer practice ü ö r13 stroke order"],
 ["Learning to write the script","Tooling","Lunaji Brush","Practice › Write it: see the sound, write on paper, reveal with stroke order, mark yourself; misses come back more often. Sheets: printable pages of model, trace and empty squares, by family, vowel, mark, starter words or your own list.","practice handwriting worksheet print trace spaced review children teach"],
 ["Forge — where coining happens","Tooling","Forge","Draw, Derive, Borrow, Phrases, Paradigm, Review, Drift, Lexicon. The Composer is retired. Build 2026-09-29-1950 adds R13, ü/ö in French loans, y-leaning glides, whispered-vowel marks in Phrases, and Lexicon › Apply R13.","forge composer tool app"],
 ["Forge — Apply R13","Tooling","Forge","Lexicon tab. Lists every native word R13 respells, with tick boxes, then carries the phrasebook, sentence bank and review progress over. Loans are skipped. Save both files after.","respell r13 migrate lexicon"],

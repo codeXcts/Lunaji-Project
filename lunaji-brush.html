@@ -92,6 +92,8 @@ textarea{width:100%;min-height:92px;resize:vertical;font:400 1.05rem/1.5 var(--m
 .gl.tl svg,.gl.ln svg{width:calc(var(--bw,84px)*.5)}
 .gl.rw svg{width:calc(var(--bw,84px)*.62)}
 .gl.punct svg{width:calc(var(--bw,84px)*.18)}
+.gl.dg svg{width:calc(var(--bw,84px)*.66)}
+.gl.dgs svg{width:calc(var(--bw,84px)*.45)}
 .bb{fill:var(--ink)} .bv{fill:var(--vowel)} .bm{fill:var(--mod)}
 /* stroke order */
 .gl[data-i]{cursor:pointer;border-radius:4px}
@@ -187,7 +189,7 @@ kbd{font:500 12px var(--mono);padding:1px 5px;border:1px solid var(--line);borde
 <main class="app" id="app" data-parts="on">
   <header>
     <h1>Lunaji Brush</h1>
-    <span class="stamp" id="stamp">build 2026-09-30-0939</span>
+    <span class="stamp" id="stamp">build 2026-10-03-0209</span>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
@@ -260,6 +262,7 @@ Nuswape koime, lwajipe koime.</textarea>
         <input type="radio" name="pset" id="psPlain" value="plain" checked><label for="psPlain">Plain syllables</label>
         <input type="radio" name="pset" id="psMarks" value="marks"><label for="psMarks">With marks</label>
         <input type="radio" name="pset" id="psWords" value="words"><label for="psWords">Real words</label>
+        <input type="radio" name="pset" id="psDigits" value="digits"><label for="psDigits">Numerals</label>
       </div>
       <label class="chk" for="pFam">Letters
         <select id="pFam" class="sel">
@@ -287,7 +290,7 @@ Nuswape koime, lwajipe koime.</textarea>
           <option value="fam:lips">Lips family</option><option value="fam:tip">Tongue-tip family</option>
           <option value="fam:palate">Palate family</option><option value="fam:back">Back family</option>
           <option value="vowels">Vowels on the carrier</option><option value="vmarks">Every vowel on one consonant</option>
-          <option value="marks">Voicing, glides, clusters, codas</option><option value="words">Starter words</option>
+          <option value="marks">Voicing, glides, clusters, codas</option><option value="digits">Numerals 0 to 9</option><option value="words">Starter words</option>
           <option value="custom">My own list</option>
         </select></label>
       <label class="chk" for="shCustom" id="shCustomWrap" hidden>List
@@ -328,6 +331,7 @@ Nuswape koime, lwajipe koime.</textarea>
       <li><kbd>-</kbd> splits a stem from its endings yourself: <kbd>lõji-wa</kbd>. Use it when the app guesses the stem wrong, or to stop a split.</li>
       <li><kbd>+</kbd> joins compound blocks: <kbd>koime+zaĩko</kbd>.</li>
       <li><kbd>*</kbd> in front of a word writes it as a loan: <kbd>*jura</kbd>.</li>
+      <li>Numbers: type the digits, <kbd>27</kbd>. A counter joins on: <kbd>3re</kbd> <kbd>4ko</kbd>. The ten digits are separate signs modelled on the Japanese numerals; zero is the empty cup. In Blocks and rows a number packs into a block; put a space in a long number (<kbd>250 000</kbd>) to split it into two blocks.</li>
       <li>Quotation marks, straight or curly, become corner brackets 「 」. <kbd>?</kbd> and <kbd>!</kbd> have their own marks.</li>
       <li>Elision is spoken, not written: <kbd>d'itsuze</kbd> is written as the whole particle di, then itsuze.</li>
     </ul></div>
@@ -366,7 +370,7 @@ Nuswape koime, lwajipe koime.</textarea>
 <script>
 (function(){
 'use strict';
-var BUILD='build 2026-09-30-0939';
+var BUILD='build 2026-10-03-0209';
 document.getElementById('stamp').textContent=BUILD;
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function load(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
@@ -381,7 +385,8 @@ var PROF={
   d:function(t){return t<.85?.35+.95*sm(t/.85):1.3-.2*sm((t-.85)/.15)},
   k:function(t){return 1-.95*sm(t)},
   f:function(t){return 1-.9*sm(t)},
-  c:function(t){return .3+.6*sm(t)}
+  c:function(t){return .3+.6*sm(t)},
+  o:function(t){return .22+.95*Math.sin(Math.PI*t)}
 };
 var ENDCAP={h:1,v:1,d:1};
 /* a third element of 1 marks a stroke written in the same movement as the one before it */
@@ -491,11 +496,56 @@ function fit(b,x0,y0,x1,y1,ratio){
   if(sy>sx*ratio) sy=sx*ratio;
   return [sx,sy,x0+((x1-x0)-b.w*sx)/2-b.x*sx,y0+((y1-y0)-b.h*sy)/2-b.y*sy];
 }
+/* numerals (Script.md §7a). Ten separate signs, read by shape, not counted and not spelled.
+   1-9 are modelled on the Japanese numerals (弌 弍 弎 四 五 六 七 八 九) in the script's own strokes,
+   each opening with the moon curl; 0 is the empty cup. Place value, left to right.
+   Strokes are listed in writing order; each digit is centred in the glyph box. */
+var DIGC={};
+var DIG={
+ 0:withMoon([['v','M22 22V80'],['h','M22 80H80',1],['v','M80 20V82']]),
+ 1:withMoon([['h','M14 30H82'],['h','M16 64H48'],['r','M58 8Q60 58 86 86'],['f','M86 86l5 -14',1]]),
+ 2:withMoon([['h','M14 30H82'],['h','M20 56H46'],['h','M14 76H52'],['r','M58 8Q60 58 86 86'],['f','M86 86l5 -14',1]]),
+ 3:withMoon([['h','M14 30H82'],['h','M20 50H46'],['h','M22 66H46'],['h','M14 84H54'],['r','M58 8Q60 58 86 86'],['f','M86 86l5 -14',1]]),
+ 4:withMoon([['v','M20 22V70'],['h','M20 22H82'],['v','M82 22V70',1],['l','M42 22Q42 60 26 90'],['v','M60 22V76'],['f','M60 76Q62 90 84 84',1]]),
+ 5:withMoon([['h','M26 18H78'],['h','M46 18L38 50H70V84'],['h','M14 84H88']]),
+ 6:withMoon([['v','M50 8V26'],['h','M16 32H86'],['l','M38 48Q36 70 16 90'],['r','M62 48Q70 72 90 88']]),
+ 7:withMoon([['h','M16 26L84 16'],['v','M48 22V72'],['h','M48 72Q48 88 64 88H90',1]]),
+ 8:withMoon([['l','M42 20Q40 60 14 88'],['r','M58 18Q64 60 90 86']]),
+ 9:withMoon([['l','M44 12Q44 58 14 90'],['h','M18 40H66'],['v','M66 40V72',1],['f','M66 72Q66 88 90 80',1]])
+};
+var DIGNOTE={
+ 0:'Zero is the empty cup: the left wall and the floor in one turning stroke, opening with the moon curl, then the right wall.',
+ 1:'The top bar with the moon curl, the one inner bar, then the long hook last.',
+ 2:'The top bar with the moon curl, the two inner bars from the top down, then the long hook last.',
+ 3:'The top bar with the moon curl, the three inner bars from the top down, then the long hook last.',
+ 4:'The left wall with the moon curl, the roof and right wall in one turning stroke, then the two inner strokes, left before right.',
+ 5:'The top bar with the moon curl, the turning stroke down through the middle, then the base bar.',
+ 6:'The tick with the moon curl, the bar, then the two legs, left before right.',
+ 7:'The top bar with the moon curl, then the upright turning right along the foot in one stroke.',
+ 8:'The left sweep with the moon curl, then the right sweep.',
+ 9:'The left sweep with the moon curl, then the bar turning down and flicking out in one stroke.'
+};
+function digitRaw(n){return DIG[n]}
+function digitStrokes(n,T,W){
+  if(!DIGC[n]){
+    var raw=digitRaw(n),x0=1e9,x1=-1e9;
+    raw.forEach(function(s){samples(s[1],ID).forEach(function(p){x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);});});
+    var dx=50-(x0+x1)/2; DIGC[n]={raw:raw,x0:x0+dx,x1:x1+dx,t:[1,1,dx,0]};
+  }
+  var D=DIGC[n], c=0, CT=comp(D.t,T);
+  return D.raw.map(function(s){
+    var j=!!s[2]; if(!j||c===0) c++;
+    return {type:s[0],d:s[1],W:W,T:CT,fill:'bb',join:j,n:c};
+  });
+}
+function isNum(t){return /^\d+$/.test(t)}
+function digitSyl(d){return {digit:+d,label:String(d)}}
 /* one syllable in a 100 x 100 glyph box, placed by T.
    glyphStrokes returns the strokes in WRITING ORDER (Script.md §2a), each numbered:
    the consonant body (moon curl first), then the glide or cluster, the vowel, the
    nasal foot, the voicing ticks, and last the coda dot. */
 function glyphStrokes(s,T,W){
+  if(s.digit!==undefined) return digitStrokes(s.digit,T,W);
   var c=s.c?BASE[s.c]:null, voiced=c&&c.v;
   var x0=8,y0=8,x1=92,y1=92, med=[], vow=[], nas=[], tick=[], coda=[];
   function add(bucket,type,d,w,t,fill,join){bucket.push({type:type,d:d,W:w,T:t,fill:fill,join:!!join})}
@@ -536,6 +586,12 @@ function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp
 function fig(cls,inner,vb,label){return '<figure class="gl '+cls+'">'+svg(inner,vb,label)+'<figcaption>'+esc(label)+'</figcaption></figure>'}
 var REG=[];
 function tag(html,s){var i=REG.push(s)-1;return html.replace('<figure class="gl ','<figure data-i="'+i+'" tabindex="0" role="button" aria-label="stroke order for '+esc(s.label)+'" class="gl ');}
+/* a digit in a line of writing: the same glyph in a narrower box, so a number sits close together */
+function digitFig(d,cls,W){
+  var s=digitSyl(d), inner=glyph(s,ID,W), D0=DIGC[s.digit], w=D0.x1-D0.x0+26, k=(cls==='dgs'?.62:.92)*w/100;
+  var g=CARVED?'<g filter="url(#carve)"><g fill="#fff" transform="translate(9 0) skewX(-10)">'+inner+'</g></g>':'<g transform="translate(0 3) skewY(-4)">'+inner+'</g>';
+  return tag('<figure class="gl '+cls+'"><svg viewBox="'+f1(D0.x0-13)+' 0 '+f1(w)+' 100" style="width:calc(var(--bw,84px)*'+k.toFixed(3)+')" role="img" aria-label="'+s.label+'">'+g+'</svg><figcaption>'+s.label+'</figcaption></figure>',s);
+}
 function single(s){return tag(fig('single',glyph(s,ID,7.5),100,s.label),s)}
 function small(s,cls){return tag(fig(cls,glyph(s,ID,10),100,s.label),s)}
 
@@ -567,6 +623,9 @@ function soOpen(s){
   SO.s=s; SO.list=glyphStrokes(s,ID,7.5); SO.max=SO.list.length?SO.list[SO.list.length-1].n:0; SO.upto=SO.max;
   document.getElementById('soTitle').textContent='Stroke order \u00b7 '+s.label;
   var parts=[];
+  if(s.digit!==undefined){
+    document.getElementById('soNote').textContent=DIGNOTE[s.digit];
+  } else {
   if(s.c) parts.push('the consonant '+s.c+' with its moon curl');
   else parts.push('the carrier with its moon curl');
   if(s.med) parts.push('the '+s.med+(s.med2?' and '+s.med2:'')+' stroke'+(s.med2?'s':''));
@@ -575,6 +634,7 @@ function soOpen(s){
   if(s.c&&BASE[s.c].v) parts.push('the voicing ticks');
   if(s.v===null) parts.push('the coda dot');
   document.getElementById('soNote').textContent='Written as '+parts.join(', then ')+'.';
+  }
   var strip='';
   for(var k=1;k<=SO.max;k++) strip+='<figure>'+soSVG(SO.list,k,false,true)+'<figcaption>'+k+'</figcaption></figure>';
   document.getElementById('soStrip').innerHTML=strip;
@@ -723,6 +783,16 @@ function analyse(tok){
 
 /* ================= writing words and lines ================= */
 function word(tok,warn){
+  /* a number: in Row only its digits in a row; in Blocks and rows packed into a block like a stem
+     (up to six digits; longer numbers in touching blocks of three), then any counter (3re, 4ko) as a small trailing glyph */
+  var num=/^(\d+)-?(.*)$/.exec(tok);
+  if(num){
+    var dl=num[1].split('').map(digitSyl), dh='', th='';
+    if(ROWONLY) dh=dl.map(function(x){return digitFig(x.digit,'dgs',10)}).join('');
+    else { var grp=[]; while(dl.length>6) grp.unshift(dl.splice(-3)); grp.unshift(dl); dh='<span class="cmp">'+grp.map(function(g){return block(g,g.map(function(x){return x.label}).join(''))}).join('')+'</span>'; }
+    if(num[2]){var nr=syls(num[2]); nr.warn.forEach(function(x){warn.push(tok+': '+x)}); th=nr.syls.map(function(s){return small(s,ROWONLY?'rw':'tl')}).join('');}
+    return '<span class="w">'+dh+th+'</span>';
+  }
   var a=analyse(tok), html='';
   function glyphsOf(str,cls){
     var r=syls(str); r.warn.forEach(function(x){warn.push(tok+': '+x)});
@@ -876,6 +946,10 @@ function renderChart(){
     var items=k[1].split(' ').map(function(x){return syls(x).syls.map(single).join('')}).join('');
     return '<div class="key"><span class="tag">'+k[0]+'</span><div class="row">'+items+'</div><p>'+k[2]+'</p></div>';
   }).join('')+
+  '<div class="key"><span class="tag">Numerals</span><div class="row">'+[1,2,3,4,5,6,7,8,9,0].map(function(d){return single(digitSyl(d))}).join('')+
+  '</div><p>Ten separate signs, read by shape. One to nine follow the Japanese numerals, drawn in the script\u2019s strokes and opening with the moon curl. Zero is the empty cup.</p></div>'+
+  '<div class="key" style="--bw:58px"><span class="tag">Numbers</span><div class="line">'+line('10 27 305 2026 3re',[])+
+  '</div><p>Place value, left to right. In Blocks and rows a number packs into a block like a stem; in Row only its digits stand in a row. A counter trails in a small glyph: 3re.</p></div>'+
   '<div class="key" style="--bw:70px"><span class="tag">Punctuation</span><div class="row">'+
     [',','.','?','!','「','」'].map(function(p){return punct(p).replace('<figcaption>&nbsp;</figcaption>','<figcaption>'+esc(p)+'</figcaption>')}).join('')+
   '</div><p>Comma (and), full stop, question, exclamation, and corner brackets for quotations. Type ordinary quotation marks and they become brackets.</p></div>';
@@ -924,10 +998,13 @@ function randSyl(marks,fam){
 /* spaced review: every item sits in a box from 1 (missed) to 5 (solid); boxes 1-2 come back often */
 var BOXES={};
 try{BOXES=JSON.parse(load('lunaji-brush-boxes','{}'))||{}}catch(e){BOXES={}}
-function cfgKey(){return PDIR+'|'+PSET+'|'+(PSET==='words'?'-':PFAM)+'|'}
+function cfgKey(){return PDIR+'|'+PSET+'|'+(PSET==='words'||PSET==='digits'?'-':PFAM)+'|'}
 function dueList(){var pre=cfgKey();return Object.keys(BOXES).filter(function(k){return k.indexOf(pre)===0&&BOXES[k]<=2}).map(function(k){return k.slice(pre.length)})}
 function glossOf(w){for(var i=0;i<WORDLIST.length;i++) if(WORDLIST[i][0]===w) return WORDLIST[i][1]; return ''}
-function freshItem(){return PSET==='words'?pick(WORDLIST)[0]:randSyl(PSET==='marks',PFAM)}
+function freshItem(){
+  if(PSET==='digits') return String(Math.random()<.7?Math.floor(Math.random()*10):10+Math.floor(Math.random()*90));
+  return PSET==='words'?pick(WORDLIST)[0]:randSyl(PSET==='marks',PFAM);
+}
 function drawItem(){
   var prev=Q&&Q.ans, due=dueList().filter(function(x){return x!==prev}), item;
   if(due.length&&Math.random()<.45){
@@ -958,7 +1035,11 @@ function showBtns(){
   document.getElementById('missBtn').hidden=!w||!revealed||answered;
   document.getElementById('nextBtn').hidden=w&&!answered;
 }
-function glyphsFor(ans){return PSET==='words'?'<div class="line">'+line(ans,[])+'</div>':syls(ans).syls.map(single).join('')}
+function itemSyls(ans){return isNum(ans)?ans.split('').map(digitSyl):syls(ans).syls}
+function glyphsFor(ans){
+  if(isNum(ans)) return ans.split('').map(function(d){return digitFig(d,'dg',7.5)}).join('');
+  return PSET==='words'?'<div class="line">'+line(ans,[])+'</div>':syls(ans).syls.map(single).join('');
+}
 function newQ(){
   answered=false; revealed=false;
   var fb=document.getElementById('feedback'); fb.textContent=''; fb.className='feedback';
@@ -982,7 +1063,7 @@ function paintQ(){
     var html='<div class="prompt">'+esc(Q.ans)+'</div>'+(Q.gloss?'<div class="prompt-gloss">\u201c'+esc(Q.gloss)+'\u201d</div>':'');
     if(revealed){
       html+='<div class="reveal"><div class="row" style="justify-content:center">'+glyphsFor(Q.ans)+'</div>';
-      var sy=syls(Q.ans).syls;
+      var sy=itemSyls(Q.ans);
       if(PSET!=='words'&&sy.length===1){
         var list=glyphStrokes(sy[0],ID,7.5), max=list.length?list[list.length-1].n:0, strip='';
         for(var k=1;k<=max;k++) strip+='<figure>'+soSVG(list,k,false,true)+'<figcaption>'+k+'</figcaption></figure>';
@@ -1010,7 +1091,7 @@ function renderScore(){
   var d=dueList().length;
   document.getElementById('due').textContent=d?d+' to review in this set':'nothing waiting for review in this set';
 }
-function resetPractice(){ document.getElementById('pNote').textContent=PNOTES[PDIR]; document.getElementById('pFam').disabled=(PSET==='words'); renderScore(); newQ(); }
+function resetPractice(){ document.getElementById('pNote').textContent=PNOTES[PDIR]; document.getElementById('pFam').disabled=(PSET==='words'||PSET==='digits'); renderScore(); newQ(); }
 document.getElementById('nextBtn').addEventListener('click',newQ);
 document.querySelectorAll('input[name=pset]').forEach(function(r){r.addEventListener('change',function(){PSET=r.value;resetPractice();})});
 document.querySelectorAll('input[name=pdir]').forEach(function(r){r.addEventListener('change',function(){PDIR=r.value;store('lunaji-brush-pdir',PDIR);resetPractice();})});
@@ -1029,6 +1110,7 @@ function sheetItems(){
   var what=document.getElementById('shWhat').value, items=[];
   function addText(str){
     str.split(/[\s,]+/).filter(Boolean).forEach(function(w){
+      if(isNum(w)){ var ds=w.split('').map(digitSyl); items.push(ds.length===1?{kind:'syl',s:ds[0],label:w}:{kind:'word',list:ds,label:w}); return; }
       var r=syls(w.replace(/[-+*]/g,'')); if(!r.syls.length) return;
       items.push(r.syls.length===1?{kind:'syl',s:r.syls[0],label:r.syls[0].label}:{kind:'word',list:r.syls,label:w.replace(/[-+*]/g,'').normalize('NFC')});
     });
@@ -1037,6 +1119,7 @@ function sheetItems(){
   else if(what==='vowels') addText('u a i e o \u00fc \u00f6 \u00e3 \u0129 \u00f5');
   else if(what==='vmarks') addText('ku ka ki ke ko k\u00fc k\u00f6 k\u00e3 k\u0129 k\u00f5');
   else if(what==='marks'){ addText('ga zo kya twa pra blo prya'); items.push({kind:'syl',s:{c:'l',v:null,nasal:false,label:'l\u00b7'},label:'l\u00b7 (coda)'}); addText('kilsu otto'); }
+  else if(what==='digits') addText('1 2 3 4 5 6 7 8 9 0 10');
   else if(what==='words') addText(SHEET_WORDS.join(' '));
   else addText(document.getElementById('shCustom').value);
   return items;
