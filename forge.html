@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-03-0636</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-06-0723</div>
 <p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -145,7 +145,7 @@ details.panel>summary{cursor:pointer}
       <div>
         <label for="pTier">How often it will be said</label>
         <select id="pTier">
-          <option value="core">Core — daily, short, protected</option>
+          <option value="core">Core — daily, short (2–3 syllables), protected</option>
           <option value="ord" selected>Ordinary</option>
           <option value="rare">Rare or technical — longer, plainer</option>
         </select>
@@ -198,6 +198,7 @@ details.panel>summary{cursor:pointer}
       <label><input type="checkbox" id="fParticle" checked><span>Reject a word that splits into a particle sequence <em>— ani is a + ni</em></span></label>
       <label><input type="checkbox" id="fNoGlide"><span>Reject any glide <em>— y or w before a vowel; ny is not a glide</em></span></label>
       <label><input type="checkbox" id="fEnglish" checked><span>Reject a common English word <em>— Lunaji and English share an inventory, so some legal draws land on one</em></span></label>
+      <label><input type="checkbox" id="fTwin"><span>Reject a word one letter from an existing word of the same class <em>— on by default for core words, which are short and collide easily</em></span></label>
       <label><input type="checkbox" id="fHead"><span>Reject a first syllable an existing word already has</span></label>
     </div>
     <div class="row" style="margin-top:8px">
@@ -238,9 +239,9 @@ details.panel>summary{cursor:pointer}
     <div>
       <label for="syls">Syllables</label>
       <select id="syls">
-        <option value="0">3 or 4, weighted</option>
+        <option value="0">By tier — core 2–3, ordinary 2–4, rare 3–4</option>
         <option value="1">1 — ancient function root</option>
-        <option value="2">2 — recent recruit</option>
+        <option value="2">2 — a core word, or a recent recruit</option>
         <option value="3">3</option>
         <option value="4">4</option>
       </select>
@@ -896,7 +897,12 @@ function R7(){ return false; }
 function R8(w){
   let fired=false;
   for(let i=0;i<w.length-1;i++){
-    const a=w[i], b=w[i+1];
+    const a=w[i];
+    // ZUIU → z·w·y·u: R2 glided both vowels, and only the last glide is ever
+    // spelled or said. Drop the buried w so the s/z stands next to its y.
+    if((a.t==="C"||a.t==="K") && (a.s==="s"||a.s==="z") && w[i+1].t==="G" && w[i+1].s==="w" &&
+       w[i+2] && w[i+2].t==="G" && w[i+2].s==="y") w.splice(i+1,1);
+    const b=w[i+1];
     if(a.t==="C" && (a.s==="s"||a.s==="z") && b.t==="V" && b.s==="i"){
       a.s = a.s==="s" ? "ʃ" : "ʒ"; fired=true;
     }
@@ -907,6 +913,15 @@ function R8(w){
        a contrast one speaker cannot hold, so sy and zy never surface. */
     if(a.t==="C" && (a.s==="s"||a.s==="z") && b.t==="G" && b.s==="y"){
       a.s = a.s==="s" ? "ʃ" : "ʒ"; w.splice(i+1,1); fired=true;
+      // sussyu-type: a long s in front of it has nothing left to be long with
+      if(w[i-1] && w[i-1].t==="K" && w[i-1].s==="s"){ w.splice(i-1,1); i--; }
+    }
+    /* Ruled 2026-10-03 (later the same day): a CODA s before an onset y goes the
+       same way — NONLASUYU → nõlashu, not /nõ.las.yu/. The coda is lost: the s
+       becomes the onset sh and the glide is absorbed. Spelling could not tell
+       las.yu from la.syu, so one rule covers both. */
+    else if(a.t==="K" && a.s==="s" && (b.t==="G"||b.t==="C") && b.s==="y"){
+      w[i] = {t:"C", s:"ʃ"}; w.splice(i+1,1); fired=true;
     }
   }
   return fired;
@@ -1442,6 +1457,7 @@ function readFilter(){
     cls:     ($("cls") && $("cls").value) || "pnoun",
     english: $("fEnglish") && $("fEnglish").checked,
     particle: $("fParticle") && $("fParticle").checked,
+    twin:     $("fTwin") && $("fTwin").checked,
     head:     $("fHead") && $("fHead").checked,
     rhymeList: list("fRhymeList"),
     field:    ($("fField") && $("fField").value.trim().toLowerCase()) || ""
@@ -1454,6 +1470,7 @@ function filterText(){
   if(f.banSeq.length)  bits.push("no " + f.banSeq.join("/"));
   if(f.noGlide)        bits.push("no glides");
   if(f.particle)       bits.push("not a particle sequence");
+  if(f.twin)           bits.push("no near-twin in the class");
   if(f.head)           bits.push("no shared first syllable");
   if(f.onsets.length)  bits.push("theme onset in " + f.onsets.join(""));
   if(f.moraMin || f.moraMax < 99) bits.push(`${f.moraMin || 1}-${f.moraMax === 99 ? "any" : f.moraMax} moras`);
@@ -1519,6 +1536,12 @@ function passesFilter(res, f){
   // Grammar §8: a content word should not be homophonous with a particle
   // sequence. ani is a + ni; lonke is lon + ke. Both were found by ear, late.
   if(f.particle && splitsIntoParticles(w)) return false;
+  // 2026-10-06: short words collide more easily, so a core draw also rejects a
+  // word one letter from an existing word of its own class (sofu / sonu).
+  if(f.twin){
+    const mineT = CMAP[f.cls] || f.cls;
+    if(nearTwins(w).some(t => LEX[t.w] && LEX[t.w].c === mineT)) return false;
+  }
   // The rhyme check compares tails, so a shared head is invisible to it —
   // which is how lonke reached the shortlist beside lonji.
   if(f.head){
@@ -1550,15 +1573,30 @@ function passesFilter(res, f){
   return true;
 }
 
+/* 2026-10-06 — word length follows the tier. Until now every content draw was
+   3 or 4 proto syllables (60/40) whatever the tier, so a core word could never
+   be short and 506 of 687 dictionary words had exactly three syllables. A real
+   language makes its most frequent words its shortest. The run-up argument for
+   3–4 (Proto §1.5) was written under word stress; since 2026-09-28 the accent
+   is assigned per phrase, so the run-up is the phrase and a frequent word may
+   be short. An explicit choice in the Syllables box still overrides this.
+   No existing word is recoined. Measured table: Lexicology §6. */
+const TIER_SYL = {core:[[2,60],[3,40]], ord:[[2,15],[3,65],[4,20]], rare:[[3,40],[4,60]]};
+const CONTENT_CLS = ["verb","adjv","irreg","dnoun","pnoun"];
+function tierSyl(cls, tier){
+  if(!CONTENT_CLS.includes(cls)) return weighted([[3,60],[4,40]]);
+  return weighted(TIER_SYL[tier] || TIER_SYL.ord);
+}
 function drawStock(cls, sylOpt, n, endReq, startReq){
+  const tierNow = ($("pTier") && $("pTier").value) || "ord";
   const out=[]; let guard=0;
   const F = readFilter();
-  const tight = endReq || startReq || F.banEnd.length || F.banSeq.length || F.head || F.english ||
+  const tight = endReq || startReq || F.banEnd.length || F.banSeq.length || F.head || F.english || F.twin ||
                 F.noGlide || F.onsets.length || F.rhyme || F.moraMin;
   const cap = tight ? n*2000 : n*40;
   while(out.length<n && guard<cap){
     guard++;
-    const nSyl = sylOpt || weighted([[3,60],[4,40]]);
+    const nSyl = sylOpt || tierSyl(cls, tierNow);
     const root = generateRoot(cls, nSyl);
     let res;
     try{ res = derive(root); }catch(e){ continue; }
@@ -1605,6 +1643,7 @@ function saveWork(){
   if(restoring) return;
   const f = {};
   WORKFIELDS.forEach(id => { if($(id)) f[id] = $(id).value; });
+  if($("fTwin")) f.fTwin = $("fTwin").checked ? "1" : "";
   try{ localStorage.setItem(WORKKEY, JSON.stringify({f, stock, slotDraws, forced, held, heldFor, lastDraw, LOG})); }
   catch(e){}
 }
@@ -1613,6 +1652,7 @@ function loadWork(){
   if(!v) return;
   restoring = true;
   WORKFIELDS.forEach(id => { if($(id) && v.f && v.f[id] !== undefined) $(id).value = v.f[id]; });
+  if($("fTwin") && v.f && v.f.fTwin !== undefined) $("fTwin").checked = !!v.f.fTwin;
   stock = v.stock || []; slotDraws = v.slotDraws || 0;
   forced = !!v.forced; lastDraw = v.lastDraw || null;
   held = Array.isArray(v.held) ? v.held : []; heldFor = v.heldFor || null;
@@ -1668,10 +1708,14 @@ function paintStack(){
                        : !fOn ? "Draw a fresh stock"
                        : slotDraws === 1 ? "Reject batch — draw one, forced"
                        : "Draw one, forced";
-  const shortContent = ["verb","irreg","dnoun","pnoun"].includes($("cls").value)
-                        && [1,2].includes(Number($("syls").value));
+  // 2026-10-06: two syllables is the normal length of a core word and a legal
+  // one for an ordinary word, so only the settings a tier never draws warn.
+  const sylPick = Number($("syls").value), tierPick = $("pTier").value;
+  const shortContent = CONTENT_CLS.includes($("cls").value) &&
+                       (sylPick === 1 || (sylPick === 2 && tierPick === "rare"));
   $("shortWarn").innerHTML = shortContent
-    ? `<div class="warn">Content roots are 3–4 syllables (Proto §1.5). The 1- and 2-syllable settings are for function roots.</div>` : "";
+    ? `<div class="warn">${sylPick === 1 ? "No tier draws a one-syllable content root — that setting is for ancient function roots."
+        : "A rare word is drawn at 3–4 syllables (Proto §1.5); two is the length of core and some ordinary words."}</div>` : "";
   if(!stock.length && slotDraws>0){
     $("drawWarn").innerHTML = `<div class="warn">No legal root came back. That combination of
       class, syllables, starts-with and ends-in may be impossible — a verb must end in <em>–u</em>,
@@ -1781,13 +1825,15 @@ const PRESETS = {
   num:   {cls:"func", syls:"1", ends:"", onsetSel:"", onset:"", banEnd:"u", banSeq:"", rhyme:"lex", head:true, glide:false, mora:[1,2], tierless:true,
           note:"No final -u — an adjectival verb also precedes the noun."}
 };
-const TIER = {core:[3,4], ord:[3,5], rare:[4,6]};
+const TIER = {core:[2,3], ord:[3,5], rare:[4,6]};   // moras; core was [3,4] until 2026-10-06
 function applyPreset(){
   const k = $("pPreset").value, P = PRESETS[k];
   if(!P){ $("presetNote").textContent = "Fields set by hand."; return; }
   $("cls").value = P.cls; $("syls").value = P.syls; $("ends").value = P.ends; $("onset").value = P.onsetSel;
   $("fBanEnd").value = P.banEnd; $("fBanSeq").value = P.banSeq; $("fRhyme").value = P.rhyme;
   $("fHead").checked = P.head; $("fNoGlide").checked = P.glide; $("fParticle").checked = true;
+  // core words are short, so they also dodge near-twins in their own class
+  $("fTwin").checked = !P.tierless && $("pTier").value === "core";
   let onset = P.onset, mora = P.mora;
   if(!P.tierless){
     const tier = $("pTier").value;
