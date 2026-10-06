@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-06-0723</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-06-1155</div>
 <p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -1227,7 +1227,7 @@ function check(res, cls){
   t.push({ok:true, s: res.moras + " mora" + (res.moras===1?"":"s")});
   const spT = res.spelling;                 // tilde — how the lexicon is keyed
   const sp  = res.spellingN || toN(spT);    // n-form — what the regexes below expect
-  // a glide before its own vowel is inaudible — /yi/ and /wu/. ny + i is ɲi and is left alone.
+  // a glide before its own vowel is inaudible — /yi/ and /wu/. nyi is banned separately, just below.
   // Phonology §4.1b — no oral length, so /o.o/ cannot be heard as two beats
   if(/([aeiouüö])\1/.test(sp)) t.push({ok:false, s:"identical-vowel hiatus — unrecoverable without oral length"});
   // R11, running since 2026-09-18: /o.u/ and /u.o/ collapse in speech, so a word
@@ -1238,6 +1238,11 @@ function check(res, cls){
   if(/[yw][yw]/.test(sp.replace(/ny/g,"N"))) t.push({ok:false, s:"two glides in a row"});
   if(/(^|[^n])yi/.test(sp) || /wu/.test(sp))
     t.push({ok:false, s:"glide before its own vowel (/yi/, /wu/) — inaudible"});
+  // 2026-10-06: Phonology §4.2 rule 7a banned nyi on 2026-09-11 — /ɲi/ against
+  // /ni/ is a contrast one speaker cannot hold. The line above was written the
+  // day before and exempted it; nokinyi and dononyi came through that gap.
+  if(/nyi/.test(sp))
+    t.push({ok:false, s:"nyi does not occur — /ɲi/ against /ni/ cannot be held (Phonology §4.2 rule 7a)"});
   if(cls && cls!=="any" && cls!=="func"){
     const endsU = /u$/.test(sp), endsNas = /[aio]n$/.test(sp), endsA = /a$/.test(sp);
     const nasalEnd = endsNas;
@@ -2686,6 +2691,7 @@ function wordRisks(w, cls){
     const hit = allVerbForms(w).find(x => x.f !== w && Object.prototype.hasOwnProperty.call(LEX, x.f));
     if(hit) block.push("its form " + hit.f + " (-" + hit.ends.join(" -") + ") is already a word \u2014 " + (LEX[hit.f].g || ""));
   }
+  if(/ny[iĩ]/.test(w)) block.push("nyi does not occur \u2014 /\u0272i/ against /ni/ cannot be held (Phonology \u00a74.2 rule 7a)");
   if(hasSyZy(w)) block.push("sy / zy do not occur \u2014 they surface as sh / j: " + palSpell(w));
   // 2026-09-30: a tilde vowel is a vowel, so the n in rikunã is an onset (ri.ku.nã)
   if(/[eu]n(?![aeiouüöãĩõẽũyw'])/.test(w) || /[ẽũ]/.test(w)) block.push("spells a nasal vowel the language lacks \u2014 only ã ĩ õ");
