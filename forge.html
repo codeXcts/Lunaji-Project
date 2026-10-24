@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-11-2308 · made on build 2026-10-11-2256</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-24-1247 · made on build 2026-10-11-2308</div>
 <p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -643,6 +643,7 @@ details.panel>summary{cursor:pointer}
     <button class="btn ghost" id="lxGram">Update to the new verb endings — hena → -ena</button>
     <button class="btn ghost" id="lxAsp">Update to the aspect particles — sofu byõ → ila sofu</button>
     <button class="btn ghost" id="lxEl11">Update to the 2026-10-11 rulings — -vu, -ga, pe and puso elision</button>
+    <button class="btn ghost" id="lxEl24">Update to the 2026-10-24 rulings — kügi, toma, fa and mishi elision, the comma</button>
     <p class="hint">Checks every stored word for what the Borrow tab and the hand-add box let through: <em>en</em>/<em>un</em> spellings, identical-vowel and back-rounded (R11) hiatus, nouns in <em>–u</em>, words that open on numeral + counter or split into particles, shared glosses, missing glosses.</p>
     <p class="hint">R13 (2026-09-29): a native word's <em>u</em> is <em>ü</em> when the next syllable has <em>i</em> or <em>ĩ</em> — <em>uwiki</em> → <em>üwiki</em>. It is a completed change, so it respells stems once and never touches a suffix (<em>kominuri</em> stays). Loans are skipped. You see the list before anything changes; the phrasebook, sentence bank and review progress follow the new spellings.</p>
     <p class="hint">2026-10-03: <em>sy</em> and <em>zy</em> are respelled <em>sh</em> and <em>j</em> by the same button (<em>izyubã</em> → <em>ijubã</em>), since <em>s</em> and <em>z</em> now palatalize before <em>y</em> as they do before <em>i</em>. Proto-roots are untouched.</p>
@@ -651,6 +652,7 @@ details.panel>summary{cursor:pointer}
     <p class="hint">2026-10-03: negation is the ending <em>-ena</em> before the tense (<em>sofuze hena</em> → <em>sofuenaze</em>), <em>can</em> and <em>want to</em> are the endings <em>-bi</em> and <em>-du</em>, and <em>mi</em> is retired. The last button finds every phrasebook line, bank line and waiting Confirm sentence still written the old way and shows each change before making it. A noun with <em>hena</em> (<em>Noaye hena</em>) is left alone.</p>
     <p class="hint">2026-10-07: completed and habitual are the particles <em>ila</em> and <em>zoka</em>, in front of the verb, and they take no ending (<em>sofu byonenaze</em> → <em>ila sofuenaze</em>). <em>na</em>, <em>ila</em> and <em>zoka</em> drop their vowel before any vowel (<em>il'onu</em>, <em>n'omime</em>), and <em>ni</em> and <em>di</em> elide into <em>ila</em> (<em>üwikin'ila</em>). The last button adds the two particles, retires <em>byõ</em> and <em>lõ</em>, and shows every stored sentence it would rewrite before changing it. A past habitual (<em>sofuri lõze</em>) has two forms now, so you choose for each one.</p>
     <p class="hint">2026-10-11: the endings <em>-vu</em> (state: <em>gosomuvu</em>, to be broken) and <em>-ga</em> (one who: <em>ineluga</em>) and the word <em>puso</em> go into the lexicon. Three elisions are written: <em>pe</em> before any vowel (<em>nuswap'akyoza</em>), a nasal vowel counting as the same vowel (<em>yãkin'ĩpõgu</em>), and <em>puso</em> before <em>o</em> or <em>õ</em> only (<em>pus'onyake</em>). The last button shows every stored sentence it would rewrite before changing it. Compounds are built in the Compound tab (Grammar §2.7).</p>
+    <p class="hint">2026-10-24: <em>kügi</em>, "than", goes into the lexicon and leans forward (<em>küg'ilusã</em>, the <em>ü</em> kept); <em>toma</em> is "from" only. <em>fa</em> drops its vowel before <em>a</em> or <em>ã</em> (<em>mumã f'ani</em>) and <em>mishi</em> before <em>i</em> or <em>ĩ</em> (<em>mish'ilusãba</em>). The comma is a pause only and no longer "and", and two bare nouns side by side are not a construction: the button lists stored lines with a comma or two bare nouns together, to check by hand — it never rewrites those. <em>fa</em>, <em>mishi</em>, <em>mishiku</em> and <em>mishika</em> come in through the Forge Queue, not this button.</p>
     <div id="lxAuditOut"></div>
   </div>
   <div class="panel">
@@ -1182,7 +1184,7 @@ const LEX_SEED = {
   "a":["topic particle","func"],"na":["that; this — demonstrative","func"],
   "ba":["subject particle","func"],"ni":["object particle","func"],
   "pe":["possessive particle","func"],"wa":["location particle","func"],
-  "di":["oblique particle","func"],"toma":["from; than","func"],
+  "di":["oblique particle","func"],"toma":["from","func"],
   "hena":["not (on a noun); no","func"],
   "ta":["plural, animates only","suffix"],"ze":["past tense","suffix"],
   "ri":["ongoing aspect","suffix"],"ena":["negation, before the tense","suffix"],
@@ -1198,6 +1200,8 @@ const LEX_SEED = {
   "vu":["to be ___ed — state ending, makes a verb","suffix"],
   "ga":["one who ___ — agent ending, makes a noun","suffix"],
   "puso":["or — stands between the two things it joins","func"],
+  /* 2026-10-12 — Grammar §5.4. The one preposition; toma is "from" only. */
+  "kügi":["than — the one preposition; stands before the standard","func"],
   /* numbers */
   "zo":["1","func"],"van":["2","func"],"ki":["3","func"],"ra":["4","func"],"bai":["5","func"],
   "baizo":["6","func"],"baivan":["7","func"],"baiki":["8","func"],"baira":["9","func"],
@@ -2242,8 +2246,10 @@ function agentReads(w){
    case particles keep same-vowel elision only, which is what lets ni and di
    elide into ila: üwikini ila sofu → üwikin'ila sofu. */
 const ASPECT = {ila: "completed", zoka: "habitual"};
-const LEAN = {n: "na", il: "ila", zok: "zoka"};          // what is left of each once its vowel is gone
-const LEANFULL = {na: 1, ila: 1, zoka: 1};
+/* 2026-10-12 — kügi, "than", leans forward too (Grammar §1b.4, §5.4): küg'ilusã.
+   Its ü stays when the i drops (küg'omime, never kug'omime). */
+const LEAN = {n: "na", il: "ila", zok: "zoka", "küg": "kügi"};   // what is left of each once its vowel is gone
+const LEANFULL = {na: 1, ila: 1, zoka: 1, "kügi": 1};
 const EVOW = "aeiouüöãĩõẽũ";
 const startsV = w => !!w && EVOW.includes(w[0].toLowerCase());
 const isAspect = w => Object.prototype.hasOwnProperty.call(ASPECT, String(w || "").toLowerCase());
@@ -2318,6 +2324,10 @@ function elideLean(line){
    a verb's clause particle. The topic a after a nasal-final noun is not
    elided: Grammar §8 leaves it to context. */
 const ELIDE_BEFORE = {pe: "aeiouüöãĩõ", ni: "iĩ", di: "iĩ", ba: "aã", wa: "aã", na: "aã"};
+/* 2026-10-24 — Grammar §6.0. The two words for "and" drop their vowel before
+   their own vowel only, as puso does: fa before a or ã (mumã f'ani), mishi
+   before i or ĩ (mish'ilusãba). Neither leans forward. */
+const OWN_VOWEL = {puso: "o\u00f5", fa: "a\u00e3", mishi: "i\u0129"};
 function nounKey(stem){
   const s = String(stem || "").toLowerCase();
   if(!s) return null;
@@ -2337,8 +2347,8 @@ function elideMore(line){
     if(!nx || tailP(T[i]) || /^["\u201c]/.test(nx)) continue;
     const c = core(T[i]), low = c.toLowerCase(), v = core(nx).charAt(0).toLowerCase();
     if(!v || !EVOW.includes(v) || /'/.test(c)) continue;
-    if(low === "puso"){
-      if("o\u00f5".includes(v)) T.splice(i, 2, T[i].slice(0, -1) + "'" + nx);
+    if(Object.prototype.hasOwnProperty.call(OWN_VOWEL, low)){
+      if(OWN_VOWEL[low].includes(v)) T.splice(i, 2, T[i].slice(0, -1) + "'" + nx);
       continue;
     }
     if(LEX[low] || LEX[toTilde(low)]) continue;           // a whole word, not word + particle
@@ -2635,8 +2645,9 @@ function framesFor(w, cls){
     put("Ongoing attributive", verbForm(w, "ri") + " helãba", "where the -ri stutter would show");
     put("Adverbial", "noayeni " + w + " kyõkuze", "bare verb before the main verb");
     put("Negated", verbForm(w, "ena"), nas ? "the nasal links \u2014 no tilde" : "theme -u stays: u.e in hiatus");
-    // 2026-10-11 — the toma comparative was rejected by ear; the word for "than"
-    // is not drawn yet (Grammar §5.4), so there is no comparative frame.
+    // 2026-10-24 — comparison: kügi before the standard, uã after it (Grammar §5.4)
+    put("Compared \u2014 kügi", "Lwajiba kügi nuswa " + w, "faster than me: kügi stands before the standard, which takes no particle (Grammar \u00a75.4)");
+    put("As \u2026 as \u2014 uã", "Lwajiba nuswa uã " + w, "uã stands after the standard (Grammar \u00a75.4)");
     put("Full clause", "Lõjiwa " + w + " helãba hĩ.", "against the benchmark");
     put("One who \u2014 -ga", verbForm(w, "ga") + "ba hĩ", "the lasting trait, as a name (Grammar \u00a72.6)");
     F.push({l:"Bare", line:w, why:"legality only", legality:true});
@@ -2644,7 +2655,9 @@ function framesFor(w, cls){
     put("Negated \u2014 the seam", verbForm(w, "ena"), nas ? "the nasal links \u2014 no tilde" : "theme -u stays: u.e in hiatus");
     put("Past", verbForm(w, "ze"), nas ? "no theme vowel protecting the suffix" : "");
     put("Past negative", verbForm(w, "ena", "ze"), "-ena sits before the tense");
-    put("Can / want to", verbForm(w, "bi") + ", " + verbForm(w, "du"), /du$/.test(w) ? "the -dudu watch item (Grammar \u00a78)" : "");
+    // 2026-10-24 — two frames, not one joined by a comma: a comma is a pause only (Grammar §6.0)
+    put("Can", verbForm(w, "bi"), "");
+    put("Want to", verbForm(w, "du"), /du$/.test(w) ? "the -dudu watch item (Grammar \u00a78)" : "");
     put("With an object", "noayeni " + verbForm(w, "ze"), "one phrase \u2014 no beat after ni (Grammar \u00a71b.4)");
     // 2026-10-07 — aspect is a particle in front of the verb (Grammar §4.2)
     put("Completed", leanJoin("ila", w), startsV(w) ? "ila drops its vowel before a vowel (\u00a71b.4)" : "the particle stands in front and takes no ending");
@@ -3528,8 +3541,9 @@ function nounTables(w){
       pdRow("location", J(w, "wa"), nasalFinal(w) ? "apostrophe: the nasal holds before a glide (Phonology §6)" : "place and time both", w),
       pdRow("oblique", w + "di", "to, with, by, about — not <em>from</em>", w),
       pdRow("object, before <em>ila</em>", obj.slice(0, -1) + "'ila sofu", "<em>ni</em> drops before <em>i</em> or <em>ĩ</em> (\u00a71b.4)", null),
-      pdRow("source", w + " toma", "from · than — written separate", w),
-      pdRow("equative", w + " uan", "as … as", w)
+      pdRow("source", w + " toma", "from — written separate", w),
+      pdRow("standard, after <em>kügi</em>", leanJoin("kügi", w), "than — <em>kügi</em> stands before it and drops its <em>i</em> before a vowel; the <em>ü</em> stays (\u00a75.4)", null),
+      pdRow("equative", w + " uan", "as … as — after the standard (\u00a75.4)", w)
     ]),
     pdTable("Number, size, count", [
       pdRow("plural", w + "ta", "animates only — when it acts (§3.3). Never on plants or objects", w),
@@ -3660,7 +3674,8 @@ function verbTables(w){
       pdRow("attributive", w + " helã", "before a noun \u2014 also the relative clause", null),
       pdRow("attributive, negative", V("ena") + " helã", "each clause carries its own negation (\u00a76.2)", null),
       pdRow("adverbial", w + " sofu", "before a verb \u2014 no suffix", null),
-      pdRow("comparative", "lõjiba onãkõzã toma " + w, "only meaningful on adjectival verbs (\u00a75.4)", null)
+      pdRow("comparative", "onãkõzãba kügi lõji " + w, "<em>kügi</em> before the standard \u2014 only meaningful on adjectival verbs (\u00a75.4)", null),
+      pdRow("equative", "onãkõzãba lõji uã " + w, "<em>uã</em> after the standard (\u00a75.4)", null)
     ]));
   return T.join("");
 }
@@ -5564,6 +5579,87 @@ $("lxEl11").onclick = () => {
     renderLex(); paintPB();
     logLine(`${stamp()}  updated to the 2026-10-11 rulings: ${n} sentence${n === 1 ? "" : "s"} rewritten${did.length ? "; " + did.join("; ") : ""}`);
     $("lxAuditOut").innerHTML = `<p class="hint">${n} sentence${n === 1 ? "" : "s"} rewritten${did.length ? "; " + did.join("; ") : ""}. <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
+  };
+};
+
+/* ══════════ the 2026-10-24 rulings on stored sentences ══════════
+   Grammar §5.4, §6.0. Adds kügi to the lexicon if it is missing and takes
+   "than" off toma's gloss; writes three elisions into stored lines — kügi
+   before any vowel, fa before a or ã, mishi before i or ĩ — and nothing else.
+   The comma is a pause only now, and two bare nouns side by side are not a
+   construction: lines that have either are listed to check by hand, never
+   rewritten, since only the speaker knows which "and" was meant. */
+function el24Core(line){
+  const T = line.split(" ");
+  const core = t => t.replace(/[.?!,"\u201c\u201d]/g, "");
+  const tailP = t => (t.match(/[.?!,"\u201d]+$/) || [""])[0];
+  for(let i = T.length - 2; i >= 0; i--){
+    const nx = T[i+1];
+    if(!nx || tailP(T[i]) || /^["\u201c]/.test(nx)) continue;
+    const low = core(T[i]).toLowerCase(), v = core(nx).charAt(0).toLowerCase();
+    if(!v || !EVOW.includes(v)) continue;
+    const ok = low === "kügi" || (low === "fa" && "a\u00e3".includes(v)) || (low === "mishi" && "i\u0129".includes(v));
+    if(ok) T.splice(i, 2, T[i].slice(0, -1) + "'" + nx);
+  }
+  return T.join(" ");
+}
+function el24Line(l){
+  const k = l.indexOf("|"), lu = k < 0 ? l : l.slice(0, k), core = lu.replace(/\s+$/, "");
+  const n = el24Core(core);
+  return n === core ? l : n + lu.slice(core.length) + (k < 0 ? "" : l.slice(k));
+}
+// a bare noun is a known noun with no particle on it; the next one bare too
+function bareNounPair(lu){
+  const W = lu.split(/\s+/).map(t => t.replace(/[.?!,"\u201c\u201d]/g, "").toLowerCase()).filter(Boolean);
+  const bare = t => !/'/.test(t) && [t, toTilde(t)].some(x => LEX[x] && LEX[x].c === "noun");
+  for(let i = 0; i + 1 < W.length; i++) if(bare(W[i]) && bare(W[i+1])) return W[i] + " " + W[i+1];
+  return "";
+}
+function el24Lines(){
+  const L = [];
+  PB.forEach(e => L.push({where: "phrasebook", l: e.lu, en: e.en || "", set: n => { e.lu = n; }}));
+  ["verb","noun"].forEach(k => (BANK[k] || "").split("\n").forEach(l => { if(l.trim()) L.push({where: "sentence bank", l, en: "", set: n => { BANK[k] = BANK[k].split("\n").map(x => x === l ? n : x).join("\n"); }}); }));
+  ((typeof QU !== "undefined" && QU && QU.items) || []).forEach(it => (it.sent || "").split("\n").forEach(l => { if(l.trim()) L.push({where: "waiting: " + it.gloss, l, en: "", set: n => { it.sent = it.sent.split("\n").map(x => x === l ? n : x).join("\n"); }}); }));
+  return L;
+}
+$("lxEl24").onclick = () => {
+  const L = el24Lines(), jobs = [], look = [];
+  L.forEach(x => {
+    const n = el24Line(x.l);
+    if(n !== x.l) jobs.push({where: x.where, from: x.l, to: n, en: x.en, go: () => x.set(n)});
+    const k = x.l.indexOf("|"), lu = k < 0 ? x.l : x.l.slice(0, k);
+    const why = [];
+    if(/,/.test(lu)) why.push("a comma — a pause only now; \"and\" is fa or mishi");
+    const pr = bareNounPair(lu);
+    if(pr) why.push("two bare nouns side by side (" + pr + ") — fa, pe or a compound");
+    if(why.length) look.push({where: x.where, l: x.l, en: x.en, why: why.join("; ")});
+  });
+  const addK = !LEX["kügi"] && !LEX[toN("kügi")];
+  const tomaFix = LEX["toma"] && /than/.test(LEX["toma"].g || "");
+  if(!jobs.length && !addK && !tomaFix && !look.length){ $("lxAuditOut").innerHTML = `<p class="hint">Nothing to update — <em>kügi</em> is in the lexicon, <em>toma</em> is "from" only, no stored sentence is missing a 2026-10-24 elision, and none has a comma or two bare nouns side by side.</p>`; return; }
+  $("lxAuditOut").innerHTML =
+    (addK ? `<label style="display:block"><input type="checkbox" id="el24Add" checked> Add <em>kügi</em>, "than", to the lexicon</label>` : "") +
+    (tomaFix ? `<label style="display:block"><input type="checkbox" id="el24Toma" checked> <em>toma</em>: "${esc(LEX["toma"].g)}" → "from"</label>` : "") +
+    (jobs.length ? `<label style="display:block;margin-top:8px">${jobs.length} sentence${jobs.length === 1 ? "" : "s"} to rewrite — untick any that should stay</label>
+      <table>${jobs.map((j, i) => `<tr><td><input type="checkbox" data-el24="${i}" checked></td><td><div class="lun">${esc(j.from)}</div><div class="lun" style="color:var(--lamp)">→ ${esc(j.to)}</div><div class="hint" style="margin:0">${esc(j.where)}${j.en ? " · " + esc(j.en) : ""}</div></td></tr>`).join("")}</table>`
+      : `<p class="hint">No stored sentence needs an elision written in.</p>`) +
+    (look.length ? `<label style="display:block;margin-top:8px">${look.length} line${look.length === 1 ? "" : "s"} to check by hand — not changed</label>
+      <table>${look.map(j => `<tr><td><div class="lun">${esc(j.l)}</div><div class="hint" style="margin:0">${esc(j.why)} · ${esc(j.where)}${j.en ? " · " + esc(j.en) : ""}</div></td></tr>`).join("")}</table>` : "") +
+    ((jobs.length || addK || tomaFix) ? `<button class="btn" id="lxEl24Go" style="margin-top:8px">Update</button>` : "");
+  if(!$("lxEl24Go")) return;
+  $("lxEl24Go").onclick = () => {
+    let n = 0; const did = [];
+    jobs.forEach((j, i) => { if(document.querySelector(`[data-el24="${i}"]`).checked){ j.go(); n++; } });
+    if($("el24Add") && $("el24Add").checked){
+      LEX["kügi"] = {g: "than — the one preposition; stands before the standard", c: "case", real: true, d: stamp()};
+      did.push("added kügi");
+    }
+    if($("el24Toma") && $("el24Toma").checked){ LEX["toma"].g = "from"; did.push("toma is \"from\""); }
+    saveLex(); savePB(); saveBank(); if(typeof saveQ === "function") saveQ();
+    $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
+    renderLex(); paintPB();
+    logLine(`${stamp()}  updated to the 2026-10-24 rulings: ${n} sentence${n === 1 ? "" : "s"} rewritten${did.length ? "; " + did.join("; ") : ""}`);
+    $("lxAuditOut").innerHTML = `<p class="hint">${n} sentence${n === 1 ? "" : "s"} rewritten${did.length ? "; " + did.join("; ") : ""}.${look.length ? " " + look.length + " line" + (look.length === 1 ? "" : "s") + " still to check by hand." : ""} <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
   };
 };
 
