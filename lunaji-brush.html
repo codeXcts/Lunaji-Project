@@ -189,7 +189,7 @@ kbd{font:500 12px var(--mono);padding:1px 5px;border:1px solid var(--line);borde
 <main class="app" id="app" data-parts="on">
   <header>
     <h1>Lunaji Brush</h1>
-    <span class="stamp" id="stamp">build 2026-10-03-0209</span>
+    <span class="stamp" id="stamp">build 2026-10-24-1916</span>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
@@ -217,7 +217,7 @@ kbd{font:500 12px var(--mono);padding:1px 5px;border:1px solid var(--line);borde
 
   <section class="view" id="view-write" role="tabpanel" aria-labelledby="tab-write">
     <label class="sub" for="src">Type Lunaji in the Latin spelling. Each line of text becomes a line of script.</label>
-    <textarea id="src" spellcheck="false" autocomplete="off">Lõjiwa üwikini sofuze hena.
+    <textarea id="src" spellcheck="false" autocomplete="off">Lõjiwa üwikini sofuenaze.
 Nuswape koime, lwajipe koime.</textarea>
     <div class="bar">
       <button class="btn primary" type="button" id="savePng">Save as image</button>
@@ -290,7 +290,7 @@ Nuswape koime, lwajipe koime.</textarea>
           <option value="fam:lips">Lips family</option><option value="fam:tip">Tongue-tip family</option>
           <option value="fam:palate">Palate family</option><option value="fam:back">Back family</option>
           <option value="vowels">Vowels on the carrier</option><option value="vmarks">Every vowel on one consonant</option>
-          <option value="marks">Voicing, glides, clusters, codas</option><option value="digits">Numerals 0 to 9</option><option value="words">Starter words</option>
+          <option value="marks">Voicing, glides, clusters, codas</option><option value="digits">Numerals and zero marks</option><option value="words">Starter words</option>
           <option value="custom">My own list</option>
         </select></label>
       <label class="chk" for="shCustom" id="shCustomWrap" hidden>List
@@ -311,7 +311,7 @@ Nuswape koime, lwajipe koime.</textarea>
     <p class="sub">These lists decide how words are written in Blocks and rows. One entry per line. They are saved in this browser, so export the Forge lexicon habitually and keep these in step with it.</p>
     <div class="lists">
       <label for="lLoans">Loanwords (written in a row)<textarea id="lLoans" spellcheck="false"></textarea></label>
-      <label for="lComp">Compounds (write as parts joined by +)<textarea id="lComp" spellcheck="false"></textarea></label>
+      <label for="lComp">Compounds (parts joined by +; if the spoken word differs, put it first: lõjilli = lõji+illi)<textarea id="lComp" spellcheck="false"></textarea></label>
       <label for="lStems">Whole stems (never split off an ending)<textarea id="lStems" spellcheck="false"></textarea></label>
     </div>
     <div class="bar"><button class="btn primary" type="button" id="saveLists">Save lists</button><button class="btn" type="button" id="resetLists">Restore the starting lists</button><span class="status" id="listStatus" role="status"></span></div>
@@ -329,14 +329,14 @@ Nuswape koime, lwajipe koime.</textarea>
       <li>Front rounded vowels: type <kbd>ü</kbd> <kbd>ö</kbd>, or <kbd>u:</kbd> <kbd>o:</kbd>.</li>
       <li>Inside a native stem, <i>u</i> before an <i>i</i>-syllable is spelled <i>ü</i> (R13). The app flags an old spelling like <i>uwiki</i>; suffixes, compound seams and loans are exempt.</li>
       <li><kbd>-</kbd> splits a stem from its endings yourself: <kbd>lõji-wa</kbd>. Use it when the app guesses the stem wrong, or to stop a split.</li>
-      <li><kbd>+</kbd> joins compound blocks: <kbd>koime+zaĩko</kbd>.</li>
+      <li><kbd>+</kbd> joins compound blocks: <kbd>koime+zaĩko</kbd>. Each block is one element written whole; only the head's voicing is shown (<kbd>lõji+gunwe</kbd>). Where speech drops or links a sound at the seam, put the compound on the Word lists tab as <kbd>lõjilli = lõji+illi</kbd>: Row only then follows the spoken word and the blocks keep both elements whole.</li>
       <li><kbd>*</kbd> in front of a word writes it as a loan: <kbd>*jura</kbd>.</li>
-      <li>Numbers: type the digits, <kbd>27</kbd>. A counter joins on: <kbd>3re</kbd> <kbd>4ko</kbd>. The ten digits are separate signs modelled on the Japanese numerals; zero is the empty cup. In Blocks and rows a number packs into a block; put a space in a long number (<kbd>250 000</kbd>) to split it into two blocks.</li>
+      <li>Numbers: type the digits, <kbd>27</kbd>. Zeros at the end become zero marks by themselves: <kbd>2000</kbd> is 2 and the thousand mark, <kbd>250000</kbd> is 25, ten, thousand. A counter joins on: <kbd>3re</kbd> <kbd>4ko</kbd>. The ten digits are separate signs modelled on the Japanese numerals; zero is the empty cup. In Blocks and rows a number packs into a block; put a space in a long number (<kbd>250 000</kbd>) to split it into two blocks.</li>
       <li>Quotation marks, straight or curly, become corner brackets 「 」. <kbd>?</kbd> and <kbd>!</kbd> have their own marks.</li>
-      <li>Elision is spoken, not written: <kbd>d'itsuze</kbd> is written as the whole particle di, then itsuze.</li>
+      <li>Elision is spoken, not written. Every elided word is written whole: <kbd>d'itsuze</kbd> as di itsuze, <kbd>n'omime</kbd> as na omime, <kbd>il'onu</kbd> as ila onu, <kbd>nuswap'akyoza</kbd> as nuswape akyoza, <kbd>pus'onyake</kbd> as puso onyake.</li>
     </ul></div>
     <div><h3>How the app finds a stem</h3>
-    <p class="sub">It takes common particles and endings (ba, ni, pe, wa, di, na, -ze, -ri, -ta, -jo) off the end of a word, but only while at least two syllables remain and the word is not on the whole-stems list. Stand-alone function words like hena and mi are always written in the small glyphs.</p></div>
+    <p class="sub">It takes the endings (-bi, -du, -ri, -ena, -ze, -vu, -ga, -ta, -jo) and the joined particles (ba, ni, pe, wa, di, na) off the end of a word, but only while at least two syllables remain and the word is not on the whole-stems list. After a nasal-final verb, -ena links the nasal: kazonena is written as the kazõ block and a small ena. Stand-alone function words like hena, ila, zoka and puso are always written in the small glyphs.</p></div>
     <div><h3>The letters</h3>
     <ul>
       <li>Consonant families follow the mouth: the lips share an open frame, the tongue tip a central vertical, the palate a cliff stroke, the back of the mouth a Z-shaped turn. A nasal consonant adds one horizontal. Voicing is the two ticks Japanese uses.</li>
@@ -370,7 +370,7 @@ Nuswape koime, lwajipe koime.</textarea>
 <script>
 (function(){
 'use strict';
-var BUILD='build 2026-10-03-0209';
+var BUILD='build 2026-10-24-1916';
 document.getElementById('stamp').textContent=BUILD;
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function load(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
@@ -513,7 +513,44 @@ var DIG={
  8:withMoon([['l','M42 20Q40 60 14 88'],['r','M58 18Q64 60 90 86']]),
  9:withMoon([['l','M44 12Q44 58 14 90'],['h','M18 40H66'],['v','M66 40V72',1],['f','M66 72Q66 88 90 80',1]])
 };
+/* zero marks (Script.md §7b): a number's trailing zeros are written as marks, never as zero signs.
+   T ten (one zero), H hundred (two), K thousand (three), M million (six), B billion (nine).
+   Ten is the ancient 十, a cord with a knot; hundred 百; thousand 千 with its foot hooked back;
+   million two thousand-signs side by side, as 林 doubles 木; billion three, one over two, as 森. */
+function xfPath(d,sx,sy,tx,ty){
+  var out='', re=/([MLHVCQSlhvcqs])([^MLHVCQSlhvcqs]*)/g, m;
+  while((m=re.exec(d))){
+    var c=m[1], nums=(m[2].match(/-?[\d.]+/g)||[]).map(Number), r;
+    if(c==='H') r=nums.map(function(x){return x*sx+tx});
+    else if(c==='V') r=nums.map(function(y){return y*sy+ty});
+    else if(c===c.toLowerCase()) r=nums.map(function(v,i){return v*(i%2?sy:sx)});
+    else r=nums.map(function(v,i){return i%2?v*sy+ty:v*sx+tx});
+    out+=c+r.map(function(v){return +v.toFixed(2)}).join(' ');
+  }
+  return out;
+}
+function xf(list,sx,sy,tx,ty){return list.map(function(st){return [st[0],xfPath(st[1],sx,sy,tx,ty)].concat(st.slice(2))})}
+var KBASE=[['l','M80 10Q58 20 22 26'],['h','M12 46H88'],['v','M50 26V84'],['k','M50 84l-10 -8',1]];
+DIG.T=withMoon([['l','M62 10Q60 56 30 90'],['d','M50 40l13 15']]);
+DIG.H=withMoon([['h','M14 16H86'],['l','M54 20Q50 30 40 36'],['v','M24 38V88'],['h','M24 88H76',1],['v','M76 38V88'],['h','M24 62H76']]);
+DIG.K=withMoon(KBASE);
+DIG.M=withMoon(xf(KBASE,.5,1,2,0)).concat(xf(KBASE,.5,1,50,0));
+DIG.B=withMoon(xf(KBASE,.5,.5,26,0)).concat(xf(KBASE,.5,.5,2,50),xf(KBASE,.5,.5,50,50));
+var MARKLABEL={T:'×10',H:'×100',K:'×1000',M:'×million',B:'×billion'};
+/* 250000 -> 25 T K · 3500000 -> 35 H K · 2000 -> 2 K · 1234 stays 1234 · 0 stays 0 */
+function zeroMarks(str){
+  var m=/^(\d*?[1-9])(0+)$/.exec(str); if(!m) return str.split('');
+  var n=m[2].length, a=n%3, b=n-a, out=m[1].split('');
+  if(a===1) out.push('T'); if(a===2) out.push('H');
+  var big=[]; while(b>=9){big.push('B');b-=9;} if(b===6) big.unshift('M'); if(b===3) big.unshift('K');
+  return out.concat(big);
+}
 var DIGNOTE={
+ T:'Ten: the cord, opening with the moon curl, then the knot.',
+ H:'Hundred: the top bar with the moon curl, the small tick, the left wall and floor in one turning stroke, the right wall, then the inner bar.',
+ K:'Thousand: the sweep with the moon curl, the bar, then the upright hooking back at its foot.',
+ M:'Million: the left thousand-sign, then the right one.',
+ B:'Billion: the top thousand-sign, then the lower left, then the lower right.',
  0:'Zero is the empty cup: the left wall and the floor in one turning stroke, opening with the moon curl, then the right wall.',
  1:'The top bar with the moon curl, the one inner bar, then the long hook last.',
  2:'The top bar with the moon curl, the two inner bars from the top down, then the long hook last.',
@@ -539,7 +576,7 @@ function digitStrokes(n,T,W){
   });
 }
 function isNum(t){return /^\d+$/.test(t)}
-function digitSyl(d){return {digit:+d,label:String(d)}}
+function digitSyl(d){return /\d/.test(String(d))?{digit:+d,label:String(d)}:{digit:d,label:MARKLABEL[d]}}
 /* one syllable in a 100 x 100 glyph box, placed by T.
    glyphStrokes returns the strokes in WRITING ORDER (Script.md §2a), each numbered:
    the consonant body (moon curl first), then the glide or cluster, the vowel, the
@@ -699,6 +736,7 @@ function syls(word){
       if(LONGBAD.indexOf(a)>=0) warn.push(a+' cannot be long');
       out.push({c:a,v:null,nasal:false,label:a+'·'});i++;continue;
     }
+    if(b==='y'&&(a==='s'||a==='z')) warn.push(a+'y is written '+(a==='s'?'sh':'j')+' (Phonology §4.2 rule 2)');
     if((b==='y'||b==='w')&&V(c)&&!(b==='y'&&(a==='s'||a==='z'))){
       x=vi(c); out.push({c:a,med:b,v:x.v,nasal:x.nasal,label:lab([a,b,c])});i+=3;continue;
     }
@@ -733,7 +771,7 @@ function r13(list){
 
 /* ================= word lists ================= */
 var DEFAULTS={
-  loans:['filma','jura','kojo','liman','saban','shokola','gitara','mwa','jü','menü','blö','motöra','supa'],
+  loans:['filma','jura','kojo','liman','saban','shokola','gitara','mwa','jü','menü','blö','motöra','supa','stilo'],
   comp:['lõji+üwiki','koime+zaĩko','lõji+gunwe'],
   stems:['hotori','ohari','fãvonedi','tsüri','shokola','gitara']
 };
@@ -743,15 +781,21 @@ function applyLists(obj){
   LISTS.loans=obj.loans.map(nfd);
   LISTS.stems=obj.stems.map(nfd);
   LISTS.comp={};
-  obj.comp.forEach(function(c){var n=nfd(c);LISTS.comp[n.replace(/\+/g,'')]=n;});
+  /* "lõji+gunwe", or "lõjilli = lõji+illi" when the spoken word differs from its parts joined (Script.md §6.3) */
+  obj.comp.forEach(function(c){
+    var eq=c.split('='), parts=nfd(eq[eq.length-1]).replace(/\s+/g,''), key=eq.length>1?nfd(eq[0]).trim():parts.replace(/\+/g,'');
+    LISTS.comp[key]=parts;
+  });
 }
 var savedLists=null;
 try{savedLists=JSON.parse(load('lunaji-brush-lists','null'))}catch(e){savedLists=null}
 var LISTOBJ=savedLists&&savedLists.loans?savedLists:JSON.parse(JSON.stringify(DEFAULTS));
 applyLists(LISTOBJ);
 
-var ENDINGS=['ze','ri','ta','jo','ba','ni','pe','wa','di','na'];
-var FUNC=['hena','mi','norõ','toma','uan','yeti','rowo','byõ','lõ','la','ke','dã','na','jĩ','po','gu','a','ba','ni','pe','wa','di','ta','ze','ri','jo'].map(nfd);
+/* endings and joined particles, peeled off a stem in this order (Grammar §4, §2.1, §2.6, §4.11, §6.1).
+   -ena is tried before -na; after a nasal-final verb the nasal links (kazonena = kazõ + -ena). */
+var ENDINGS=['ena','ze','ri','bi','du','vu','ga','ta','jo','ba','ni','pe','wa','di','na'];
+var FUNC=['hena','ila','zoka','puso','oyã','norõ','toma','uan','yeti','rowo','la','ke','dã','na','jĩ','po','gu','a','ba','ni','pe','wa','di','ta','ze','ri','jo'].map(nfd);
 function vcount(s){return (s.match(/[aeiou]/g)||[]).length}
 function peel(w){
   var tails=[];
@@ -761,11 +805,12 @@ function peel(w){
       var e=ENDINGS[i];
       if(w.length>e.length&&w.slice(-e.length)===e){
         var r=w.slice(0,-e.length);
-        if(/[aeiou][̃̈]?$/.test(r)&&vcount(r)>=2){hit=e;break;}
+        if(e==='ena'&&/[aio]n$/.test(r)) r=r.slice(0,-1)+'\u0303';
+        if(/[aeiou][̃̈]?$/.test(r)&&vcount(r)>=2){hit=e;w=r;break;}
       }
     }
     if(!hit) break;
-    tails.unshift(hit); w=w.slice(0,-hit.length);
+    tails.unshift(hit);
   }
   return {stem:w,tails:tails};
 }
@@ -778,7 +823,7 @@ function analyse(tok){
   else {var r=peel(w);stem=r.stem;tails=r.tails;}
   if(loan||LISTS.loans.indexOf(stem.replace(/\+/g,''))>=0) return {kind:'loan',stem:stem.replace(/\+/g,''),tails:tails};
   var parts=(stem.indexOf('+')>=0?stem:(LISTS.comp[stem]||stem)).split('+').filter(Boolean);
-  return {kind:'native',parts:parts,tails:tails};
+  return {kind:'native',parts:parts,surface:stem.replace(/\+/g,''),tails:tails};
 }
 
 /* ================= writing words and lines ================= */
@@ -787,7 +832,7 @@ function word(tok,warn){
      (up to six digits; longer numbers in touching blocks of three), then any counter (3re, 4ko) as a small trailing glyph */
   var num=/^(\d+)-?(.*)$/.exec(tok);
   if(num){
-    var dl=num[1].split('').map(digitSyl), dh='', th='';
+    var dl=zeroMarks(num[1]).map(digitSyl), dh='', th='';
     if(ROWONLY) dh=dl.map(function(x){return digitFig(x.digit,'dgs',10)}).join('');
     else { var grp=[]; while(dl.length>6) grp.unshift(dl.splice(-3)); grp.unshift(dl); dh='<span class="cmp">'+grp.map(function(g){return block(g,g.map(function(x){return x.label}).join(''))}).join('')+'</span>'; }
     if(num[2]){var nr=syls(num[2]); nr.warn.forEach(function(x){warn.push(tok+': '+x)}); th=nr.syls.map(function(s){return small(s,ROWONLY?'rw':'tl')}).join('');}
@@ -799,7 +844,7 @@ function word(tok,warn){
     return r.syls.map(function(s){return small(s,cls)}).join('');
   }
   if(ROWONLY){
-    var all=(a.kind==='native'?a.parts:(a.kind==='loan'?[a.stem]:[])).concat(a.tails||[]);
+    var all=(a.kind==='native'?[a.surface]:(a.kind==='loan'?[a.stem]:[])).concat(a.tails||[]);
     return '<span class="w">'+all.map(function(p){return glyphsOf(p,'rw')}).join('')+'</span>';
   }
   if(a.kind==='native'){
@@ -830,10 +875,27 @@ function punct(p){
   var label={'「':'open quote','」':'close quote'}[p]||p;
   return '<figure class="gl punct"><svg viewBox="0 0 30 140" role="img" aria-label="'+label+'">'+inner+'</svg><figcaption>&nbsp;</figcaption></figure>';
 }
-/* elision is spoken only: d'itsuze is written as the whole particle di, then itsuze */
+/* elision is spoken only; the script writes every word whole (Script.md §6.3, Phonology §6).
+   n'omime = na omime · il'onu = ila onu · zok'onu = zoka onu · pus'onyake = puso onyake ·
+   nuswap'akyoza = nuswape akyoza · üwikin'il'okilu = üwikini ila okilu · d'itsuze = di itsuze.
+   A joined n' is ni before an i-word and na otherwise; a standalone n' is the demonstrative na. */
+var ELIDED={il:'ila',zok:'zoka',pus:'puso'};
 function unElide(str){
-  return str.replace(/(^|[\s“«「"])(sh|ts|ny|[bdfghjklmnprstvwyz])['’]([aeiouãĩõüö])/gi,function(m,pre,c,v){
-    return pre+c+v.normalize('NFD')[0]+' '+v;
+  return str.replace(/[^\s“”«»「」".,!?]+/g,function(tok){
+    var parts=tok.split(/['’]/); if(parts.length<2) return tok;
+    var out='';
+    for(var i=0;i<parts.length-1;i++){
+      var p=parts[i], next=parts[i+1].normalize('NFD').toLowerCase(), v=next[0]||'', low=p.toLowerCase(), word=null, stem=p;
+      if(ELIDED[low]&&/[aeiou]/.test(v)) {word=ELIDED[low]; stem='';}
+      else if(/[aeiou]/.test(v)&&/[pdbwn]$/i.test(p)){
+        var c=low.slice(-1); stem=p.slice(0,-1);
+        word={p:'pe',d:'di',b:'ba',w:'wa'}[c]||(stem===''?'na':(v==='i'?'ni':'na'));
+      }
+      if(word===null){ out+=p+"'"; continue; }
+      if(stem===''&&p[0]!==p[0].toLowerCase()) word=word[0].toUpperCase()+word.slice(1);
+      out+=stem+word+' ';
+    }
+    return out+parts[parts.length-1];
   });
 }
 var OPENQ=['“','«','「'], CLOSEQ=['”','»','」'];
@@ -948,8 +1010,10 @@ function renderChart(){
   }).join('')+
   '<div class="key"><span class="tag">Numerals</span><div class="row">'+[1,2,3,4,5,6,7,8,9,0].map(function(d){return single(digitSyl(d))}).join('')+
   '</div><p>Ten separate signs, read by shape. One to nine follow the Japanese numerals, drawn in the script\u2019s strokes and opening with the moon curl. Zero is the empty cup.</p></div>'+
-  '<div class="key" style="--bw:58px"><span class="tag">Numbers</span><div class="line">'+line('10 27 305 2026 3re',[])+
+  '<div class="key" style="--bw:58px"><span class="tag">Numbers</span><div class="line">'+line('27 305 2026 3re',[])+
   '</div><p>Place value, left to right. In Blocks and rows a number packs into a block like a stem; in Row only its digits stand in a row. A counter trails in a small glyph: 3re.</p></div>'+
+  '<div class="key"><span class="tag">Zero marks</span><div class="row">'+['T','H','K','M','B'].map(function(k){return single(digitSyl(k))}).join('')+
+  '</div><div class="line" style="--bw:52px">'+line('20 2000 250000 3500000',[])+'</div><p>A number never ends in a zero sign. Its trailing zeros are written as marks: ten, hundred, thousand, million, billion. Type the digits as usual and the marks appear: 250000 is 25, ten, thousand. Zeros inside a number stay: 305, 2026.</p></div>'+
   '<div class="key" style="--bw:70px"><span class="tag">Punctuation</span><div class="row">'+
     [',','.','?','!','「','」'].map(function(p){return punct(p).replace('<figcaption>&nbsp;</figcaption>','<figcaption>'+esc(p)+'</figcaption>')}).join('')+
   '</div><p>Comma (and), full stop, question, exclamation, and corner brackets for quotations. Type ordinary quotation marks and they become brackets.</p></div>';
@@ -1002,7 +1066,7 @@ function cfgKey(){return PDIR+'|'+PSET+'|'+(PSET==='words'||PSET==='digits'?'-':
 function dueList(){var pre=cfgKey();return Object.keys(BOXES).filter(function(k){return k.indexOf(pre)===0&&BOXES[k]<=2}).map(function(k){return k.slice(pre.length)})}
 function glossOf(w){for(var i=0;i<WORDLIST.length;i++) if(WORDLIST[i][0]===w) return WORDLIST[i][1]; return ''}
 function freshItem(){
-  if(PSET==='digits') return String(Math.random()<.7?Math.floor(Math.random()*10):10+Math.floor(Math.random()*90));
+  if(PSET==='digits'){var r=Math.random(); return String(r<.5?Math.floor(Math.random()*10):r<.75?10+Math.floor(Math.random()*90):(1+Math.floor(Math.random()*99))*pick([10,100,1000,10000,100000,1000000,1000000000]));}
   return PSET==='words'?pick(WORDLIST)[0]:randSyl(PSET==='marks',PFAM);
 }
 function drawItem(){
@@ -1035,9 +1099,9 @@ function showBtns(){
   document.getElementById('missBtn').hidden=!w||!revealed||answered;
   document.getElementById('nextBtn').hidden=w&&!answered;
 }
-function itemSyls(ans){return isNum(ans)?ans.split('').map(digitSyl):syls(ans).syls}
+function itemSyls(ans){return isNum(ans)?zeroMarks(ans).map(digitSyl):syls(ans).syls}
 function glyphsFor(ans){
-  if(isNum(ans)) return ans.split('').map(function(d){return digitFig(d,'dg',7.5)}).join('');
+  if(isNum(ans)) return zeroMarks(ans).map(function(d){return digitFig(d,'dg',7.5)}).join('');
   return PSET==='words'?'<div class="line">'+line(ans,[])+'</div>':syls(ans).syls.map(single).join('');
 }
 function newQ(){
@@ -1110,7 +1174,7 @@ function sheetItems(){
   var what=document.getElementById('shWhat').value, items=[];
   function addText(str){
     str.split(/[\s,]+/).filter(Boolean).forEach(function(w){
-      if(isNum(w)){ var ds=w.split('').map(digitSyl); items.push(ds.length===1?{kind:'syl',s:ds[0],label:w}:{kind:'word',list:ds,label:w}); return; }
+      if(isNum(w)){ var ds=zeroMarks(w).map(digitSyl); items.push(ds.length===1?{kind:'syl',s:ds[0],label:w}:{kind:'word',list:ds,label:w}); return; }
       var r=syls(w.replace(/[-+*]/g,'')); if(!r.syls.length) return;
       items.push(r.syls.length===1?{kind:'syl',s:r.syls[0],label:r.syls[0].label}:{kind:'word',list:r.syls,label:w.replace(/[-+*]/g,'').normalize('NFC')});
     });
@@ -1119,7 +1183,7 @@ function sheetItems(){
   else if(what==='vowels') addText('u a i e o \u00fc \u00f6 \u00e3 \u0129 \u00f5');
   else if(what==='vmarks') addText('ku ka ki ke ko k\u00fc k\u00f6 k\u00e3 k\u0129 k\u00f5');
   else if(what==='marks'){ addText('ga zo kya twa pra blo prya'); items.push({kind:'syl',s:{c:'l',v:null,nasal:false,label:'l\u00b7'},label:'l\u00b7 (coda)'}); addText('kilsu otto'); }
-  else if(what==='digits') addText('1 2 3 4 5 6 7 8 9 0 10');
+  else if(what==='digits'){ addText('1 2 3 4 5 6 7 8 9 0'); ['T','H','K','M','B'].forEach(function(k){items.push({kind:'syl',s:digitSyl(k),label:MARKLABEL[k]})}); addText('20 3000 250000'); }
   else if(what==='words') addText(SHEET_WORDS.join(' '));
   else addText(document.getElementById('shCustom').value);
   return items;
