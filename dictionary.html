@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#151a22">
+<title>Lunaji Dictionary</title>
+<style>
+:root{
+  --bg:#151a22; --panel:#1d242e; --panel2:#232c38; --line:#2f3a48;
+  --text:#e2e6ea; --dim:#93a0ae; --lamp:#e6b95c; --cool:#7fb6c4;
+  --ok:#8fc09a; --bad:#d9908c; --serif:Iowan Old Style,Palatino,Georgia,serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:640px; margin:0 auto; padding:0 16px calc(40px + env(safe-area-inset-bottom))}
+.lun{font-family:var(--serif)}
+button{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--cool); outline-offset:2px}
+[hidden]{display:none!important}
+
+/* search bar */
+header{position:sticky; top:0; z-index:5; background:var(--bg); padding:calc(10px + env(safe-area-inset-top)) 0 8px; border-bottom:1px solid var(--line)}
+.title{display:flex; align-items:baseline; justify-content:space-between; margin:0 0 8px}
+.title h1{font:600 20px/1.2 var(--serif); margin:0}
+.title span{font-size:12px; color:var(--dim)}
+.sbox{position:relative}
+.sbox input{width:100%; height:46px; background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:0 44px 0 14px; font:17px system-ui,sans-serif; -webkit-appearance:none; appearance:none}
+.sbox input::placeholder{color:var(--dim)}
+.sbox input::-webkit-search-cancel-button{display:none}
+.clear{position:absolute; right:0; top:0; width:46px; height:46px; background:none; border:0; color:var(--dim); font-size:22px; cursor:pointer}
+.seg{display:flex; gap:6px; margin-top:8px}
+.seg button{flex:1; height:36px; background:none; border:1px solid var(--line); border-radius:6px; color:var(--dim); font-size:14px; cursor:pointer}
+.seg button[aria-pressed="true"]{border-color:var(--lamp); color:var(--lamp)}
+
+/* results */
+.count{font-size:13px; color:var(--dim); margin:12px 0 4px}
+ul.res{list-style:none; margin:0; padding:0}
+ul.res li{border-bottom:1px solid var(--line)}
+ul.res a{display:block; padding:10px 2px; min-height:56px; color:inherit; text-decoration:none}
+ul.res a:active{background:var(--panel)}
+.r1{display:flex; align-items:baseline; gap:8px}
+.hw{font:19px/1.3 var(--serif)}
+.cls{font-size:12px; color:var(--dim)}
+.gl{font-size:15px; color:var(--text); opacity:.85; margin-top:1px}
+.why{font-size:13px; color:var(--cool); margin-top:2px}
+.why .lun{font-size:14px}
+ul.res li.ret a{opacity:.6}
+mark{background:none; color:var(--lamp); font-weight:600}
+.more{display:block; width:100%; height:46px; margin:12px 0; background:none; border:1px solid var(--line); border-radius:6px; color:var(--cool); cursor:pointer}
+.empty{padding:28px 4px; color:var(--dim)}
+.empty h2{color:var(--text); font:600 18px/1.3 var(--serif); margin:0 0 6px}
+
+/* word */
+.back{display:inline-flex; align-items:center; gap:6px; height:44px; padding:0 4px; margin:6px 0 0 -4px; background:none; border:0; color:var(--cool); font-size:15px; cursor:pointer}
+.head{padding:4px 0 14px; border-bottom:1px solid var(--line)}
+.head h1{font:500 34px/1.15 var(--serif); margin:2px 0 6px; word-break:break-word}
+.script{margin:6px 0 8px; min-height:10px; overflow-x:auto}
+.ipa{color:var(--dim); font-size:17px}
+.tags{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px}
+.tag{font-size:12px; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--dim)}
+.tag.f{color:var(--cool)}
+.meaning{font-size:18px; margin:12px 0 0}
+.word h2{font:600 15px/1.3 system-ui,sans-serif; color:var(--dim); margin:22px 0 6px; letter-spacing:.02em}
+table{width:100%; border-collapse:collapse}
+td{padding:8px 4px; border-bottom:1px solid var(--line); vertical-align:top}
+td.l{color:var(--dim); font-size:13px; width:36%; padding-top:11px}
+.fm{font:18px/1.3 var(--serif); word-break:break-word}
+.fp{font-size:13px; color:var(--dim)}
+.fp .mv{color:var(--lamp)}
+.fn{font-size:13px; color:var(--dim); opacity:.85; margin-top:2px}
+.fn em{font-style:italic}
+.toggle{display:block; width:100%; height:44px; margin:10px 0 0; background:none; border:1px solid var(--line); border-radius:6px; color:var(--cool); cursor:pointer}
+.full h3{font:600 14px/1.3 system-ui,sans-serif; color:var(--text); margin:18px 0 2px}
+.pb{padding:10px 0; border-bottom:1px solid var(--line)}
+.pb .lu{font:18px/1.35 var(--serif)}
+.pb .lu b{color:var(--lamp); font-weight:600}
+.pb .en{font-size:14px; color:var(--dim)}
+.pb .lj{color:var(--text)}
+dl{margin:0}
+dl div{display:flex; gap:12px; padding:7px 0; border-bottom:1px solid var(--line)}
+dt{color:var(--dim); font-size:13px; width:36%; flex:0 0 36%; padding-top:2px}
+dd{margin:0; font-size:15px; word-break:break-word}
+.proto{font-family:var(--serif); letter-spacing:.06em}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chips a{display:inline-flex; align-items:center; min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:18px; color:var(--text); text-decoration:none; font:16px var(--serif)}
+.note{font-size:13px; color:var(--dim); margin:8px 0 0}
+
+/* footer */
+footer{margin-top:28px; padding-top:12px; border-top:1px solid var(--line); font-size:13px; color:var(--dim)}
+footer .src{margin:0 0 10px; word-break:break-word}
+footer .acts{display:flex; gap:8px; flex-wrap:wrap}
+footer button{height:40px; padding:0 14px; background:none; border:1px solid var(--line); border-radius:6px; color:var(--cool); font-size:14px; cursor:pointer}
+footer .fnote{margin:8px 0 0; color:var(--text)}
+footer .fnote.bad{color:var(--bad)}
+footer .opt{display:flex; align-items:center; gap:8px; margin-top:12px}
+footer .opt .seg{margin:0; flex:0 0 auto}
+footer .opt .seg button{flex:0 0 auto; padding:0 14px; height:34px}
+.build{margin-top:10px; opacity:.6; font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header id="bar">
+  <div class="title"><h1>Lunaji dictionary</h1><span id="total"></span></div>
+  <div class="sbox">
+    <input id="q" type="search" placeholder="night, lõji, sofuenaze" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search English or Lunaji">
+    <button class="clear" id="clear" aria-label="Clear search" hidden>×</button>
+  </div>
+  <div class="seg" id="dir" role="group" aria-label="Search in">
+    <button data-d="both" aria-pressed="true">Both</button>
+    <button data-d="en" aria-pressed="false">English</button>
+    <button data-d="lj" aria-pressed="false">Lunaji</button>
+  </div>
+</header>
+
+<main id="list">
+  <p class="count" id="count"></p>
+  <ul class="res" id="res"></ul>
+  <button class="more" id="more" hidden>Show more</button>
+  <div class="empty" id="empty" hidden></div>
+</main>
+
+<main id="word" class="word" hidden></main>
+
+<footer>
+  <p class="src" id="src"></p>
+  <div class="acts">
+    <button id="load">Load a save file</button>
+    <button id="useForge" hidden>Use the Forge's lexicon</button>
+  </div>
+  <input type="file" id="file" accept=".txt,.json,text/plain,application/json" hidden>
+  <p class="fnote" id="fnote" hidden></p>
+  <div class="opt">
+    <span>Script</span>
+    <div class="seg" id="mode" role="group" aria-label="Script form">
+      <button data-m="row" aria-pressed="true">Row</button>
+      <button data-m="blocks" aria-pressed="false">Blocks</button>
+    </div>
+  </div>
+  <p class="build" id="build">Read-only. This page never changes the lexicon.</p>
+</footer>
+
+</div>
+<script>window.LUNAJI_KIT = {warn: false};</script>
+<script src="lunaji-kit.js"></script>
+<script src="lunaji-core.js"></script>
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+const C = window.LunajiCore;
+const KIT = window.LunajiKit || null;
+
+/* ── this page's own settings. The lexicon keys are only ever read. ── */
+const PREFKEY = "lunaji-dict-prefs", FILEKEY = "lunaji-dict-file", PBFILEKEY = "lunaji-dict-pbfile";
+const get = k => { try{ return localStorage.getItem(k); }catch(e){ return null; } };
+const put = (k, v) => { try{ v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); }catch(e){} };
+const parse = t => { try{ return JSON.parse(t); }catch(e){ return null; } };
+let PREF = Object.assign({dir: "both", mode: "row"}, parse(get(PREFKEY)) || {});
+const savePref = () => put(PREFKEY, JSON.stringify(PREF));
+
+const esc = t => String(t == null ? "" : t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+// folding for search: no case, no diacritics, no apostrophes; ~ and : as typed in the kit
+const foldCh = ch => ch.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/['’`~:]/g, "");
+const fold = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/['’`~:]/g, "").trim();
+
+/* ── data ── */
+let LEX = {}, RET = {}, PB = [], SOURCE = "", PBSOURCE = "", WORDS = [], FOLD = {}, FORMIX = null;
+
+function loadForge(){
+  const v = parse(get("lunaji-lex"));
+  return v && v.LEX && typeof v.LEX === "object" ? v.LEX : null;
+}
+function isLexObj(o){
+  if(!o || typeof o !== "object" || Array.isArray(o)) return false;
+  const k = Object.keys(o); return k.length > 0 && k.every(w => o[w] && typeof o[w].g === "string");
+}
+function isPbArr(a){ return Array.isArray(a) && a.every(e => e && typeof e === "object" && "lu" in e); }
+
+function boot(){
+  const file = parse(get(FILEKEY)), pbf = parse(get(PBFILEKEY));
+  const forge = loadForge();
+  if(file && isLexObj(file.LEX)){
+    LEX = file.LEX; RET = file.RETIRED || {};
+    SOURCE = "file"; $("src").innerHTML = `${Object.keys(LEX).length} words from <b>${esc(file.name)}</b>, loaded ${esc(file.at)}.`;
+  } else if(forge){
+    LEX = forge; RET = parse(get("lunaji-retired")) || {};
+    SOURCE = "forge"; $("src").textContent = `${Object.keys(LEX).length} words from the Forge's lexicon on this device.`;
+  } else {
+    LEX = {}; RET = {}; SOURCE = "none";
+    $("src").textContent = "No lexicon on this device yet.";
+  }
+  if(pbf && isPbArr(pbf.PB)){ PB = pbf.PB; PBSOURCE = pbf.name; }
+  else { const p = parse(get("lunaji-phrasebook")); PB = isPbArr(p) ? p : []; PBSOURCE = ""; }
+  if(PBSOURCE) $("src").insertAdjacentHTML("beforeend", ` Phrasebook from <b>${esc(PBSOURCE)}</b>.`);
+  $("useForge").hidden = !(file || pbf);
+  C.setLex(LEX); LEX = C.lex();
+  try{ RET = C.tildeKeys(RET); }catch(e){}
+  WORDS = Object.keys(LEX).sort((a, b) => fold(a).localeCompare(fold(b)) || a.localeCompare(b));
+  FOLD = {}; WORDS.forEach(w => FOLD[w] = fold(w));
+  FORMIX = null;
+  $("total").textContent = WORDS.length ? WORDS.length + " words" : "";
+  $("build").textContent = `Read-only. This page never changes the lexicon. Forms and IPA from Forge ${C.build}${KIT ? " · script from kit " + KIT.build : ""}.`;
+}
+
+// every single-word form of every word, so an inflected word can be looked up
+function formIndex(){
+  if(FORMIX) return FORMIX;
+  const ix = new Map();
+  WORDS.forEach(w => {
+    let T = null; try{ T = C.forms(w, false); }catch(e){}
+    if(!T) return;
+    T.forEach(t => t.rows.forEach(r => {
+      if(!r.single || r.form === w) return;
+      const k = fold(r.form); let a = ix.get(k);
+      if(!a){ a = []; ix.set(k, a); }
+      if(!a.some(x => x.w === w)) a.push({w, label: r.label.replace(/<[^>]+>/g, ""), form: r.form});
+    }));
+  });
+  return FORMIX = ix;
+}
+
+const CLS = {noun: "noun", verb: "verb", pron: "pronoun", aux: "auxiliary verb", "case": "function word"};
+const clsName = c => CLS[c] || c || "";
+const isLoan = e => !!(e && (e.src || e.lang || e.how === "borrowed"));
+
+/* ── search ── */
+function glossScore(g, f){
+  const G = fold(g);
+  if(!G || f.length < 1) return 0;
+  const core = G.replace(/^(to be|to|a|an|the)\s+/, "");
+  if(G === f || core === f) return 95;
+  const senses = G.split(/\s*[;,/]\s*|\s+[—–-]\s+/).map(s => s.replace(/^(to be|to|a|an|the)\s+/, "").replace(/\s*\(.*?\)\s*/g, " ").trim());
+  if(senses.includes(f)) return 90;
+  const toks = G.split(/[^a-z0-9]+/).filter(Boolean);
+  if(toks.includes(f)) return 75;
+  if(f.length >= 2 && toks.some(t => t.startsWith(f))) return 60;
+  if(f.length >= 3 && G.includes(f)) return 40;
+  return 0;
+}
+function search(q, dir){
+  const f = fold(q); if(!f) return null;
+  // typed with its diacritics (gã, not ga): the exact spelling outranks a folded match
+  const exact = q.normalize("NFC").toLowerCase().replace(/a~/g, "ã").replace(/i~/g, "ĩ").replace(/o~/g, "õ").replace(/u:/g, "ü").replace(/o:/g, "ö").trim();
+  const hits = new Map();
+  const add = (w, s, why, kind) => { const h = hits.get(w); if(!h || h.s < s) hits.set(w, {w, s, why, kind}); };
+  if(dir !== "en"){
+    WORDS.forEach(w => {
+      const k = FOLD[w];
+      if(w === exact) add(w, 110, "", "lj");
+      else if(k === f) add(w, 100, "", "lj");
+      else if(k.startsWith(f)) add(w, 80 - Math.min(10, k.length - f.length), "", "lj");
+      else if(f.length >= 2 && k.includes(f)) add(w, 45, "", "lj");
+      const was = LEX[w].was;
+      if(was && fold(was) === f) add(w, 92, `old spelling <span class="lun">${esc(was)}</span>`, "was");
+    });
+    const fx = formIndex().get(f);
+    if(fx) fx.forEach(x => add(x.w, 88, `<span class="lun">${esc(x.form)}</span> · ${esc(x.label)}`, "form"));
+    Object.keys(RET).forEach(r => {
+      const k = fold(r);
+      if(k === f || (f.length >= 2 && k.startsWith(f))) add("\u0000" + r, r === exact ? 105 : k === f ? 70 : 30, "", "ret");
+    });
+  }
+  if(dir !== "lj"){
+    WORDS.forEach(w => { const s = glossScore(LEX[w].g, f); if(s) add(w, s - (dir === "both" ? 1 : 0), "", "en"); });
+  }
+  return [...hits.values()].sort((a, b) => b.s - a.s || a.w.length - b.w.length || fold(a.w).localeCompare(fold(b.w)));
+}
+
+// highlight the folded query inside the original text
+function mark(text, q){
+  const f = fold(q); text = String(text || "");
+  if(!f) return esc(text);
+  const chars = [...text], map = []; let F = "";
+  chars.forEach((ch, i) => { const x = foldCh(ch); for(let j = 0; j < x.length; j++) map.push(i); F += x; });
+  const at = F.indexOf(f); if(at < 0) return esc(text);
+  const a = map[at], b = map[at + f.length - 1] + 1;
+  return esc(chars.slice(0, a).join("")) + "<mark>" + esc(chars.slice(a, b).join("")) + "</mark>" + esc(chars.slice(b).join(""));
+}
+
+/* ── list ── */
+let SHOWN = 0, CUR = [], LASTQ = null;
+const PAGE = 60;
+function row(h, q){
+  if(h.kind === "ret"){
+    const r = h.w.slice(1), e = RET[r] || {};
+    return `<li class="ret"><a href="#r/${encodeURIComponent(r)}"><div class="r1"><span class="hw">${mark(r, q)}</span><span class="cls">retired${e.d ? " " + esc(e.d) : ""}</span></div>
+      <div class="gl">${esc(e.g || "")}</div>${e.r ? `<div class="why">${esc(e.r)}</div>` : ""}</a></li>`;
+  }
+  const e = LEX[h.w];
+  return `<li><a href="#w/${encodeURIComponent(h.w)}"><div class="r1"><span class="hw">${h.kind === "lj" ? mark(h.w, q) : esc(h.w)}</span><span class="cls">${esc(clsName(e.c))}</span></div>
+    <div class="gl">${h.kind === "en" ? mark(e.g, q) : esc(e.g)}</div>${h.why ? `<div class="why">${h.why}</div>` : ""}</a></li>`;
+}
+function paintList(reset){
+  const q = $("q").value;
+  $("clear").hidden = !q;
+  if(reset){
+    SHOWN = 0;
+    const r = search(q, PREF.dir);
+    CUR = r === null ? WORDS.map(w => ({w, kind: "all"})) : r;
+    LASTQ = r === null ? null : q;
+    $("res").innerHTML = "";
+  }
+  const empty = $("empty");
+  if(!WORDS.length){
+    $("count").textContent = ""; $("more").hidden = true; empty.hidden = false;
+    empty.innerHTML = `<h2>No lexicon here yet</h2><p>Open the Forge in this browser once, or load a lexicon save file below. A loaded file is kept on this device until you switch back to the Forge's lexicon.</p>`;
+    return;
+  }
+  if(!CUR.length){
+    $("count").textContent = ""; $("more").hidden = true; empty.hidden = false;
+    empty.innerHTML = `<p>Nothing matches “${esc(q)}”${PREF.dir !== "both" ? ` in ${PREF.dir === "en" ? "English" : "Lunaji"}. Try Both` : ""}.</p>`;
+    return;
+  }
+  empty.hidden = true;
+  $("count").textContent = LASTQ === null ? `All ${CUR.length} words, A to Z` : `${CUR.length} result${CUR.length === 1 ? "" : "s"}`;
+  const next = CUR.slice(SHOWN, SHOWN + PAGE);
+  $("res").insertAdjacentHTML("beforeend", next.map(h => row(h, LASTQ || "")).join(""));
+  SHOWN += next.length;
+  $("more").hidden = SHOWN >= CUR.length;
+  $("more").textContent = `Show more (${CUR.length - SHOWN} left)`;
+}
+
+/* ── word ── */
+function scriptHtml(text, size){
+  if(!KIT) return "";
+  // the kit's size is the glyph height in Row and the block width in Blocks
+  const s = PREF.mode === "blocks" ? Math.round(size * 1.7) : size;
+  return `<span class="lj" data-roman="none" data-mode="${PREF.mode}" data-size="${s}">${esc(text)}</span>`;
+}
+function kitText(w){ return isLoan(LEX[w]) ? "*" + w : w; }
+const KEY = {
+  noun: ["topic", "subject", "object", "possessive", "location", "plural"],
+  pron: ["subject", "object", "possessive", "plural"],
+  verb: ["past", "ongoing", "negative", "past negative", "can", "want to"]
+};
+function formRow(r){
+  return `<tr><td class="l">${r.label}</td><td><div class="fm">${esc(r.form)}</div>
+    <div class="fp">/${esc(r.ipa)}/ · ${r.moras}m${r.moved ? ' · <span class="mv">stress moves</span>' : ""}</div>${r.full && r.note ? `<div class="fn">${r.note}</div>` : ""}</td></tr>`;
+}
+// which stored words a written token stands for (the Forge's own peeling)
+const PEEL = ["ba","ni","pe","wa","di","na","a","ze","ri","ta","jo","re","ko"];
+function stemsOf(t, depth){
+  const out = new Set(); depth = depth || 0;
+  t = t.replace(/^[a-z]'/, "");
+  if(LEX[t]) out.add(t);
+  try{ const tt = C.toTilde(t); if(LEX[tt]) out.add(tt); }catch(e){}
+  const fx = formIndex().get(fold(t)); if(fx) fx.forEach(x => out.add(x.w));
+  const v = C.verbStem(t); if(v && LEX[v.stem]) out.add(v.stem);
+  const g = C.agentParse(t); if(g && LEX[g.stem]) out.add(g.stem);
+  if(!out.size && depth < 3) PEEL.forEach(p => { if(t.length > p.length + 1 && t.endsWith(p)) stemsOf(t.slice(0, -p.length), depth + 1).forEach(x => out.add(x)); });
+  return out;
+}
+function pbLines(w){
+  const out = [];
+  PB.forEach(e => {
+    const lu = String(e.lu || "").trim(); if(!lu || /\{[^}]+\}/.test(lu)) return;
+    let hit = false;
+    const html = lu.split(/(\s+)/).map(tok => {
+      if(/^\s+$/.test(tok)) return tok;
+      const bare = tok.toLowerCase().replace(/[.?!,"“”«»「」]/g, "");
+      const parts = bare.indexOf("'") >= 0 ? C.unelide(bare) : [bare];
+      const mine = parts.some(p => stemsOf(p).has(w));
+      if(mine) hit = true;
+      return mine ? `<b>${esc(tok)}</b>` : esc(tok);
+    }).join("");
+    if(hit) out.push({html, lu, en: e.en || ""});
+  });
+  return out;
+}
+function paintWord(w){
+  const e = LEX[w], box = $("word");
+  if(!e){
+    box.innerHTML = `<button class="back" id="back">← Back</button><div class="empty"><h2>${esc(w)}</h2><p>Not in this lexicon.</p></div>`;
+    return wireBack();
+  }
+  const c = C.classOf(w), T = c ? C.forms(w) : null;
+  const tags = [`<span class="tag">${esc(clsName(e.c))}</span>`];
+  if(e.f) tags.push(`<span class="tag f">${esc(e.f)}</span>`);
+  if(isLoan(e)) tags.push(`<span class="tag">loan${e.lang ? " · " + esc(e.lang) : ""}</span>`);
+  if(e.d) tags.push(`<span class="tag">coined ${esc(e.d)}</span>`);
+  let h = `<button class="back" id="back">← ${LASTQ ? "Results" : "All words"}</button>
+    <div class="head">
+      <h1 class="lun">${esc(w)}</h1>
+      <div class="script">${scriptHtml(kitText(w), 40)}</div>
+      <div class="ipa">/${esc(C.ipa(w))}/</div>
+      <div class="tags">${tags.join("")}</div>
+      <p class="meaning">${esc(e.g)}</p>
+    </div>`;
+  if(T){
+    const all = [].concat(...T.map(t => t.rows));
+    const key = KEY[c].map(l => all.find(r => r.label === l)).filter(Boolean);
+    h += `<h2>Forms</h2><table>${key.map(formRow).join("")}</table>
+      <button class="toggle" id="allForms" aria-expanded="false">All ${all.length} forms, with notes</button>
+      <div class="full" id="full" hidden>${T.map(t => `<h3>${t.title}</h3><table>${t.rows.map(r => formRow(Object.assign({full: true}, r))).join("")}</table>`).join("")}</div>`;
+  } else if(e.c === "case"){
+    h += `<p class="note">A function word: it doesn't inflect.</p>`;
+  }
+  const L = pbLines(w);
+  if(L.length) h += `<h2>In the phrasebook</h2>` + L.map(l => `<div class="pb"><div class="lu">${l.html}</div>${l.en ? `<div class="en">${esc(l.en)}</div>` : ""}<div class="script">${scriptHtml(l.lu, 26)}</div></div>`).join("");
+  const o = [];
+  if(e.p) o.push(["Proto form", `<span class="proto">${esc(e.p)}</span>`]);
+  if(e.src) o.push(["Borrowed from", `${e.lang ? esc(e.lang) + " " : ""}<span class="lun">${esc(e.src)}</span>`]);
+  else if(e.lang) o.push(["Borrowed from", esc(e.lang)]);
+  if(e.how && e.how !== "borrowed") o.push(["How it was made", esc(e.how)]);
+  if(e.was) o.push(["Old spelling", `<span class="lun">${esc(e.was)}</span>`]);
+  if(e.r13) o.push(["R13", `<span class="lun">${esc(typeof e.r13 === "string" ? e.r13 : "respelled")}</span>`]);
+  if(o.length) h += `<h2>Origin</h2><dl>${o.map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join("")}</dl>`;
+  if(e.f){
+    const sib = WORDS.filter(x => x !== w && LEX[x].f === e.f);
+    if(sib.length) h += `<h2>Also in “${esc(e.f)}”</h2><div class="chips">${sib.slice(0, 24).map(x => `<a href="#w/${encodeURIComponent(x)}" title="${esc(LEX[x].g)}">${esc(x)}</a>`).join("")}</div>${sib.length > 24 ? `<p class="note">and ${sib.length - 24} more</p>` : ""}`;
+  }
+  box.innerHTML = h;
+  if(KIT) try{ KIT.render(box); }catch(err){}
+  const af = $("allForms");
+  if(af) af.onclick = () => { const f = $("full"), open = f.hidden; f.hidden = !open; af.setAttribute("aria-expanded", open); af.textContent = open ? "Fewer forms" : `All ${f.querySelectorAll("tr").length} forms, with notes`; };
+  wireBack();
+}
+function paintRetired(r){
+  const e = RET[r] || {};
+  $("word").innerHTML = `<button class="back" id="back">← Results</button>
+    <div class="head"><h1 class="lun">${esc(r)}</h1><div class="tags"><span class="tag">retired${e.d ? " " + esc(e.d) : ""}</span></div>
+    <p class="meaning">${esc(e.g || "")}</p></div>
+    ${e.r ? `<h2>Why</h2><p>${esc(e.r)}</p>` : ""}${e.p ? `<dl><div><dt>Proto form</dt><dd class="proto">${esc(e.p)}</dd></div></dl>` : ""}`;
+  wireBack();
+}
+let CAME_FROM_LIST = false;
+function wireBack(){
+  $("back").onclick = () => { if(CAME_FROM_LIST) history.back(); else location.hash = ""; };
+}
+
+/* ── routing ── */
+let listY = 0;
+function route(){
+  const m = /^#([wr])\/(.+)$/.exec(location.hash);
+  if(m){
+    const w = decodeURIComponent(m[2]);
+    if(!$("list").hidden) listY = window.scrollY;
+    $("list").hidden = true; $("bar").hidden = true; $("word").hidden = false;
+    m[1] === "w" ? paintWord(w) : paintRetired(w);
+    window.scrollTo(0, 0);
+    document.title = w + " · Lunaji Dictionary";
+  } else {
+    $("word").hidden = true; $("list").hidden = false; $("bar").hidden = false;
+    document.title = "Lunaji Dictionary";
+    window.scrollTo(0, listY);
+    CAME_FROM_LIST = false;
+  }
+}
+document.addEventListener("click", ev => {
+  const a = ev.target.closest && ev.target.closest('a[href^="#"]');
+  if(a && /^#[wr]\//.test(a.getAttribute("href"))) CAME_FROM_LIST = !$("list").hidden || CAME_FROM_LIST;
+});
+window.addEventListener("hashchange", route);
+
+/* ── controls ── */
+$("q").addEventListener("input", () => { window.scrollTo(0, 0); paintList(true); });
+$("q").addEventListener("keydown", ev => { if(ev.key === "Enter"){ ev.preventDefault(); $("q").blur(); } });
+$("clear").onclick = () => { $("q").value = ""; paintList(true); $("q").focus(); };
+$("more").onclick = () => paintList(false);
+function paintSeg(id, attr, val){ document.querySelectorAll(`#${id} button`).forEach(b => b.setAttribute("aria-pressed", b.dataset[attr] === val)); }
+$("dir").onclick = ev => { const b = ev.target.closest("button"); if(!b) return; PREF.dir = b.dataset.d; savePref(); paintSeg("dir", "d", PREF.dir); paintList(true); };
+$("mode").onclick = ev => { const b = ev.target.closest("button"); if(!b) return; PREF.mode = b.dataset.m; savePref(); paintSeg("mode", "m", PREF.mode); if(!$("word").hidden) route(); };
+
+function note(t, bad){ const n = $("fnote"); n.hidden = false; n.textContent = t; n.classList.toggle("bad", !!bad); }
+$("load").onclick = () => { $("file").value = ""; $("file").click(); };
+$("file").onchange = () => {
+  const f = $("file").files && $("file").files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    const v = parse(String(rd.result).trim());
+    if(v === null) return note(f.name + " isn't JSON. Choose a file saved by the Forge.", true);
+    const at = new Date().toISOString().slice(0, 10);
+    if(isPbArr(v)){
+      put(PBFILEKEY, JSON.stringify({name: f.name, at, PB: v}));
+      boot(); paintList(true); route();
+      return note(`Phrasebook: ${v.filter(e => e.lu).length} lines from ${f.name}.`);
+    }
+    const lex = v && v.LEX && typeof v.LEX === "object" ? v.LEX : v;
+    if(!isLexObj(lex)) return note(f.name + " doesn't look like a lexicon or phrasebook save.", true);
+    put(FILEKEY, JSON.stringify({name: f.name, at, LEX: lex, RETIRED: (v.LEX && v.RETIRED) || {}}));
+    boot(); paintList(true); route();
+    note(`Showing ${Object.keys(lex).length} words from ${f.name}. Nothing in the Forge was changed.`);
+  };
+  rd.onerror = () => note("That file couldn't be read.", true);
+  rd.readAsText(f);
+};
+$("useForge").onclick = () => {
+  put(FILEKEY, null); put(PBFILEKEY, null);
+  boot(); paintList(true); route();
+  note(SOURCE === "forge" ? "Back on the Forge's lexicon." : "The Forge hasn't stored a lexicon in this browser.", SOURCE !== "forge");
+};
+// if the Forge saves in another tab, follow it
+window.addEventListener("storage", ev => {
+  if(SOURCE !== "file" && ["lunaji-lex", "lunaji-retired", "lunaji-phrasebook"].includes(ev.key)){ boot(); paintList(true); if(!$("word").hidden) route(); }
+});
+
+paintSeg("dir", "d", PREF.dir); paintSeg("mode", "m", PREF.mode);
+boot(); paintList(true); route();
+setTimeout(formIndex, 50);
+})();
+</script>
+</body>
+</html>
