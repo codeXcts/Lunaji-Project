@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-24-1614 · made on build 2026-10-24-1603</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-26-2314 · made on build 2026-10-24-1614</div>
 <p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -113,6 +113,7 @@ details.panel>summary{cursor:pointer}
   <button role="tab" aria-selected="false" data-tab="verify">Verify</button>
   <button role="tab" aria-selected="false" data-tab="borrow">Borrow</button>
   <button role="tab" aria-selected="false" data-tab="compound">Compound</button>
+  <button role="tab" aria-selected="false" data-tab="wear">Wear</button>
   <button role="tab" aria-selected="false" data-tab="phrases">Phrases</button>
   <button role="tab" aria-selected="false" data-tab="paradigm">Paradigm</button>
   <button role="tab" aria-selected="false" data-tab="review">Review</button>
@@ -709,6 +710,35 @@ details.panel>summary{cursor:pointer}
       <button class="btn ghost" id="lxReset">Add any missing built-in words</button>
     </div>
   </div>
+</section>
+
+<!-- ───────────── WEAR ───────────── -->
+<section id="wear" hidden>
+  <p class="hint">Everyday wear — <b>a trial, not yet ruled.</b> The core words coined before 2026-10-06 at three or more syllables, loans left out, from the 2026-10-26 tier list. Each gets its legal worn forms in a fixed order: <b>inner wear</b> first (a sound between vowels drops and the vowels merge; a middle vowel drops; two vowels merge; <em>i</em> or <em>u</em> becomes <em>y</em> or <em>w</em>; two like syllables become one), then <b>clipping</b> (the first syllable goes, as <em>nowiretsu</em> became <em>retsu</em>; or a noun's last). Every form is checked against your lexicon with the same checks a drawn word gets. Pick one, keep the word whole, or protect it. Tap a word to open it.</p>
+  <p class="hint"><b>Your picks do not change the lexicon.</b> They are kept in this browser and in their own file. Applying them waits until the ruling is written. <em>üwiki</em> starts protected, for the reference sentence; tap Protect again to lift it.</p>
+  <div class="panel">
+    <p id="wearSum" style="margin:0 0 8px"></p>
+    <div class="row">
+      <input id="wearQ" placeholder="find a word or gloss" spellcheck="false" autocapitalize="off">
+      <select id="wearShow">
+        <option value="all">all</option><option value="open">not decided</option>
+        <option value="worn">worn</option><option value="whole">kept whole or protected</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="wearSave">Save picks to a file</button>
+      <button class="btn ghost" id="wearOpenFile">Load picks</button>
+      <input type="file" id="wearFile" accept=".txt,.json,text/plain,application/json" hidden>
+      <button class="btn ghost" id="wearCopy">Copy the worn list</button>
+      <button class="btn ghost" id="wearRecheck">Recheck</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="wearAddIn" placeholder="add another word to the list" spellcheck="false" autocapitalize="off">
+      <button class="btn ghost" id="wearAdd">Add</button>
+    </div>
+    <p class="hint" id="wearNote">Saves <em>lunaji-wear-picks-YYYY-MM-DD.txt</em>, separate from the lexicon file.</p>
+  </div>
+  <div id="wearList"></div>
 </section>
 
 <!-- ───────────── LOG ───────────── -->
@@ -1760,7 +1790,7 @@ const $ = id => document.getElementById(id);
 document.querySelectorAll("nav button").forEach(b=>{
   b.onclick = () => {
     document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["draw","queue","confirm","derive","verify","borrow","compound","phrases","paradigm","review","drift","lineage","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+    ["draw","queue","confirm","derive","verify","borrow","compound","wear","phrases","paradigm","review","drift","lineage","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
   };
 });
 
@@ -5687,6 +5717,274 @@ $("lxEl24").onclick = () => {
     $("lxAuditOut").innerHTML = `<p class="hint">${n} sentence${n === 1 ? "" : "s"} rewritten${did.length ? "; " + did.join("; ") : ""}.${look.length ? " " + look.length + " line" + (look.length === 1 ? "" : "s") + " still to check by hand." : ""} <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
   };
 };
+
+
+/* ══════════ wear ══════════
+   2026-10-26 — Everyday wear (not yet ruled; Grammar §1b.2 to be rewritten).
+   Core words coined before 2026-10-06 were drawn at three or four syllables
+   whatever their tier. This tab offers each one its legal worn forms, in a fixed
+   order — inner wear first (a sound between vowels drops and the vowels merge;
+   a middle vowel drops; two vowels merge; i/u becomes y/w; like syllables
+   merge), then clipping (the first syllable goes, as nowiretsu → retsu; or, for
+   a noun, the last). The speaker picks one, keeps the word whole, or protects
+   it. Picks are kept in their own file and never touch the lexicon in this
+   build: applying them waits for the ruling.                                 */
+const WEAR_LIST = [["uwaze", "noun", "a bath"], ["omime", "noun", "a door"], ["umosa", "noun", "a hug"], ["konogya", "noun", "a meal"], ["akyoza", "noun", "a name"], ["soromã", "noun", "a song"], ["kubosã", "noun", "a story"], ["nonyeti", "noun", "A thing, a matter"], ["tsumone", "noun", "a toy"], ["õsamo", "noun", "again"], ["tsükiwĩ", "noun", "already"], ["õkiwe", "noun", "bed"], ["onyake", "noun", "bowl"], ["komasa", "noun", "boy"], ["kuruma", "noun", "car"], ["ojine", "noun", "child"], ["funosko", "noun", "clothes"], ["elono", "noun", "egg"], ["kowore", "noun", "eye"], ["nokinyi", "noun", "face"], ["tonwobi", "noun", "family, household"], ["ginusã", "noun", "father"], ["koime", "noun", "fire"], ["nunoga", "noun", "food"], ["seheka", "noun", "foot"], ["ohole", "noun", "friend"], ["hoike", "noun", "girl"], ["kuyohã", "noun", "hair"], ["õjito", "noun", "hand"], ["vanõla", "noun", "hello; a greeting"], ["ümiko", "noun", "here"], ["saĩko", "noun", "house / home"], ["sotoye", "noun", "later"], ["rismoyõ", "noun", "meat"], ["lejĩta", "noun", "milk"], ["ozemi", "noun", "morning"], ["ilusã", "noun", "mother"], ["yetilo", "noun", "mouth"], ["ãkobo", "noun", "now"], ["hosonĩ", "noun", "parent"], ["ĩsori", "noun", "rain"], ["aroza", "noun", "rice"], ["lihoma", "noun", "room"], ["eama", "noun", "spoon"], ["nameno", "noun", "still"], ["himoga", "noun", "sun"], ["telefõ", "noun", "telephone"], ["üwiki", "noun", "the moon"], ["noaye", "noun", "the wind"], ["hesedo", "noun", "there"], ["kusonyo", "noun", "time"], ["gohono", "noun", "Today"], ["tõsunõ", "noun", "Tomorrow"], ["tageha", "noun", "tooth"], ["emose", "noun", "what — inanimate interrogative; what thing"], ["zwawashi", "noun", "window"], ["saonya", "noun", "woman"], ["mowoke", "noun", "yesterday"], ["howeru", "verb", "good (adjectival verb)"], ["eyosu", "verb", "to answer"], ["kübiyã", "verb", "to be able to , can"], ["ãtãlu", "verb", "to be angry"], ["elobu", "verb", "to be awake"], ["bakriru", "verb", "to be bad"], ["kinonu", "verb", "to be big"], ["tojiyu", "verb", "to be clean"], ["ubonu", "verb", "to be cold"], ["orimĩ", "verb", "to be cute"], ["inoyu", "verb", "to be dark"], ["wizenu", "verb", "to be dry"], ["owamu", "verb", "to be fast"], ["pwotogu", "verb", "to be full"], ["nofĩlu", "verb", "to be fun"], ["mĩsoyu", "verb", "to be happy"], ["õhalu", "verb", "to be hot"], ["uwõvu", "verb", "to be hungry"], ["mokonu", "verb", "to be loud"], ["tojinu", "verb", "to be many, much"], ["itimu", "verb", "to be new"], ["yewalu", "verb", "to be old (of things)"], ["nuponu", "verb", "to be quiet"], ["müshiyu", "verb", "to be ready"], ["jiulu", "verb", "to be right, correct"], ["tãzolu", "verb", "to be sad"], ["aleru", "verb", "to be sick"], ["serayu", "verb", "to be sleepy"], ["ihonu", "verb", "to be small"], ["üdiru", "verb", "to be tasty"], ["irayu", "verb", "to be thirsty"], ["kominu", "verb", "to be tired"], ["iyemu", "verb", "to be wrong"], ["tsudayã", "verb", "to begin, to start"], ["umülĩ", "verb", "to bring along"], ["õkonyu", "verb", "to buy"], ["wõsoru", "verb", "to call (someone)"], ["swoshiyu", "verb", "to carry"], ["yoyenu", "verb", "to change (a diaper, clothes)"], ["jionu", "verb", "to clean up, to tidy"], ["akiyã", "verb", "to close"], ["mukegu", "verb", "to come back, to return"], ["sukomu", "verb", "to cry"], ["seskanu", "verb", "to dance"], ["nishimu", "verb", "to do"], ["tienu", "verb", "to dress, to put clothes on"], ["kõsomu", "verb", "to eat"], ["kishimã", "verb", "to find"], ["fokegu", "verb", "to finish, to end"], ["yõkobu", "verb", "to forget"], ["hõkinu", "verb", "to give"], ["milogu", "verb", "to help"], ["wamarĩ", "verb", "to hold , to keep"], ["sogãru", "verb", "to hurt, to be in pain"], ["kidogõ", "verb", "to jump"], ["kuwanu", "verb", "to know"], ["ibĩru", "verb", "to laugh"], ["kobümĩ", "verb", "to learn"], ["okilu", "verb", "to like"], ["roleru", "verb", "to lose"], ["ãtamu", "verb", "to love"], ["tsumobã", "verb", "to make , cause"], ["otayu", "verb", "to meet"], ["obyenu", "verb", "to need"], ["nuenu", "verb", "to open"], ["otsümĩ", "verb", "to pick up"], ["aswinã", "verb", "to pull"], ["foinu", "verb", "to push"], ["õzonu", "verb", "to put, to place"], ["emenu", "verb", "to remember"], ["mokeyu", "verb", "to run"], ["jiomu", "verb", "to sing"], ["ebonu", "verb", "to sit"], ["wiõku", "verb", "to sleep"], ["gowalu", "verb", "to smile"], ["fekonu", "verb", "to speak, to talk"], ["kolivĩ", "verb", "to stop"], ["mienu", "verb", "to take"], ["õkyodu", "verb", "to teach"], ["shishiyu", "verb", "to throw"], ["nuzoru", "verb", "to try"], ["nikyoyu", "verb", "to turn off (a light)"], ["bokyonu", "verb", "to turn on (a light)"], ["usomã", "verb", "to understand"], ["mikolu", "verb", "to use"], ["owaru", "verb", "to wait"], ["lomimu", "verb", "to walk"], ["emyonu", "verb", "to wash"], ["inelu", "verb", "to write"], ["iunagi", "noun", "body"], ["yurowoki", "noun", "man"], ["vipomelu", "verb", "to ask"], ["aronenu", "verb", "to draw, to paint"], ["yakueru", "verb", "to lie down"], ["kodogimã", "verb", "to put down, to set down"]];
+const WEAR_KEY = "lunaji-wear-picks";
+let WEAR = {v: 1, picks: {}, extra: []};
+try{ const s = JSON.parse(localStorage.getItem(WEAR_KEY) || "null"); if(s && s.picks) WEAR = Object.assign({v: 1, picks: {}, extra: []}, s); }catch(e){}
+if(!WEAR.picks["üwiki"]) WEAR.picks["üwiki"] = {protect: true, why: "the reference sentence"};
+function saveWear(){ try{ localStorage.setItem(WEAR_KEY, JSON.stringify(WEAR)); }catch(e){} }
+
+const WV = "aeiouüöãĩõ", WNAS = "ãĩõ", WOBS = "pbtdkgfvsz", WLIQ = "rl";
+const WORAL = {"ã": "a", "ĩ": "i", "õ": "o"};
+const WMERGE = [["a","i","e"],["a","u","o"],["a","e","e"],["a","o","o"],["o","u","u"],["u","o","o"],["e","i","e"],["o","i","e"],["u","i","i"]];
+const wMerge = (x, y) => { const m = WMERGE.find(r => r[0] === x && r[1] === y); return m ? m[2] : null; };
+function wTok(w){ return w.match(/sh|ts|ny|./g) || []; }
+function wOnsetOK(on){
+  if(on.length <= 1) return true;
+  if(on.length === 2 && "yw".includes(on[1])) return true;
+  const ob = on[0].length === 1 && "pbtdkgfv".includes(on[0]);
+  if(on.length === 2 && ob && WLIQ.includes(on[1])) return !("td".includes(on[0]) && on[1] === "l");
+  if(on.length === 3 && ob && WLIQ.includes(on[1]) && "yw".includes(on[2])) return true;
+  return false;
+}
+// syllables as [onset[], nucleus, coda[]]
+function wSegs(w){
+  const t = wTok(w), out = []; let i = 0;
+  while(i < t.length){
+    const on = [];
+    while(i < t.length && !WV.includes(t[i])) on.push(t[i++]);
+    if(i >= t.length){ if(out.length) out[out.length-1][2].push(...on); break; }
+    out.push([on, t[i++], []]);
+  }
+  for(let k = 0; k < out.length - 1; k++){
+    const on = out[k+1][0];
+    while(on.length > 1 && !wOnsetOK(on)) out[k][2].push(on.shift());
+  }
+  return out;
+}
+const wJoin = S => S.map(([o, n, c]) => o.join("") + n + c.join("")).join("");
+const wCopy = S => S.map(([o, n, c]) => [o.slice(), n, c.slice()]);
+function wLegal(w, cls){
+  if(!w || !WV.includes(w[w.length-1])) return "ends in a consonant";
+  if(cls === "verb" && !(w.endsWith("u") || WNAS.includes(w[w.length-1]))) return "a verb must end in -u or a nasal vowel";
+  if(cls === "noun" && w.endsWith("u")) return "a noun may not end in -u";
+  if(/s(?=[iĩ])|z(?=[iĩ])|t(?=[uü])/.test(w.replace(/sh/g, "S").replace(/ts/g, "T"))) return "si / zi / tu";
+  if(/sy|zy|yi|wu|nyi|shy|jy/.test(w)) return "sy / zy / yi / wu / nyi";
+  const S = wSegs(w);
+  if(!S.length) return "no vowel";
+  for(let k = 0; k < S.length; k++){
+    const [on, nuc, co] = S[k];
+    if(!wOnsetOK(on)) return "onset " + on.join("");
+    if(on.length >= 2 && WLIQ.includes(on[1]) && WNAS.includes(nuc)) return "complex onset with a nasal vowel";
+    if(co.length){
+      if(co.length > 1) return "two consonants close one syllable";
+      const c = co[0], nx = k + 1 < S.length && S[k+1][0].length ? S[k+1][0][0] : null;
+      if(c === nx){ if("mnrhyw".includes(c) || c === "ny") return "long " + c; }
+      else if(!"rls".includes(c)) return "coda " + c;
+      if(WNAS.includes(nuc)) return "nasal vowel and a coda in one syllable";
+    }
+  }
+  if(/[kgfvr]w/.test(w)) return "w after a velar, labiodental or r";
+  if(/[mn][mn]|ny[mn]/.test(w)) return "two nasals together";
+  if(/[ãĩõ][mn]/.test(w)) return "nasal vowel before a nasal consonant";
+  return "";
+}
+function wSyncope(w, vowels, keepOnly){
+  const S = wSegs(w); if(S.length !== 3) return null;
+  const [[o1, n1, c1], [o2, n2, c2], [o3, n3]] = S;
+  if(!vowels.includes(n2) || c1.length || c2.length || o2.length !== 1 || !o3.length) return null;
+  const a = o2[0], b = o3[0];
+  if("yw".includes(b) && o3.length === 1) return null;
+  const p1 = o1.join(""), p3 = o3.join("");
+  if("rls".includes(a) && a !== b && !(a === "s" && b === "y")) return p1 + n1 + a + p3 + n3;
+  if(a === b && "pbtdkgfvszl".includes(a)) return p1 + n1 + a + p3 + n3;
+  if("pbtdkgfv".includes(a) && WLIQ.includes(b) && o3.length === 1 && !("td".includes(a) && b === "l"))
+    return WNAS.includes(n3) ? null : p1 + n1 + a + b + n3;
+  if(a === "n" && !["m","n","y","w"].includes(b) && "aeiou".includes(n1))
+    return p1 + {a: "ã", e: "ã", i: "ĩ", o: "õ", u: "õ"}[n1] + p3 + n3;
+  if(keepOnly) return null;
+  return p1 + n1 + p3 + n3;                       // the consonant is lost
+}
+function wResolve(a, b){
+  const oa = WORAL[a] || a, ob = WORAL[b] || b;
+  if(oa === ob) return WNAS.includes(a) ? a : b;
+  const m = wMerge(oa, ob);
+  return m && !WNAS.includes(a) && !WNAS.includes(b) ? m : null;
+}
+const WPATHS = [
+  ["inner", "a sound between vowels drops", w => {
+    const S = wSegs(w), out = [];
+    for(const k of [1, 2]){
+      if(k >= S.length || S[k-1][2].length || S[k][0].length !== 1) continue;
+      const m = wResolve(S[k-1][1], S[k][1]); if(!m) continue;
+      const T = wCopy(S); T[k-1] = [T[k-1][0], m, T[k][2]]; T.splice(k, 1);
+      out.push({f: wJoin(T), lost: S[k][0][0]});
+    }
+    return out; }],
+  ["inner", "a middle vowel drops", w => { const x = wSyncope(w, "iuü", true); return x ? [{f: x}] : []; }],
+  ["inner", "a middle vowel and a consonant drop", w => { const x = wSyncope(w, "iuü", false), y = wSyncope(w, "iuü", true); return x && x !== y ? [{f: x}] : []; }],
+  ["inner", "two vowels merge", w => {
+    for(const [x, y, z] of WMERGE){ const i = w.indexOf(x + y); if(i >= 0 && i + 2 < w.length) return [{f: w.slice(0, i) + z + w.slice(i + 2)}]; }
+    return []; }],
+  ["inner", "i or u becomes y or w", w => {
+    const S = wSegs(w), out = [];
+    for(const k of [0, 1]){
+      if(k + 1 >= S.length) continue;
+      const [o, n, c] = S[k];
+      if("iu".includes(n) && !c.length && !S[k+1][0].length){
+        const T = wCopy(S); T[k+1][0] = o.concat([n === "i" ? "y" : "w"]); T.splice(k, 1); out.push({f: wJoin(T)});
+      }
+    }
+    return out; }],
+  ["inner", "two like syllables become one", w => {
+    const S = wSegs(w), out = [];
+    for(const k of [0, 1]){
+      if(k + 1 >= S.length) continue;
+      if(S[k][0].length && S[k][0].join() === S[k+1][0].join() && !S[k][2].length){ const T = wCopy(S); T.splice(k, 1); out.push({f: wJoin(T)}); }
+    }
+    return out; }],
+  ["clip", "the first syllable goes", w => { const S = wSegs(w); return S.length === 3 ? [{f: wJoin(S.slice(1))}] : []; }],
+  ["clip", "the last syllable goes (nouns)", (w, cls) => { const S = wSegs(w); return cls === "noun" && S.length === 3 && !S[1][2].length ? [{f: wJoin(S.slice(0, 2))}] : []; }],
+];
+// every legal worn form of a word, in menu order, with the Forge's own checks
+function wearOptions(w, cls){
+  const seen = new Set(), out = [], blocked = [];
+  const saved = LEX[w]; delete LEX[w];
+  try{
+    WPATHS.forEach(([kind, how, fn]) => fn(w, cls).forEach(o => {
+      const f = o.f; if(!f || f === w || seen.has(f)) return; seen.add(f);
+      const bad = wLegal(f, cls);
+      if(bad){ blocked.push({f, why: bad}); return; }
+      let r; try{ r = wordRisks(f, cls); }catch(e){ r = {block: [], warn: [], note: []}; }
+      if(r.block.length){ blocked.push({f, why: r.block[0]}); return; }
+      const warn = r.warn.slice();
+      const tw = nearTwins(f).filter(t => t.w !== w);
+      if(tw.length) warn.push("one letter from " + twinText(tw));
+      const vi = c => "aeiouüöãĩõ".includes(c);
+      if(vi(f[0]) !== vi(w[0])) warn.push(vi(f[0]) ? "now begins with a vowel: na, ila, zoka, kügi and pe elide into it" : "no longer begins with a vowel");
+      if(/ü/.test(f) && !/ü[^aeiouüöãĩõ]*[iĩ]/.test(f)) warn.push("its ü has no i after it — R13 is finished, so it stays");
+      out.push({f, kind, how: how + (o.lost ? " (−" + o.lost + ")" : ""), warn, syl: wSegs(f).length});
+    }));
+  } finally { if(saved) LEX[w] = saved; }
+  return {out, blocked};
+}
+let wearCache = null, wearOpen = null;
+function wearRows(){
+  const extra = (WEAR.extra || []).filter(x => !WEAR_LIST.some(r => r[0] === x[0]));
+  return WEAR_LIST.concat(extra);
+}
+// rebuilt whenever the lexicon has changed since the last check, so loading a
+// lexicon file after opening this tab is never checked against the old copy
+let wearSig = "";
+const lexSig = () => { const k = Object.keys(LEX); return k.length + "/" + k.join("|").length; };
+function wearBuild(){
+  wearCache = {}; wearSig = lexSig();
+  wearRows().forEach(([w, cls]) => { if(LEX[w]) wearCache[w] = wearOptions(w, cls); });
+}
+function takenBy(f, self){ return Object.keys(WEAR.picks).find(w => w !== self && WEAR.picks[w].f === f); }
+function wearSub(line, w, f){
+  // the Lunaji half of a line, with the word (and anything joined to it) respelled
+  return line.split(" ").map(t => {
+    const core = t.replace(/^[“"]|[.?!,"”]+$/g, "");
+    const low = core.toLowerCase();
+    if(!low.startsWith(w)) return t;
+    const rest = low.slice(w.length);
+    if(rest && LEX[low]) return t;                   // a longer word that only starts the same
+    return t.replace(core, (core[0] !== core[0].toLowerCase() ? f[0].toUpperCase() + f.slice(1) : f) + core.slice(w.length));
+  }).join(" ");
+}
+function wearLines(w){
+  const L = [];
+  (PB || []).forEach(e => { if(e && e.lu && e.lu.toLowerCase().split(/[\s.,?!"“”]+/).some(t => t.startsWith(w))) L.push(e); });
+  return L.slice(0, 3);
+}
+function paintWear(){
+  if(!wearCache || wearSig !== lexSig()) wearBuild();
+  const rows = wearRows(), q = ($("wearQ").value || "").trim().toLowerCase(), show = $("wearShow").value;
+  let nP = 0, nK = 0, nX = 0, nU = 0;
+  rows.forEach(([w]) => { const p = WEAR.picks[w]; if(!p) nU++; else if(p.f) nP++; else if(p.keep) nK++; else if(p.protect) nX++; });
+  $("wearSum").textContent = `${rows.length} words · ${nP} worn · ${nK} kept whole · ${nX} protected · ${nU} not decided`;
+  const html = rows.filter(([w, cls, g]) => {
+    const p = WEAR.picks[w];
+    if(q && !w.includes(q) && !(g || "").toLowerCase().includes(q)) return false;
+    if(show === "open" && p) return false;
+    if(show === "worn" && !(p && p.f)) return false;
+    if(show === "whole" && !(p && (p.keep || p.protect))) return false;
+    return true;
+  }).map(([w, cls, g0]) => {
+    const e = LEX[w], g = e ? e.g : g0, p = WEAR.picks[w], c = wearCache[w];
+    const state = !e ? "not in your lexicon" : !p ? "not decided" : p.f ? "worn → " + p.f : p.keep ? "kept whole" : "protected" + (p.why ? " — " + p.why : "");
+    if(!e) return `<div class="panel" style="opacity:.6"><b class="lun">${esc(w)}</b> — ${esc(g)} <span class="hint">· ${state}</span></div>`;
+    const open = wearOpen === w;
+    const first = c.out[0];
+    const opts = c.out.map((o, i) => {
+      const by = takenBy(o.f, w), on = p && p.f === o.f;
+      return `<div style="margin:6px 0">
+        <button class="btn ${on ? "" : "ghost"}" data-wpick="${esc(w)}" data-f="${esc(o.f)}" ${by ? "disabled" : ""}>${esc(o.f)}</button>
+        <span class="hint" style="margin-left:6px">${i === 0 ? "<b>offered first</b> · " : ""}${o.kind === "inner" ? "inner wear" : "clipped"} — ${esc(o.how)} · ${o.syl} syllable${o.syl === 1 ? "" : "s"}${by ? " · <b>taken by " + esc(by) + "</b>" : ""}</span>
+        ${o.warn.length ? `<div class="hint" style="margin:2px 0 0 4px">${o.warn.map(esc).join(" · ")}</div>` : ""}
+      </div>`; }).join("");
+    const show_f = p && p.f ? p.f : first ? first.f : null;
+    const lines = show_f ? wearLines(w).map(l => `<div class="lun">${esc(wearSub(l.lu, w, show_f))}</div><div class="hint" style="margin:0 0 6px">${esc(l.lu)}${l.en ? " · " + esc(l.en) : ""}</div>`).join("") : "";
+    return `<div class="panel">
+      <div data-wopen="${esc(w)}" style="cursor:pointer"><b class="lun">${esc(w)}</b> — ${esc(g)} <span class="hint">· ${cls} · ${wSegs(w).length} syllables · ${state}${!open && first ? " · offered first: " + esc(first.f) : ""}</span></div>
+      ${open ? `
+        ${c.out.length ? opts : `<p class="hint">No legal worn form.</p>`}
+        ${c.blocked.length ? `<details><summary class="hint" style="cursor:pointer">${c.blocked.length} blocked</summary><div class="hint">${c.blocked.map(b => esc(b.f) + " — " + esc(b.why)).join("<br>")}</div></details>` : ""}
+        <div class="row" style="margin-top:8px">
+          <button class="btn ${p && p.keep ? "" : "ghost"}" data-wkeep="${esc(w)}">Keep whole</button>
+          <button class="btn ${p && p.protect ? "" : "ghost"}" data-wprot="${esc(w)}">Protect</button>
+          ${p ? `<button class="btn ghost" data-wclear="${esc(w)}">Undecide</button>` : ""}
+        </div>
+        ${lines ? `<p class="hint" style="margin:10px 0 4px">In your phrasebook, with ${esc(show_f)}:</p>${lines}` : show_f ? `<p class="hint">Not in any phrasebook line.</p>` : ""}` : ""}
+    </div>`;
+  }).join("");
+  $("wearList").innerHTML = html || `<p class="hint">Nothing matches.</p>`;
+}
+function wearSet(w, v){ if(v) WEAR.picks[w] = v; else delete WEAR.picks[w]; saveWear(); paintWear(); }
+$("wearList").onclick = e => {
+  const t = e.target.closest("[data-wopen],[data-wpick],[data-wkeep],[data-wprot],[data-wclear]"); if(!t) return;
+  if(t.dataset.wopen){ wearOpen = wearOpen === t.dataset.wopen ? null : t.dataset.wopen; paintWear(); return; }
+  if(t.dataset.wpick){ const w = t.dataset.wpick, f = t.dataset.f, p = WEAR.picks[w];
+    const o = wearCache[w].out.find(x => x.f === f);
+    wearSet(w, p && p.f === f ? null : {f, kind: o.kind, how: o.how}); logLine(`${stamp()}  wear: ${w} → ${f}`); return; }
+  if(t.dataset.wkeep){ const w = t.dataset.wkeep; wearSet(w, WEAR.picks[w] && WEAR.picks[w].keep ? null : {keep: true}); return; }
+  if(t.dataset.wprot){ const w = t.dataset.wprot; wearSet(w, WEAR.picks[w] && WEAR.picks[w].protect ? null : {protect: true}); return; }
+  if(t.dataset.wclear){ wearSet(t.dataset.wclear, null); }
+};
+$("wearQ").oninput = paintWear; $("wearShow").onchange = paintWear;
+$("wearAdd").onclick = () => {
+  const w = toTilde(($("wearAddIn").value || "").trim().toLowerCase());
+  if(!w || !LEX[w]){ $("wearNote").textContent = w ? w + " is not in the lexicon." : ""; return; }
+  if(wearRows().some(r => r[0] === w)){ $("wearNote").textContent = w + " is already on the list."; return; }
+  const c = LEX[w].c === "verb" ? "verb" : "noun";
+  WEAR.extra = (WEAR.extra || []).concat([[w, c, LEX[w].g]]); saveWear();
+  wearCache[w] = wearOptions(w, c); wearOpen = w; $("wearAddIn").value = ""; $("wearNote").textContent = "Added " + w + "."; paintWear();
+};
+$("wearRecheck").onclick = () => { wearBuild(); paintWear(); $("wearNote").textContent = "Rechecked against the lexicon as it is now."; };
+$("wearSave").onclick = async () => {
+  const body = JSON.stringify(Object.assign({kind: "lunaji-wear-picks", saved: stamp()}, WEAR));
+  await saveTextFile(`lunaji-wear-picks-${stamp()}.txt`, body, $("wearNote"));
+  logLine(`${stamp()}  saved the wear picks · ${Object.keys(WEAR.picks).length} decided`);
+};
+$("wearOpenFile").onclick = () => { $("wearFile").value = ""; $("wearFile").click(); };
+$("wearFile").onchange = async () => {
+  let f; try{ f = await readTextFile($("wearFile")); }catch(e){ return; }
+  let next; try{ next = JSON.parse(f.text.trim()); }catch(e){ $("wearNote").textContent = f.name + " is not a wear-picks file."; return; }
+  if(!next || next.kind !== "lunaji-wear-picks" || typeof next.picks !== "object"){ $("wearNote").textContent = f.name + " is not a wear-picks file."; return; }
+  if(!confirm(`${f.name}\n\n${Object.keys(next.picks).length} decided in the file, ${Object.keys(WEAR.picks).length} here now.\nReplace the picks here with the file?`)) return;
+  WEAR = {v: 1, picks: next.picks, extra: next.extra || []}; saveWear(); wearBuild(); paintWear();
+  $("wearNote").textContent = "Loaded the picks from " + f.name + ".";
+};
+$("wearCopy").onclick = () => {
+  const lines = wearRows().map(([w]) => { const p = WEAR.picks[w]; return p && p.f ? `${w} → ${p.f}  (${p.kind === "inner" ? "inner wear" : "clipped"}: ${p.how})` : null; }).filter(Boolean);
+  const txt = lines.join("\n") || "No words worn yet.";
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => { $("wearNote").textContent = `Copied ${lines.length} line${lines.length === 1 ? "" : "s"}.`; },
+    () => { $("wearNote").textContent = txt; });
+};
+document.querySelector('nav button[data-tab="wear"]').addEventListener("click", () => paintWear());
 
 loadWork();
 </script>
