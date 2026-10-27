@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-26-2314 · made on build 2026-10-24-1614</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-27-0134 · made on build 2026-10-26-2314</div>
 <p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -715,7 +715,11 @@ details.panel>summary{cursor:pointer}
 <!-- ───────────── WEAR ───────────── -->
 <section id="wear" hidden>
   <p class="hint">Everyday wear — <b>a trial, not yet ruled.</b> The core words coined before 2026-10-06 at three or more syllables, loans left out, from the 2026-10-26 tier list. Each gets its legal worn forms in a fixed order: <b>inner wear</b> first (a sound between vowels drops and the vowels merge; a middle vowel drops; two vowels merge; <em>i</em> or <em>u</em> becomes <em>y</em> or <em>w</em>; two like syllables become one), then <b>clipping</b> (the first syllable goes, as <em>nowiretsu</em> became <em>retsu</em>; or a noun's last). Every form is checked against your lexicon with the same checks a drawn word gets. Pick one, keep the word whole, or protect it. Tap a word to open it.</p>
-  <p class="hint"><b>Your picks do not change the lexicon.</b> They are kept in this browser and in their own file. Applying them waits until the ruling is written. <em>üwiki</em> starts protected, for the reference sentence; tap Protect again to lift it.</p>
+  <p class="hint"><b>Ruled 2026-10-27 as Proto R14.</b> The 126 worn forms from the picks of that date are built into the Forge, and <b>Apply R14</b> below writes them into the lexicon, the phrasebook and the sentence bank. Changing a pick here does not change R14 — that takes a new ruling. The old form stays on each entry as <em>worn.from</em>; <em>was</em> is untouched.</p>
+  <div class="panel">
+    <button class="btn" id="wearApply">Apply R14 — 126 words, the phrasebook and the sentence bank</button>
+    <div id="wearApplyOut"></div>
+  </div>
   <div class="panel">
     <p id="wearSum" style="margin:0 0 8px"></p>
     <div class="row">
@@ -1331,9 +1335,16 @@ function tildeKeys(o){
    used to put these straight back — and in the old n-spelling, beside the tilde
    forms. Fixed 2026-09-29. */
 const SEED_SUPERSEDED = ["gan","win","ishin","ganwin","ganta","sofou","uwiki","tsuri"];
+/* R14 — everyday wear, ruled 2026-10-27 (Proto R14, Dictionary › Worn forms).
+   old form: [worn form, inner | clip, how]. 126 words. */
+const R14 = {"omime": ["ome", "inner", "a middle vowel and a consonant drop"], "uwaze": ["uwe", "inner", "a sound between vowels drops (−z)"], "konogya": ["kogya", "inner", "a sound between vowels drops (−n)"], "akyoza": ["akyo", "clip", "the last syllable goes (nouns)"], "soromã": ["somã", "inner", "a sound between vowels drops (−r)"], "kubosã": ["bosã", "clip", "the first syllable goes"], "nonyeti": ["nonye", "inner", "a sound between vowels drops (−t)"], "tsumone": ["tsumo", "clip", "the last syllable goes (nouns)"], "õsamo": ["samo", "clip", "the first syllable goes"], "tsükiwĩ": ["tsüki", "clip", "the last syllable goes (nouns)"], "õkiwe": ["kiwe", "clip", "the first syllable goes"], "onyake": ["nyake", "clip", "the first syllable goes"], "komasa": ["masa", "clip", "the first syllable goes"], "kuruma": ["kurma", "inner", "a middle vowel drops"], "ojine": ["oji", "clip", "the last syllable goes (nouns)"], "funosko": ["nosko", "clip", "the first syllable goes"], "elono": ["elo", "inner", "a sound between vowels drops (−n)"], "kowore": ["kowo", "clip", "the last syllable goes (nouns)"], "nokinyi": ["noki", "inner", "a sound between vowels drops (−ny)"], "tonwobi": ["nwobi", "clip", "the first syllable goes"], "ginusã": ["gĩsã", "inner", "a middle vowel drops"], "nunoga": ["noga", "inner", "a sound between vowels drops (−n)"], "seheka": ["sehe", "clip", "the last syllable goes (nouns)"], "ohole": ["ole", "inner", "a sound between vowels drops (−h)"], "hoike": ["ike", "clip", "the first syllable goes"], "kuyohã": ["yohã", "clip", "the first syllable goes"], "õjito": ["õto", "inner", "a middle vowel and a consonant drop"], "vanõla": ["vanõ", "clip", "the last syllable goes (nouns)"], "ümiko": ["ümi", "clip", "the last syllable goes (nouns)"], "sotoye": ["toye", "clip", "the first syllable goes"], "rismoyõ": ["rismo", "clip", "the last syllable goes (nouns)"], "lejĩta": ["lejĩ", "clip", "the last syllable goes (nouns)"], "ozemi": ["zemi", "clip", "the first syllable goes"], "ilusã": ["lusã", "clip", "the first syllable goes"], "yetilo": ["tilo", "clip", "the first syllable goes"], "ãkobo": ["ãko", "inner", "a sound between vowels drops (−b)"], "hosonĩ": ["honĩ", "inner", "a sound between vowels drops (−s)"], "ĩsori": ["ĩse", "inner", "a sound between vowels drops (−r)"], "lihoma": ["homa", "clip", "the first syllable goes"], "eama": ["ama", "clip", "the first syllable goes"], "nameno": ["name", "clip", "the last syllable goes (nouns)"], "noaye": ["noa", "clip", "the last syllable goes (nouns)"], "hesedo": ["sedo", "clip", "the first syllable goes"], "kusonyo": ["kuso", "inner", "a sound between vowels drops (−ny)"], "gohono": ["gono", "inner", "a sound between vowels drops (−h)"], "tõsunõ": ["sunõ", "clip", "the first syllable goes"], "zwawashi": ["zwashi", "inner", "a sound between vowels drops (−w)"], "saonya": ["sao", "clip", "the last syllable goes (nouns)"], "mowoke": ["moke", "inner", "a sound between vowels drops (−w)"], "howeru": ["weru", "clip", "the first syllable goes"], "ãtãlu": ["tãlu", "clip", "the first syllable goes"], "elobu": ["elu", "inner", "a sound between vowels drops (−b)"], "bakriru": ["kriru", "clip", "the first syllable goes"], "kinonu": ["kinu", "inner", "a sound between vowels drops (−n)"], "tojiyu": ["jiyu", "clip", "the first syllable goes"], "ubonu": ["bonu", "clip", "the first syllable goes"], "orimĩ": ["emĩ", "inner", "a sound between vowels drops (−r)"], "inoyu": ["inu", "inner", "a sound between vowels drops (−y)"], "wizenu": ["zenu", "clip", "the first syllable goes"], "owamu": ["wamu", "clip", "the first syllable goes"], "pwotogu": ["togu", "clip", "the first syllable goes"], "nofĩlu": ["fĩlu", "clip", "the first syllable goes"], "mĩsoyu": ["mĩsu", "inner", "a sound between vowels drops (−y)"], "õhalu": ["halu", "clip", "the first syllable goes"], "uwõvu": ["wõvu", "clip", "the first syllable goes"], "tojinu": ["tonu", "inner", "a middle vowel and a consonant drop"], "itimu": ["timu", "clip", "the first syllable goes"], "nuponu": ["ponu", "clip", "the first syllable goes"], "jiulu": ["jiu", "inner", "a sound between vowels drops (−l)"], "tãzolu": ["tãzu", "inner", "a sound between vowels drops (−l)"], "serayu": ["rayu", "clip", "the first syllable goes"], "ihonu": ["honu", "clip", "the first syllable goes"], "üdiru": ["diru", "clip", "the first syllable goes"], "kominu": ["konu", "inner", "a middle vowel and a consonant drop"], "iyemu": ["yemu", "clip", "the first syllable goes"], "tsudayã": ["tsudã", "inner", "a sound between vowels drops (−y)"], "umülĩ": ["mülĩ", "clip", "the first syllable goes"], "õkonyu": ["õku", "inner", "a sound between vowels drops (−ny)"], "wõsoru": ["wõsu", "inner", "a sound between vowels drops (−r)"], "swoshiyu": ["sweyu", "inner", "a sound between vowels drops (−sh)"], "yoyenu": ["yenu", "inner", "two like syllables become one"], "akiyã": ["kiyã", "clip", "the first syllable goes"], "mukegu": ["kegu", "clip", "the first syllable goes"], "sukomu": ["komu", "clip", "the first syllable goes"], "seskanu": ["kanu", "clip", "the first syllable goes"], "nishimu": ["shimu", "clip", "the first syllable goes"], "kõsomu": ["kõsu", "inner", "a sound between vowels drops (−m)"], "yõkobu": ["yõbu", "inner", "a sound between vowels drops (−k)"], "milogu": ["logu", "clip", "the first syllable goes"], "wamarĩ": ["marĩ", "clip", "the first syllable goes"], "kidogõ": ["kidõ", "inner", "a sound between vowels drops (−g)"], "ibĩru": ["bĩru", "clip", "the first syllable goes"], "kobümĩ": ["komĩ", "inner", "a middle vowel and a consonant drop"], "okilu": ["kilu", "clip", "the first syllable goes"], "roleru": ["leru", "clip", "the first syllable goes"], "ãtamu": ["tamu", "clip", "the first syllable goes"], "tsumobã": ["tsobã", "inner", "a sound between vowels drops (−m)"], "obyenu": ["byenu", "clip", "the first syllable goes"], "nuenu": ["enu", "clip", "the first syllable goes"], "otsümĩ": ["tsümĩ", "clip", "the first syllable goes"], "aswinã": ["swinã", "clip", "the first syllable goes"], "foinu": ["fenu", "inner", "two vowels merge"], "õzonu": ["zonu", "clip", "the first syllable goes"], "emenu": ["menu", "clip", "the first syllable goes"], "mokeyu": ["keyu", "clip", "the first syllable goes"], "jiomu": ["omu", "clip", "the first syllable goes"], "ebonu": ["ebu", "inner", "a sound between vowels drops (−n)"], "gowalu": ["walu", "clip", "the first syllable goes"], "fekonu": ["feku", "inner", "a sound between vowels drops (−n)"], "kolivĩ": ["kolĩ", "inner", "a sound between vowels drops (−v)"], "mienu": ["myenu", "inner", "i or u becomes y or w"], "õkyodu": ["õkyu", "inner", "a sound between vowels drops (−d)"], "nuzoru": ["nuzu", "inner", "a sound between vowels drops (−r)"], "nikyoyu": ["kyoyu", "clip", "the first syllable goes"], "bokyonu": ["kyonu", "clip", "the first syllable goes"], "usomã": ["omã", "inner", "a sound between vowels drops (−s)"], "mikolu": ["miku", "inner", "a sound between vowels drops (−l)"], "owaru": ["waru", "clip", "the first syllable goes"], "lomimu": ["lomu", "inner", "a middle vowel and a consonant drop"], "emyonu": ["myonu", "clip", "the first syllable goes"], "inelu": ["nelu", "clip", "the first syllable goes"], "iunagi": ["yunagi", "inner", "i or u becomes y or w"], "yurowoki": ["yuroki", "inner", "a sound between vowels drops (−w)"], "aronenu": ["onenu", "inner", "a sound between vowels drops (−r)"], "yakueru": ["yoeru", "inner", "a sound between vowels drops (−k)"], "kodogimã": ["kogimã", "inner", "a sound between vowels drops (−d)"]};
 function seedObj(){
   const o = {};
-  for(const w in LEX_SEED) o[toTilde(w)] = {g:LEX_SEED[w][0], c:CMAP[LEX_SEED[w][1]] || "noun", real:true};
+  for(const w in LEX_SEED){
+    let k = toTilde(w); const e = {g:LEX_SEED[w][0], c:CMAP[LEX_SEED[w][1]] || "noun", real:true};
+    if(R14[k]){ e.worn = {from: k, how: (R14[k][1] === "inner" ? "inner wear: " : "clipped: ") + R14[k][2], d: "2026-10-27"}; k = R14[k][0]; }
+    o[k] = e;
+  }
   return o;
 }
 function loadLex(){
@@ -2139,7 +2150,7 @@ function renderDerivation(){
       </ul>
       <div class="result lun">${res.spelling}</div>
       <div class="ipa">/${res.ipa}/</div>
-      ${gfNote}
+      ${gfNote}${R14[res.spelling] ? `<div class="warn">This is the form R1–R13 give. The word wore down to <b>${esc(R14[res.spelling][0])}</b> on 2026-10-27 (Proto R14, ${R14[res.spelling][1] === "inner" ? "inner wear" : "clipped"}: ${esc(R14[res.spelling][2])}). The worn form is the word.</div>` : ""}
       <div class="tags">${tags.map(t=>`<span class="tag ${t.ok?"ok":"bad"}">${t.s}</span>`).join("")}</div>
       ${(tw => tw.length ? `<p class="hint" style="color:var(--lamp)">One letter from ${esc(twinText(tw))}. Say them in one sentence before keeping.</p>` : "")(nearTwins(res.spelling))}
     </div>
@@ -3039,6 +3050,8 @@ function wordRisks(w, cls, parts){
   if(rhy.length) warn.push("near-rhyme with " + rhy.join(", ") + " \u2014 same class, same slot");
   if(englishHit(w)) warn.push("this is a common English word");
   if(COINED.includes(w)) block.push("collides with " + w + " \u2014 " + LEX[w].g);
+  // 2026-10-27 — R14: the full form of a worn word is taken (Proto R14)
+  if(!COINED.includes(w) && R14[w]) block.push("the full form of " + R14[w][0] + " before it wore down (Proto R14)");
   if(isRetired(w)) block.push("this shape was retired once already" + (RET[w] ? " \u2014 " + RET[w].r : ""));
   if(splitsIntoParticles(w)) block.push("splits into a particle sequence (Grammar \u00a78)");
   // 2026-10-11: the numerals as stored — vã, not van (the lexicon is tilde-spelled)
@@ -3277,7 +3290,7 @@ $("lxImport").onclick = () => {
 // since the file was built, so a button that overwrites it is a footgun.
 $("lxReset").onclick = () => {
   const seed = seedObj(); let added = 0;
-  for(const w in seed) if(!LEX[w] && !isRetired(w) && !SEED_SUPERSEDED.includes(toN(w))
+  for(const w in seed) if(!LEX[w] && !isRetired(w) && !SEED_SUPERSEDED.includes(toN(w)) && !(seed[w].worn && LEX[seed[w].worn.from])
                           && !Object.values(LEX).some(e => e.was === w)){ LEX[w] = seed[w]; added++; }
   saveLex(); renderLex();
   logLine(`${stamp()}  merged in ${added} built-in word${added===1?"":"s"}`);
@@ -5916,7 +5929,8 @@ function paintWear(){
   }).map(([w, cls, g0]) => {
     const e = LEX[w], g = e ? e.g : g0, p = WEAR.picks[w], c = wearCache[w];
     const state = !e ? "not in your lexicon" : !p ? "not decided" : p.f ? "worn → " + p.f : p.keep ? "kept whole" : "protected" + (p.why ? " — " + p.why : "");
-    if(!e) return `<div class="panel" style="opacity:.6"><b class="lun">${esc(w)}</b> — ${esc(g)} <span class="hint">· ${state}</span></div>`;
+    if(!e){ const ap = R14[w] && LEX[R14[w][0]] ? "worn → " + R14[w][0] + " · applied" : state;
+      return `<div class="panel" style="opacity:.6"><b class="lun">${esc(w)}</b> — ${esc(g)} <span class="hint">· ${esc(ap)}</span></div>`; }
     const open = wearOpen === w;
     const first = c.out[0];
     const opts = c.out.map((o, i) => {
@@ -5985,6 +5999,148 @@ $("wearCopy").onclick = () => {
     () => { $("wearNote").textContent = txt; });
 };
 document.querySelector('nav button[data-tab="wear"]').addEventListener("click", () => paintWear());
+
+
+/* ══════════ R14 — everyday wear, applied ══════════
+   Ruled 2026-10-27 (Proto R14, Dictionary › Worn forms). 126 core words coined
+   before 2026-10-06 wore down; each worn form replaces the old word. The old
+   form is kept on the entry as worn.from, beside was (the older spelling, which
+   is not touched). Nothing is recoined: the root and its derivation stand, and
+   R14 is one more step after R13. This button writes the change into the
+   lexicon, the phrasebook and the sentence bank. Lines where a worn word sits
+   against an apostrophe, or now begins or no longer begins with a vowel, are
+   listed for a hand check and never rewritten — the elision there is the
+   speaker's call, and the update buttons above write the regular ones.      */
+const R14_DATE = "2026-10-27";
+const R14_V = "aeiouüöãĩõ", R14_NAS = {"ã": "a", "ĩ": "i", "õ": "o"};
+const r14Link = w => R14_NAS[w[w.length-1]] ? w.slice(0, -1) + R14_NAS[w[w.length-1]] + "n" : null;
+const R14_OLD = Object.keys(R14).sort((a, b) => b.length - a.length);   // longest first
+// the new form for a token: the old word, with or without a nasal linked into
+// what follows, then anything joined to it — particles, endings
+function r14Token(core){
+  const low = core.toLowerCase();
+  for(const old of R14_OLD){
+    const nw = R14[old][0];
+    let rest = null;
+    if(low.startsWith(old)) rest = low.slice(old.length);
+    else { const lk = r14Link(old); if(lk && low.startsWith(lk) && low.length > lk.length && R14_V.includes(low[lk.length])) rest = low.slice(lk.length); }
+    if(rest === null) continue;
+    if(rest && LEX[low] && low !== old) continue;          // a longer word that only starts the same
+    if(rest && !/^[a-zãĩõüö]*$/.test(rest)) continue;
+    const linked = low.startsWith(old) ? false : true;
+    const restV = rest.length > 0 && R14_V.includes(rest[0]);
+    const lk = r14Link(nw);
+    let out = (restV && lk ? lk : nw) + rest;
+    if(linked && !lk) out = nw + rest;
+    if(core[0] !== core[0].toLowerCase()) out = out[0].toUpperCase() + out.slice(1);
+    return {out, old, nw, viChange: R14_V.includes(old[0]) !== R14_V.includes(nw[0])};
+  }
+  return null;
+}
+// Elision by the rulings (Grammar §1b.4, §6.0; Phonology §6): the words that
+// lean forward — na, ila, zoka, kügi, and pe joined to its owner — drop their
+// vowel before any vowel; the case particles ni di ba wa and topic na, and
+// puso, fa, mishi, only before their own vowel. A worn form can open or close
+// a site, so each is rewritten: n'omime → n'ome stays; il'okilu → ila kilu.
+const R14_FWD = {n: "na", il: "ila", zok: "zoka", "küg": "kügi"};
+const R14_SAME = {pus: ["puso", "oõ"], f: ["fa", "aã"], mish: ["mishi", "iĩ"]};
+const R14_CASE = {n: null, d: ["di", "iĩ"], b: ["ba", "aã"], w: ["wa", "aã"]};
+const vow = c => R14_V.includes(c || "");
+function r14Line(lu){
+  let changed = false; const check = [], T = lu.split(" "), out = [];
+  const split = tk => { const m = tk.match(/^([“"]*)(.*?)([.?!,"”]*)$/); return {head: m[1], body: m[2], tail: m[3]}; };
+  for(let i = 0; i < T.length; i++){
+    const {head, body, tail} = split(T[i]);
+    const parts = body.split("'"), lastI = parts.length - 1;
+    const r = r14Token(parts[lastI]);
+    if(!r){ out.push(T[i]); continue; }
+    changed = true;
+    const nw = r.out, nv = nw[0].toLowerCase(), cap = s => (body[0] !== body[0].toLowerCase() ? s[0].toUpperCase() + s.slice(1) : s);
+    if(parts.length > 1){
+      const pre = parts.slice(0, lastI).join("'"), stub = parts[lastI - 1], ls = stub.toLowerCase();
+      const front = parts.slice(0, lastI - 1).join("'");            // anything elided before the stub (üwikin'il'…)
+      const lead = front ? front + "'" : "";
+      if(R14_FWD[ls] !== undefined && (lastI === 1 || front)){        // a forward-leaning word on its own
+        if(vow(nv)){ out.push(head + pre + "'" + parts[lastI].replace(parts[lastI], nw) + tail); continue; }
+        const full = ls === stub ? R14_FWD[ls] : R14_FWD[ls][0].toUpperCase() + R14_FWD[ls].slice(1);
+        out.push(head + lead + full); out.push(nw.toLowerCase() + tail); continue;
+      }
+      if(R14_SAME[ls] && lastI === 1){
+        const [full, vs] = R14_SAME[ls];
+        if(vs.includes(nv)){ out.push(head + stub + "'" + nw + tail); continue; }
+        out.push(head + (ls === stub ? full : full[0].toUpperCase() + full.slice(1))); out.push(nw.toLowerCase() + tail); continue;
+      }
+      const c = ls.slice(-1), host = stub.slice(0, -1);
+      if(c === "p" && host){                                           // owner + p' + owned
+        if(vow(nv)){ out.push(head + lead + host + "p'" + nw + tail); continue; }
+        out.push(head + lead + host + "pe"); out.push(nw.toLowerCase() + tail); continue;
+      }
+      if(c in R14_CASE && host){
+        const [full, vs] = c === "n" ? ("iĩ".includes(r.old[0]) ? ["ni", "iĩ"] : ["na", "aã"]) : R14_CASE[c];
+        if(vs.includes(nv)){ out.push(head + lead + host + c + "'" + nw + tail); continue; }
+        out.push(head + lead + host + full); out.push(nw.toLowerCase() + tail); continue;
+      }
+      check.push(T[i] + " — an apostrophe this does not recognise, next to " + r.old);
+      parts[lastI] = nw; out.push(head + parts.join("'") + tail); continue;
+    }
+    // no apostrophe: a worn form that now opens on a vowel may take one
+    if(vow(nv) && out.length){
+      const prev = out[out.length - 1], ps = split(prev), pl = ps.body.toLowerCase();
+      if(!ps.tail){
+        const fwd = Object.entries(R14_FWD).find(([s, full]) => pl === full);
+        const same = Object.entries(R14_SAME).find(([s, [full, vs]]) => pl === full && vs.includes(nv));
+        const host = (suf) => pl.endsWith(suf) && LEX[pl.slice(0, -suf.length)];
+        if(fwd || same){ const s = (fwd || same)[0]; out[out.length - 1] = ps.head + (ps.body[0] !== pl[0] ? s[0].toUpperCase() + s.slice(1) : s) + "'" + nw.toLowerCase() + tail; continue; }
+        if(host("pe")){ out[out.length - 1] = ps.head + ps.body.slice(0, -1) + "'" + nw.toLowerCase() + tail; continue; }
+        const cp = [["ni", "iĩ"], ["di", "iĩ"], ["ba", "aã"], ["wa", "aã"], ["na", "aã"]].find(([pp, vs]) => host(pp) && vs.includes(nv));
+        if(cp){ out[out.length - 1] = ps.head + ps.body.slice(0, -1) + "'" + nw.toLowerCase() + tail; continue; }
+      }
+    }
+    out.push(head + nw + tail);
+  }
+  return {out: out.join(" "), changed, check};
+}
+function r14Lines(){
+  const L = [];
+  (PB || []).forEach(e => L.push({where: "phrasebook", l: e.lu || "", en: e.en || "", set: n => { e.lu = n; }}));
+  ["verb","noun"].forEach(k => (BANK[k] || "").split("\n").forEach(l => { if(l.trim()) L.push({where: "sentence bank", l, en: "", set: n => { BANK[k] = BANK[k].split("\n").map(x => x === l ? n : x).join("\n"); }}); }));
+  ((typeof QU !== "undefined" && QU && QU.items) || []).forEach(it => (it.sent || "").split("\n").forEach(l => { if(l.trim()) L.push({where: "waiting: " + it.gloss, l, en: "", set: n => { it.sent = it.sent.split("\n").map(x => x === l ? n : x).join("\n"); }}); }));
+  return L;
+}
+$("wearApply").onclick = () => {
+  const words = Object.keys(R14).filter(w => LEX[w]);
+  const clash = words.filter(w => LEX[R14[w][0]]);
+  const done = Object.keys(R14).filter(w => !LEX[w] && LEX[R14[w][0]]).length;
+  const jobs = [], look = [];
+  r14Lines().forEach(x => {
+    const k = x.l.indexOf("|"), lu = k < 0 ? x.l : x.l.slice(0, k);
+    const r = r14Line(lu);
+    if(r.changed) jobs.push({where: x.where, from: x.l, to: r.out + (k < 0 ? "" : x.l.slice(k)), en: x.en, go: n => x.set(n)});
+    if(r.check.length) look.push({where: x.where, l: x.l, why: r.check.join("; ")});
+  });
+  if(!words.length && !jobs.length){ $("wearApplyOut").innerHTML = `<p class="hint">Nothing to apply — R14 is already in this lexicon (${done} of ${Object.keys(R14).length} words worn) and no stored line has an old form.</p>`; return; }
+  $("wearApplyOut").innerHTML =
+    `<p class="hint">${words.length} word${words.length === 1 ? "" : "s"} to wear${done ? ` · ${done} already worn` : ""}${clash.length ? ` · <b>${clash.length} blocked</b>: the worn form is already a word (${clash.map(w => esc(w) + " → " + esc(R14[w][0])).join(", ")})` : ""}.</p>` +
+    (jobs.length ? `<label style="display:block;margin-top:8px">${jobs.length} stored line${jobs.length === 1 ? "" : "s"} to respell — untick any that should stay</label>
+      <table>${jobs.map((j, i) => `<tr><td><input type="checkbox" data-r14="${i}" checked></td><td><div class="lun">${esc(j.from)}</div><div class="lun" style="color:var(--lamp)">→ ${esc(j.to)}</div><div class="hint" style="margin:0">${esc(j.where)}${j.en ? " · " + esc(j.en) : ""}</div></td></tr>`).join("")}</table>` : "") +
+    (look.length ? `<label style="display:block;margin-top:8px">${look.length} line${look.length === 1 ? "" : "s"} to check by hand after — the respelling is done, the elision is yours</label>
+      <table>${look.map(j => `<tr><td><div class="lun">${esc(j.l)}</div><div class="hint" style="margin:0">${esc(j.why)} · ${esc(j.where)}</div></td></tr>`).join("")}</table>` : "") +
+    `<button class="btn" id="wearApplyGo" style="margin-top:8px">Apply R14</button>`;
+  $("wearApplyGo").onclick = () => {
+    let n = 0, lines = 0;
+    words.filter(w => !clash.includes(w)).forEach(w => {
+      const [nw, kind, how] = R14[w];
+      LEX[nw] = Object.assign({}, LEX[w], {worn: {from: w, how: (kind === "inner" ? "inner wear: " : "clipped: ") + how, d: R14_DATE}});
+      delete LEX[w]; n++;
+    });
+    jobs.forEach((j, i) => { const b = document.querySelector(`[data-r14="${i}"]`); if(b && b.checked){ j.go(j.to); lines++; } });
+    saveLex(); savePB(); saveBank(); if(typeof saveQ === "function") saveQ();
+    $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
+    renderLex(); paintPB(); wearBuild(); paintWear();
+    logLine(`${stamp()}  applied R14: ${n} words worn, ${lines} stored line${lines === 1 ? "" : "s"} respelled`);
+    $("wearApplyOut").innerHTML = `<p class="hint">${n} words worn; ${lines} stored line${lines === 1 ? "" : "s"} respelled.${look.length ? " " + look.length + " line" + (look.length === 1 ? "" : "s") + " to check by hand." : ""} <b>Save the lexicon and the phrasebook to files</b> to keep it.</p>`;
+  };
+};
 
 loadWork();
 </script>
