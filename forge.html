@@ -102,8 +102,8 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-27-0134 · made on build 2026-10-26-2314</div>
-<p class="sub">Blind root draw and R1–R13 derivation. Runs offline.</p>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1207 · made on build 2026-10-29-0748</div>
+<p class="sub">Blind root draw and R1–R15 derivation. Runs offline.</p>
 
 <nav role="tablist">
   <button role="tab" aria-selected="true" data-tab="draw">Draw</button>
@@ -114,6 +114,7 @@ details.panel>summary{cursor:pointer}
   <button role="tab" aria-selected="false" data-tab="borrow">Borrow</button>
   <button role="tab" aria-selected="false" data-tab="compound">Compound</button>
   <button role="tab" aria-selected="false" data-tab="wear">Wear</button>
+  <button role="tab" aria-selected="false" data-tab="trial">R15</button>
   <button role="tab" aria-selected="false" data-tab="phrases">Phrases</button>
   <button role="tab" aria-selected="false" data-tab="paradigm">Paradigm</button>
   <button role="tab" aria-selected="false" data-tab="review">Review</button>
@@ -713,6 +714,32 @@ details.panel>summary{cursor:pointer}
 </section>
 
 <!-- ───────────── WEAR ───────────── -->
+<!-- ───────────── R15 (build 2026-10-29-1207) ───────────── -->
+<section id="trial" hidden>
+  <p class="hint"><b>Proto R15, final vowel loss in nouns — ruled 2026-10-29.</b> A noun's final oral vowel is lost after a single <i>r</i>, <i>l</i>, <i>s</i>, <i>z</i> or <i>sh</i> that follows an oral vowel: <i>hotori</i> → <i>hotor</i>, <i>posha</i> → <i>posh</i>. It runs after R14. Not where only a vowel and a consonant would be left (<i>ole</i>, <i>elo</i>, <i>ora</i> stay); not where a native <i>ü</i> would lose the <i>i</i> after it (<i>tsüri</i> stays); never on <i>emose</i>; a loan only where its source word ends in that consonant. Verbs, nasal-final nouns and numerals are untouched. It is a regular rule: Derive and Draw run it on every noun from this build on, and Borrow keeps such a final consonant on a noun.</p>
+  <p class="hint">The topic after a final consonant is <i>-a</i>, and the consonant links into it: <i>gitar</i> + <i>a</i> → <i>gitara</i>. Every other particle and ending meets the consonant: <i>gitarni</i>, <i>masta</i>, <i>hotorjo</i>. Inside a phrase the consonant links into a following vowel-initial word (<i>gitar uã</i>). A closed final syllable is heavy.</p>
+  <div class="panel">
+    <button class="btn" id="r15Apply">Apply R15 — 74 nouns, the phrasebook, the sentence bank and waiting sentences</button>
+    <div id="r15ApplyOut"></div>
+  </div>
+  <div class="panel">
+    <p id="trSum" style="margin:0 0 8px"></p>
+    <div class="row">
+      <input id="trQ" placeholder="find a word or gloss" spellcheck="false" autocapitalize="off">
+      <select id="trShow">
+        <option value="all">all</option><option value="native">native</option><option value="loan">loans</option>
+        <option value="todo">not yet applied</option>
+      </select>
+    </div>
+    <div id="trList"></div>
+  </div>
+  <div class="panel">
+    <label for="trSent">Try your own sentences, one per line. Every R15 noun is shown in its new form, with whatever particle it carries.</label>
+    <textarea id="trSent" rows="3" spellcheck="false" autocapitalize="off"></textarea>
+    <div id="trSentOut"></div>
+  </div>
+</section>
+
 <section id="wear" hidden>
   <p class="hint">Everyday wear — <b>a trial, not yet ruled.</b> The core words coined before 2026-10-06 at three or more syllables, loans left out, from the 2026-10-26 tier list. Each gets its legal worn forms in a fixed order: <b>inner wear</b> first (a sound between vowels drops and the vowels merge; a middle vowel drops; two vowels merge; <em>i</em> or <em>u</em> becomes <em>y</em> or <em>w</em>; two like syllables become one), then <b>clipping</b> (the first syllable goes, as <em>nowiretsu</em> became <em>retsu</em>; or a noun's last). Every form is checked against your lexicon with the same checks a drawn word gets. Pick one, keep the word whole, or protect it. Tap a word to open it.</p>
   <p class="hint"><b>Ruled 2026-10-27 as Proto R14.</b> The 126 worn forms from the picks of that date are built into the Forge, and <b>Apply R14</b> below writes them into the lexicon, the phrasebook and the sentence bank. Changing a pick here does not change R14 — that takes a new ruling. The old form stays on each entry as <em>worn.from</em>; <em>was</em> is untouched.</p>
@@ -792,6 +819,9 @@ const GLIDES = ["y","w"];
 const isV = c => VOW.includes(c) || "ãẽĩõũ".includes(c);
 // 2026-09-28. Phonology §4.1a — a liquid or s may close a syllable, word-internally.
 const CODA_OK = "rls";
+// 2026-10-29 — Proto R15: a noun may END in r, l, s, z or sh after an oral vowel
+const NOUN_CLS = ["pnoun","dnoun","noun"];
+const R15_END = /[aeiouüö](?:r|l|s|z|sh)$/;
 /* Orthography, Phonology §6. The engine works in the old `an in on` spelling
    internally, because every phonotactic regex below is written against it. The
    tilde is applied on the way out and undone on the way in, so the files the
@@ -1040,6 +1070,23 @@ function R13(w){
   return fired;
 }
 
+/* R15 — final vowel loss in nouns. Ruled 2026-10-29, Proto R15. After R13 (and
+   after R14, which wore a closed list). A noun's final oral vowel is lost after
+   a single r, l, s, z or sh that itself follows an oral vowel; the consonant
+   becomes a word-final coda. Not where only a vowel and a consonant would be
+   left (ole, elo); not where a native ü would lose the i after it (tsüri).
+   Verbs, nasal-final nouns and numerals are untouched. derive() runs it only
+   when it is told the class is a noun. */
+const R15_FIN = ["r","l","s","z","ʃ"];
+function R15(w){
+  if(!w.__noun) return false;
+  const n = w.length, v = w[n-1], c = w[n-2], p = w[n-3];
+  if(!v || v.t !== "V" || v.nasal || !c || c.t !== "C" || !R15_FIN.includes(c.s) || !p || p.t !== "V" || p.nasal) return false;
+  if(n === 3) return false;                              // only a vowel and a consonant would be left
+  if(v.s === "i" && p.s === "ü") return false;            // a native ü keeps its i
+  w.splice(n-1, 1); c.t = "K"; return true;
+}
+
 /* R12 — sequential voicing at a compound seam. Added 2026-09-28, Phonology §4.3.
    The second element of a compound voices its initial obstruent, unless it
    already contains a voiced one (Lyman's Law). Japanese rendaku, producing the
@@ -1116,7 +1163,8 @@ const RULES = [
   ["R6","ũ → õ",R6],
   ["R7","stress bookkeeping",R7],
   ["R8","palatalization",R8],
-  ["R13","u-fronting",R13]
+  ["R13","u-fronting",R13],
+  ["R15","final vowel loss (nouns)",R15]
 ];
 
 /* ══════════ render ══════════ */
@@ -1141,7 +1189,7 @@ function spell(w){
     if(s.onset) out += tsu ? "ts" : s.onset.split("").map(c=>SPELL[c]||c).join("");
     if(s.glide) out += s.glide.s;
     out += s.v.nasal ? NAS_T[s.v.s] : s.v.s;   // Phonology §6 — the tilde
-    if(s.coda) out += s.coda;                    // 2026-09-28 — merta, kaspo, atta
+    if(s.coda) out += SPELL[s.coda] || s.coda;   // 2026-09-28 — merta, kaspo, atta; 2026-10-29 — posh (R15)
   });
   return out;
 }
@@ -1202,8 +1250,9 @@ const isHeavy = s => Boolean(s.v.nasal || s.coda);
 const moras = w => w.reduce((n,s)=> n + (s.t==="V" ? (s.nasal?2:1) : s.t==="K" ? 1 : 0), 0);
 
 /* ══════════ derive ══════════ */
-function derive(rootStr){
+function derive(rootStr, cls){
   let w = parse(rootStr);
+  w.__noun = NOUN_CLS.includes(cls);          // 2026-10-29 — R15 runs on nouns only
   const steps = [];
   for(const [id,name,fn] of RULES){
     const fired = fn(w);
@@ -1364,17 +1413,20 @@ const COINED = { includes: w => Object.prototype.hasOwnProperty.call(LEX, w) };
 function check(res, cls){
   const w = res.word, t = [];
   const last = w[w.length-1];
+  // 2026-10-29 — Proto R15: a noun may end in r, l, s, z or sh after an oral vowel
+  const finOK = NOUN_CLS.includes(cls) && last && last.t==="K" && R15_FIN.includes(last.s) &&
+                w[w.length-2] && w[w.length-2].t==="V" && !w[w.length-2].nasal;
   t.push(last && last.t==="V"
-    ? {ok:true, s:"ends in a vowel"} : {ok:false, s:"does not end in a vowel"});
+    ? {ok:true, s:"ends in a vowel"} : finOK ? {ok:true, s:"ends in " + (SPELL[last.s] || last.s) + " \u2014 a noun, Proto R15"} : {ok:false, s:"does not end in a vowel"});
   if(w.some(s=>s.t==="N")) t.push({ok:false, s:"nasal coda survives — R5 failed"});
   /* 2026-09-28 — a real coda is legal word-internally (Phonology §4.1a) and never
      word-finally. R4 already drops a stranded one; this catches a hand-typed form. */
-  if(last && last.t==="K") t.push({ok:false, s:"word ends in a real consonant (Phonology §4.1a)"});
+  if(last && last.t==="K" && !finOK) t.push({ok:false, s:"word ends in a real consonant \u2014 only a noun may, in r, l, s, z or sh (Phonology §4.1a, Proto R15)"});
   for(let i=0;i<w.length;i++){
     const s = w[i];
     if(s.t!=="K") continue;
     const geminate = w[i+1] && w[i+1].t==="C" && w[i+1].s===s.s;   // first half of a long C
-    if(!geminate && !CODA_OK.includes(s.s))
+    if(!geminate && !CODA_OK.includes(s.s) && !(finOK && i === w.length-1))
       t.push({ok:false, s:"illegal coda \u2014 a standalone coda is a liquid or s only"});
     if(geminate && (NASAL_C.includes(s.s) || "rhyw".includes(s.s)))
       t.push({ok:false, s:"this consonant cannot be held long"});
@@ -1783,7 +1835,7 @@ function drawStock(cls, sylOpt, n, endReq, startReq){
     const nSyl = sylOpt || tierSyl(cls, tierNow);
     const root = generateRoot(cls, nSyl);
     let res;
-    try{ res = derive(root); }catch(e){ continue; }
+    try{ res = derive(root, cls); }catch(e){ continue; }
     if(!endsOK(res.spelling, endReq)) continue;
     if(!startsOK(res.spelling, startReq)) continue;
     if(!passesFilter(res, F)) continue;
@@ -1801,7 +1853,7 @@ const $ = id => document.getElementById(id);
 document.querySelectorAll("nav button").forEach(b=>{
   b.onclick = () => {
     document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
-    ["draw","queue","confirm","derive","verify","borrow","compound","wear","phrases","paradigm","review","drift","lineage","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
+    ["draw","queue","confirm","derive","verify","borrow","compound","wear","trial","phrases","paradigm","review","drift","lineage","lexicon","log"].forEach(t=> $(t).hidden = (t!==b.dataset.tab));
   };
 });
 
@@ -2122,7 +2174,7 @@ function renderDerivation(){
   const box = $("derivation"); const src = $("rootIn").value.trim();
   if(!src){ box.innerHTML = `<p class="hint">Type a proto-root above, or take one from the stack.</p>`; return; }
   let res;
-  try{ res = derive(src); }
+  try{ res = derive(src, $("cls2").value); }
   catch(e){ box.innerHTML = `<div class="warn">${e.message}. Check the shape against Phonology §4.1.</div>`; return; }
   const tags = check(res, $("cls2").value);
   const bad = tags.some(t=>!t.ok);
@@ -2445,7 +2497,8 @@ function sylsOf(w){
       if(w[i] === "'") break;
       on += w[i++];
     }
-    if(i >= w.length){ if(on && out.length) out[out.length-1].t += on; break; }
+    // 2026-10-29 — a word-final consonant (a noun, Proto R15) closes the last syllable and is heavy
+    if(i >= w.length){ if(on && out.length){ const L = out[out.length-1]; L.t += on; L.coda = on; L.m += 1; } break; }
     let v = w[i++];
     let nasal = false;
     // Orthography §6: n before a bare glide nasalizes ONLY where the apostrophe
@@ -2504,6 +2557,10 @@ function phraseAccent(toks){
   for(let i = 0; i < flat.length - 1; i++){
     const a = flat[i], b = flat[i + 1];
     if(!b.first) continue;                       // same word — §1a handles it
+    // 2026-10-29 — Grammar, R15 ruling: a final consonant links into a vowel-initial word, as liaison does
+    if(a.s.coda && !a.s.nasal && isV(b.s.t[0]) && a.s.t.endsWith(a.s.coda)){
+      a.s.t = a.s.t.slice(0, -a.s.coda.length); b.s.t = a.s.coda + b.s.t; a.s.coda = ""; a.s.m -= 1; b.liaised = true; continue;
+    }
     if(!a.s.nasal) continue;                     // needs a nasal to give up
     if(!isV(b.s.t[0])) continue;                 // needs a vowel to land on
     a.s.t = a.s.t.replace(/n$/, "");             // the nasal leaves the vowel
@@ -2682,7 +2739,7 @@ const nasEnd = w => /[aeiou]n$/.test(toN(w));
 // Ruled 2026-09-16: ni joins everywhere; after a nasal-final word the
 // apostrophe keeps the nasal vowel from being read as an onset n.
 const withNi = w => toTilde(toN(w) + (nasEnd(w) ? "'ni" : "ni"));
-const withTop = w => toTilde(toN(w) + (nasEnd(w) ? "a" : "na"));
+const withTop = w => toTilde(toN(w) + (nasEnd(w) || R15_END.test(toTilde(w)) ? "a" : "na"));
 
 function framesFor(w, cls){
   // 2026-10-03: negation is the ending -ena before the tense; mi and the free
@@ -3027,7 +3084,11 @@ function nativize(raw, cls){
   // denotes a vowel the language does not have, so no loan may land on one.
   step(w.replace(/e(n)(?![aeiouüö])/g,"a$1").replace(/u(n)(?![aeiouüö])/g,"o$1"),
        "only ã ĩ õ exist, so en and un are not legal spellings");
-  step(w.replace(/([^aeiouüön])$/,"$1a"), "every word ends in a vowel (§4.1)");
+  // 2026-10-29 — Proto R15: a noun may end in r, l, s, z or sh after an oral vowel, so a
+  // loan noun keeps a final consonant its source has (gitar, bör, sos, posh)
+  if(cls === "noun" && R15_END.test(w) && !/^[aeiouüö](?:r|l|s|z|sh)$/.test(w))
+    log.push("a noun may end in r, l, s, z or sh after an oral vowel (Proto R15) \u2014 the final consonant stays: " + w);
+  else step(w.replace(/([^aeiouüön])$/,"$1a"), "every word ends in a vowel (§4.1)");
   step(w.replace(/n$/, m => /[aeiou]n$/.test(w) ? m : "na"), "a final n needs a vowel before it to be nasality");
   if(cls === "noun") step(w.replace(/u$/,"o"), "nouns may never end in -u (Lexicology §1.1)");
   return {out: w, log};
@@ -3051,6 +3112,7 @@ function wordRisks(w, cls, parts){
   if(englishHit(w)) warn.push("this is a common English word");
   if(COINED.includes(w)) block.push("collides with " + w + " \u2014 " + LEX[w].g);
   // 2026-10-27 — R14: the full form of a worn word is taken (Proto R14)
+  if(!COINED.includes(w) && typeof R15_LIST !== "undefined" && R15_LIST[w]) block.push("the full form of " + R15_LIST[w] + " before it lost its final vowel (Proto R15)");
   if(!COINED.includes(w) && R14[w]) block.push("the full form of " + R14[w][0] + " before it wore down (Proto R14)");
   if(isRetired(w)) block.push("this shape was retired once already" + (RET[w] ? " \u2014 " + RET[w].r : ""));
   if(splitsIntoParticles(w)) block.push("splits into a particle sequence (Grammar \u00a78)");
@@ -3349,6 +3411,8 @@ function joinSuffix(w, suf){
   // topic first: -na after a nasal dissolves it (aoyã → aoyana, Grammar §1a).
   // 2026-09-30 — this line sat second, so the n-rule below caught -na too.
   if(nas && suf === "na") return toTilde(w + "a");
+  // 2026-10-29 — Grammar, R15 ruling: after a final consonant the topic is -a, and the consonant links into it
+  if(!nas && R15_END.test(toTilde(w)) && (suf === "na" || suf === "a")) return toTilde(w + "a");
   if(nas && /^[nyw]/.test(suf)) return toTilde(w + "'" + suf);  // nasal holds before n, y, w
   if(!nas && suf === "a") return toTilde(w + "na");
   return toTilde(w + suf);
@@ -3552,6 +3616,9 @@ function ipaPhrase(form){
   if(!flat.length) return form;
   for(let i = 0; i < flat.length - 1; i++){
     const a = flat[i], b = flat[i + 1];
+    if(b.first && a.coda && !a.nasal && /^[aeiou\u00fc\u00f6]/.test(b.t) && a.t.endsWith(a.coda)){   // R15 — a final consonant links
+      a.t = a.t.slice(0, -a.coda.length); b.t = a.coda + b.t; a.coda = ""; b.liaised = true; continue;
+    }
     if(b.first && a.nasal && /^[aeiou\u00fc\u00f6]/.test(b.t)){
       a.t = a.t.replace(/n$/, ""); a.nasal = false; b.t = "n" + b.t; b.liaised = true;
     }
@@ -3583,7 +3650,7 @@ const pdTable = (title, rows) => `<div class="panel"><h2 style="margin:0 0 8px">
 
 function nounTables(w){
   const nas = nasalFinal(w);
-  const top = nas ? w + "a" : w + "na", obj = J(w, "ni");
+  const top = (nas || R15_END.test(w)) ? w + "a" : w + "na", obj = J(w, "ni");
   return [
     pdTable("Case", [
       pdRow("bare", w, "unspecified for number — one or many", w),
@@ -3591,7 +3658,7 @@ function nounTables(w){
       pdRow("subject", w + "ba", "presentative with the existence verbs (§4.7a)", w),
       pdRow("object", obj, nas ? "apostrophe: the nasal holds before <em>ni</em>" : "", w),
       pdRow("possessive", w + "pe", "also the general noun-to-noun link", w),
-      pdRow("possessive, before a vowel", w + "p'akyoza", "<em>pe</em> drops its vowel before any vowel (\u00a71b.4)", null),
+      pdRow("possessive, before a vowel", w + "p'akyo", "<em>pe</em> drops its vowel before any vowel (\u00a71b.4)", null),
       pdRow("location", J(w, "wa"), nasalFinal(w) ? "apostrophe: the nasal holds before a glide (Phonology §6)" : "place and time both", w),
       pdRow("oblique", w + "di", "to, with, by, about — not <em>from</em>", w),
       pdRow("object, before <em>ila</em>", obj.slice(0, -1) + "'ila sofu", "<em>ni</em> drops before <em>i</em> or <em>ĩ</em> (\u00a71b.4)", null),
@@ -3627,7 +3694,7 @@ function pronTables(w){
     pdRow("source", w + " toma", "", w),
     pdRow("plural", w + "ta", "", w),
     pdRow("plural subject", w + "taba", "", w),
-    pdRow("possessor + noun", w + "p'akyozana", "my/your name — as topic; <em>pe</em> drops its vowel before a vowel (\u00a71b.4)", null)
+    pdRow("possessor + noun", w + "p'akyona", "my/your name — as topic; <em>pe</em> drops its vowel before a vowel (\u00a71b.4)", null)
   ]);
 }
 function verbTables(w){
@@ -4051,7 +4118,7 @@ function lnForm(t, id, depth = 0){
   if(!b.end) return {...lnForm(t, b.from, depth + 1), same: true};
   const proto = lnProtoOf(t, b.end, b.proto);
   if(!proto) return {pending: true};
-  try{ const r = derive(proto); return {proto, word: r.spelling, bad: check(r, b.cls).filter(x => !x.ok)}; }
+  try{ const r = derive(proto, b.cls); return {proto, word: r.spelling, bad: check(r, b.cls).filter(x => !x.ok)}; }
   catch(e){ return {proto, err: e.message}; }
 }
 function lnFormHtml(f, isRoot){
@@ -4149,7 +4216,7 @@ function lnPreview(){
     return;
   }
   let r;
-  try{ r = derive(proto); }catch(e){ $("lnPreview").innerHTML = `<div class="warn">${esc(e.message)}. Check the shape against Phonology §4.1.</div>`; return; }
+  try{ r = derive(proto, $("lnCls").value); }catch(e){ $("lnPreview").innerHTML = `<div class="warn">${esc(e.message)}. Check the shape against Phonology §4.1.</div>`; return; }
   const bad = check(r, $("lnCls").value).filter(x => !x.ok);
   const sibs = [lnForm(t, "root"), ...t.branches.filter(b => b.id !== lnEdit).map(b => lnForm(t, b.id))]
     .filter(f => f.word && !f.same).map(f => ({w: f.word, g: "same family"}));
@@ -4545,7 +4612,7 @@ function saveSentences(w, gloss, lines){
 const BANKKEY = "lunaji-bank";
 const BANK_DEFAULT = {
   verb: ["lõjiwa ___enaze | at night, (it) didn't ___",
-         "noayeni ___ze | ___ed the wind",
+         "noani ___ze | ___ed the wind",
          "___ helãba hĩ | there's a ___ person",
          "___bi jĩ | can (you) ___?",
          "___du norõ ___biena | (I) want to ___ but can't",
@@ -4553,10 +4620,10 @@ const BANK_DEFAULT = {
          "___ kazõze | came, ___ing",
          "ila ___ | has ___ed",
          "zoka ___ | habitually ___s"].join("\n"),
-  noun: ["___na kominu | the ___ is tired",
+  noun: ["___na konu | the ___ is tired",
          "___ni sofuze | saw the ___",
          "___wa hĩ | (someone) is at the ___",
-         "howeru ___ | a good ___"].join("\n")
+         "weru ___ | a good ___"].join("\n")
 };
 var BANK = null;
 try{ BANK = JSON.parse(localStorage.getItem(BANKKEY) || "null"); }catch(e){ BANK = null; }
@@ -4601,7 +4668,7 @@ function cfOthers(it){
 }
 function cfCheck(c, it){
   let res;
-  try{ res = derive(c.root); }
+  try{ res = derive(c.root, c.cls); }
   catch(e){ return {w: c.out, ipa: c.ipa, block: ["no longer derives: " + e.message], warn: [], note: []}; }
   const w = res.spelling, others = cfOthers(it);
   const tags = check(res, c.cls);
@@ -4766,8 +4833,9 @@ function paintShapeMap(){
   const rows = ENDS.map(([e, kind]) => {
     const proto = skel + e.toUpperCase();
     let word = "", ipa = "", bad = [];
-    try{ const r = derive(proto); word = r.spelling; ipa = r.ipa;
-         bad = check(r, e === "a" ? "dnoun" : (e === "u" || e === "un") ? "verb" : "pnoun").filter(x => !x.ok).map(x => x.s); }
+    try{ const ecls = e === "a" ? "dnoun" : (e === "u" || e === "un") ? "verb" : "pnoun";
+         const r = derive(proto, ecls); word = r.spelling; ipa = r.ipa;
+         bad = check(r, ecls).filter(x => !x.ok).map(x => x.s); }
     catch(err){ bad = [err.message]; }
     const isRoot = proto === t.root.toUpperCase();
     const taker = t.branches.find(b => b.end === e);
@@ -5028,7 +5096,7 @@ function applyR13(pairs){
     REV[`w:${hit[1]}:${m[2]}`] = REV[k]; delete REV[k]; rev++;
   });
   PB.forEach(e => { const n = r13Text(e.lu, pairs); if(n !== e.lu){ e.lu = n; pb++; } });
-  ["verb", "noun"].forEach(k => { const n = r13Text(BANK[k], pairs); if(n !== BANK[k]){ BANK[k] = n; bank++; } });
+  ["verb", "noun"].forEach(k => { const n = bankLu(BANK[k], t => r13Text(t, pairs)); if(n !== (BANK[k] || "")){ BANK[k] = n; bank++; } });
   saveLex(); saveRev(); savePB(); saveBank();
   $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
   renderLex(); paintPB();
@@ -5068,10 +5136,12 @@ function tildePairs(){
 // the | was respelled too (wind → wĩd)
 const tildeLu = t => t ? t.split(/(\s+)/).map(tok => /^\s+$/.test(tok) ? tok : elidedMap(tok, respellOld)).join("") : t;
 const tildeText = t => { if(!t) return t; const k = t.indexOf("|"); return k < 0 ? tildeLu(t) : tildeLu(t.slice(0, k)) + t.slice(k); };
+// build 2026-10-29-0731: a bank holds many lines; respell the Lunaji side of each, never the English after "|"
+const bankLu = (text, fn) => (text || "").split("\n").map(l => { const k = l.indexOf("|"); return k < 0 ? fn(l) : fn(l.slice(0, k)) + l.slice(k); }).join("\n");
 $("lxTilde").onclick = () => {
   const pairs = tildePairs();
   const pbHits = PB.filter(e => tildeText(e.lu) !== e.lu).length;
-  const bankHit = ["verb","noun"].some(k => tildeText(BANK[k]) !== BANK[k]);
+  const bankHit = ["verb","noun"].some(k => bankLu(BANK[k], tildeLu) !== (BANK[k] || ""));
   if(!pairs.length && !pbHits && !bankHit){ $("lxAuditOut").innerHTML = `<p class="hint">Nothing to respell \u2014 every word, phrasebook line and bank line is already in the current spelling.</p>`; return; }
   const clash = pairs.filter(([a, b]) => LEX[b]);
   $("lxAuditOut").innerHTML = `<label style="display:block">${pairs.length} word${pairs.length === 1 ? "" : "s"} in an old spelling${pbHits ? ` \u00b7 ${pbHits} phrasebook line${pbHits === 1 ? "" : "s"}` : ""}${bankHit ? " \u00b7 the sentence bank" : ""}</label>
@@ -5087,7 +5157,7 @@ $("lxTilde").onclick = () => {
       REV[`w:${t}:${m[2]}`] = REV[k]; delete REV[k]; rev++;
     });
     PB.forEach(e => { const n = tildeText(e.lu); if(n !== e.lu){ e.lu = n; pb++; } });
-    ["verb","noun"].forEach(k => { const n = tildeText(BANK[k]); if(n !== BANK[k]){ BANK[k] = n; bank++; } });
+    ["verb","noun"].forEach(k => { const n = bankLu(BANK[k], tildeLu); if(n !== (BANK[k] || "")){ BANK[k] = n; bank++; } });
     saveLex(); saveRev(); savePB(); saveBank();
     $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
     renderLex(); paintPB();
@@ -5369,7 +5439,7 @@ $("lxLoans").onclick = () => {
     const pairs = moves.map(([a, b]) => [a, b]);
     let pb = 0;
     PB.forEach(ent => { const n = r13Text(ent.lu, pairs); if(n !== ent.lu){ ent.lu = n; pb++; } });
-    ["verb","noun"].forEach(k => { BANK[k] = r13Text(BANK[k], pairs); });
+    ["verb","noun"].forEach(k => { BANK[k] = bankLu(BANK[k], t => r13Text(t, pairs)); });
     saveLex(); savePB(); saveBank(); renderLex(); paintPB();
     $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
     logLine(`${stamp()}  loans fixed: ${moves.map(([a, b, u]) => a + " \u2192 " + b + (u ? " (R13 undone, tagged loan)" : "")).join(", ")}`);
@@ -6143,6 +6213,109 @@ $("wearApply").onclick = () => {
 };
 
 loadWork();
+
+/* ══════════ R15 — build 2026-10-29-1207 ══════════
+   Proto R15, final vowel loss in nouns, ruled 2026-10-29. Replaces the trial tab
+   of build 0748. R15_LIST is the existing lexicon's 74 nouns; new nouns get the
+   rule in derive(). Apply writes the list into the lexicon (each entry gains
+   fin: {from, d} — a field added to the lexicon save, nothing removed), the
+   phrasebook, the sentence bank and waiting Confirm sentences. */
+const R15_DATE = "2026-10-29";
+const R15_LIST = {"alfire":"alfir","alwera":"alwer","amwala":"amwal","arale":"aral","armwara":"armwar","aroza":"aroz","asukara":"asukar","avrila":"avril","banywara":"banywar","böra":"bör","dusha":"dush","ederi":"eder","enale":"enal","eriza":"eriz","etajera":"etajer","eyosa":"eyos","fudera":"fuder","fura":"fur","gahire":"gahir","gitara":"gitar","glasa":"glas","hotori":"hotor","imyeri":"imyer","inwoze":"inwoz","inyezo":"inyez","ittali":"ittal","iuse":"ius","jura":"jur","kaweshi":"kawesh","keshe":"kesh","kiwoshi":"kiwosh","kizese":"kizes","kolizo":"koliz","kusha":"kush","kuso":"kus","kyugashi":"kyugash","kõfitsüra":"kõfitsür","loshiro":"loshir","lusha":"lush","lwairo":"lwair","lwize":"lwiz","masa":"mas","mesore":"mesor","moshizo":"moshiz","mukose":"mukos","naiza":"naiz","nanero":"naner","nwattole":"nwattol","oashi":"oash","omyuze":"omyuz","poela":"poel","posha":"posh","ramali":"ramal","shemisa":"shemis","shesa":"shes","shoeshe":"shoesh","shĩtsüra":"shĩtsür","sosa":"sos","soshisa":"soshis","tilo":"til","timozo":"timoz","tirara":"tirar","tottire":"tottir","tõtoshi":"tõtosh","umosa":"umos","unore":"unor","uyazo":"uyaz","welola":"welol","wigyuza":"wigyuz","yüskiri":"yüskir","zwashi":"zwash","ãleso":"ãles","õfashi":"õfash","ĩkosa":"ĩkos"};
+(function(){
+  const TRKEY = "lunaji-r15trial";
+  let TR = {sent: ""};
+  try{ const v = JSON.parse(localStorage.getItem(TRKEY) || "null"); if(v && typeof v === "object" && typeof v.sent === "string") TR.sent = v.sent; }catch(e){}
+  const trSave = () => { try{ localStorage.setItem(TRKEY, JSON.stringify(TR)); }catch(e){} };
+  const isLoan = e => !!(e && (e.src || e.lang));
+  const ip = w => { try{ return ipaOf(w); }catch(e){ return w; } };
+  const forms = n => [n + "a (topic)", n + "ba", n + "ni", n + "pe", n + "wa", n + "di", n + "ta", n + "jo"];
+  function rows(){
+    return Object.keys(R15_LIST).sort((a, b) => a.localeCompare(b)).map(w => {
+      const n = R15_LIST[w], e = LEX[w] || LEX[n] || {};
+      return {w, n, e, loan: isLoan(e), done: !LEX[w] && !!LEX[n], missing: !LEX[w] && !LEX[n]};
+    });
+  }
+  function paint(){
+    const all = rows(), q = ($("trQ").value || "").trim().toLowerCase(), show = $("trShow").value;
+    $("trSum").innerHTML = `<b>${all.length}</b> nouns · ${all.filter(x => x.loan).length} loans · <b>${all.filter(x => x.done).length}</b> already applied in this lexicon` +
+      (all.some(x => x.missing) ? ` · ${all.filter(x => x.missing).length} not in this lexicon` : "");
+    const R = all.filter(x => (!q || x.w.includes(q) || x.n.includes(q) || String(x.e.g || "").toLowerCase().includes(q)) &&
+      (show === "all" || (show === "native" && !x.loan) || (show === "loan" && x.loan) || (show === "todo" && !x.done)));
+    $("trList").innerHTML = R.length ? `<table>${R.map(x => `<tr><td>
+        <span class="lun">${esc(x.w)}</span> → <span class="lun" style="color:var(--lamp)">${esc(x.n)}</span>
+        <span class="hint">/${esc(ip(x.n))}/ · ${esc(x.e.g || "")}${x.loan ? " · loan" : ""}${x.done ? " · applied" : x.missing ? " · not in this lexicon" : ""}</span>
+        <div class="lun" style="font-size:.9em;opacity:.85;margin-top:2px">${forms(x.n).map(esc).join(" · ")}</div></td></tr>`).join("")}</table>`
+      : `<p class="hint">Nothing matches.</p>`;
+    paintSent();
+  }
+  // a noun token with whatever it carries: -ta / -jo, then a case particle; topic na → a
+  const PART = /^(ta|jo)?(ba|ni|pe|wa|di|na|ga)?$/;
+  const ELID = /^(ta|jo)?[bnpdw]'.+$/;
+  function r15Line(line, look){
+    const pairs = Object.entries(R15_LIST).sort((a, b) => b[0].length - a[0].length);
+    return line.split(/(\s+)/).map(tok => {
+      if(/^\s*$/.test(tok)) return tok;
+      const lead = tok.match(/^[^a-zA-ZüöãĩõÜÖÃĨÕ]*/)[0], tail = tok.match(/[^a-zA-ZüöãĩõÜÖÃĨÕ']*$/)[0];
+      const body = tok.slice(lead.length, tok.length - tail.length); if(!body) return tok;
+      const cap = body[0] !== body[0].toLowerCase(), low = body[0].toLowerCase() + body.slice(1);
+      for(const [o, n] of pairs){
+        if(!low.startsWith(o)) continue;
+        const rest = low.slice(o.length);
+        if(!PART.test(rest) && !ELID.test(rest)) continue;
+        if(ELID.test(rest) && look) look.push(tok);
+        let out = rest === "na" ? n + "a" : (rest === "tana" ? n + "tana" : n + rest);
+        if(cap) out = out[0].toUpperCase() + out.slice(1);
+        return lead + out + tail;
+      }
+      return tok;
+    }).join("");
+  }
+  function paintSent(){
+    const lines = ($("trSent").value || "").split("\n").filter(l => l.trim());
+    $("trSentOut").innerHTML = lines.map(l => { const t = r15Line(l);
+      let ph = ""; try{ ph = ipaPhrase(t.toLowerCase().replace(/[.,!?;:"“”]/g, " ").replace(/\s+/g, " ").trim()); }catch(e){}
+      return `<div style="margin:6px 0"><div class="lun">${esc(l)}</div><div class="lun" style="color:var(--lamp)">→ ${esc(t)}</div>${ph ? `<div class="hint" style="margin:0">/${esc(ph)}/</div>` : ""}</div>`; }).join("");
+  }
+  $("trQ").oninput = paint; $("trShow").onchange = paint;
+  $("trSent").value = TR.sent; $("trSent").oninput = () => { TR.sent = $("trSent").value; trSave(); paintSent(); };
+  document.querySelector('nav button[data-tab="trial"]').addEventListener("click", paint);
+
+  $("r15Apply").onclick = () => {
+    const words = Object.keys(R15_LIST).filter(w => LEX[w]);
+    const clash = words.filter(w => LEX[R15_LIST[w]]);
+    const done = Object.keys(R15_LIST).filter(w => !LEX[w] && LEX[R15_LIST[w]]).length;
+    const jobs = [], look = [];
+    r14Lines().forEach(x => {
+      const k = x.l.indexOf("|"), lu = k < 0 ? x.l : x.l.slice(0, k);
+      const lk = [], out = r15Line(lu, lk);
+      if(out !== lu) jobs.push({where: x.where, from: x.l, to: out + (k < 0 ? "" : x.l.slice(k)), en: x.en, go: n => x.set(n)});
+      if(lk.length) look.push({where: x.where, l: x.l, why: "an elided particle after " + lk.join(", ") + " — check it by hand"});
+    });
+    if(!words.length && !jobs.length){ $("r15ApplyOut").innerHTML = `<p class="hint">Nothing to apply — R15 is already in this lexicon (${done} of ${Object.keys(R15_LIST).length} nouns) and no stored line has an old form.</p>`; return; }
+    $("r15ApplyOut").innerHTML =
+      `<p class="hint">${words.length} noun${words.length === 1 ? "" : "s"} to change${done ? ` · ${done} already done` : ""}${clash.length ? ` · <b>${clash.length} blocked</b>: the new form is already a word (${clash.map(w => esc(w) + " → " + esc(R15_LIST[w])).join(", ")})` : ""}</p>` +
+      (jobs.length ? `<label style="display:block;margin-top:8px">${jobs.length} stored line${jobs.length === 1 ? "" : "s"} to respell — untick any that should stay</label>
+        <table>${jobs.map((j, i) => `<tr><td><input type="checkbox" data-r15="${i}" checked></td><td><div class="lun">${esc(j.from)}</div><div class="lun" style="color:var(--lamp)">→ ${esc(j.to)}</div><div class="hint" style="margin:0">${esc(j.where)}${j.en ? " · " + esc(j.en) : ""}</div></td></tr>`).join("")}</table>` : "") +
+      (look.length ? `<p class="hint" style="color:var(--lamp)">${look.length} line${look.length === 1 ? "" : "s"} to check by hand: ${look.map(x => esc(x.l)).join(" · ")}</p>` : "") +
+      `<button class="btn" id="r15Go" style="margin-top:8px">Apply</button>`;
+    $("r15Go").onclick = () => {
+      let n = 0, lines = 0;
+      words.filter(w => !clash.includes(w)).forEach(w => {
+        const nw = R15_LIST[w];
+        LEX[nw] = Object.assign({}, LEX[w], {fin: {from: w, d: R15_DATE}});
+        delete LEX[w]; n++;
+      });
+      jobs.forEach((j, i) => { const b = document.querySelector(`[data-r15="${i}"]`); if(b && b.checked){ j.go(j.to); lines++; } });
+      saveLex(); savePB(); saveBank(); if(typeof saveQ === "function") saveQ();
+      $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
+      renderLex(); paintPB(); paint();
+      logLine(`${stamp()}  applied R15: ${n} nouns lost their final vowel, ${lines} stored line${lines === 1 ? "" : "s"} respelled`);
+      $("r15ApplyOut").innerHTML = `<p class="hint">${n} nouns changed; ${lines} stored line${lines === 1 ? "" : "s"} respelled. <b>Save the lexicon and the phrasebook</b> (Lexicon tab), then export.</p>`;
+    };
+  };
+})();
+
 </script>
 </body>
 </html>
