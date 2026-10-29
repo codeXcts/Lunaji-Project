@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1228 · made on build 2026-10-29-1207</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1318 · made on build 2026-10-29-1228</div>
 <p class="sub">Blind root draw and R1–R15 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -803,7 +803,13 @@ const CONS = "pbtdkgmnfvszhrlwy".split("");
 // "aeiiooooouuuu": o was 38% of every draw, and o plus nasal vowels read as
 // Portuguese. u is left alone — it feeds the codas and ü. t went from 1 to 3 of
 // the table: both parent languages are t-heavy and Lunaji stood at 2%.
-const CONS_W = "nnnnnmmmrrrrllllwwwyykkkkssszzhhpbtttdfgv".split("");   // t ×3 since 2026-10-02
+// 2026-10-29 — more French texture, asked for by the speaker: f 1→3, v 1→3, l 4→5,
+// z 2→3 (z feeds j through R8). Nothing taken away; the rest thin a little.
+// Plus two seeds below: J_SEED (z draws its i, giving ji) and U_SEED (u then an
+// i-syllable at the front of the root, giving ü by R13).
+const CONS_W = "nnnnnmmmrrrrlllllwwwyykkkkssszzzhhpbtttdfffgvvv".split("");   // t ×3 since 2026-10-02
+const J_SEED = 0.40;   // a drawn z takes i as its vowel this often → ji (R8)
+const U_SEED = 0.12;   // a root opens on u with an i-syllable next this often → ü (R13)
 const VOW_W  = "aaaeeeiiiiooouuuu".split("");                            // a3 e3 i4 o3 u4 since 2026-10-02
 // Theme onset for verbs only: still sonorant-leaning, but evened out a little.
 const THEME_W = "nnnnlllrrrmmmyywwbbddggvvkksszhptf".split("");
@@ -1494,7 +1500,7 @@ function weighted(pairs){
    is frequency, not a ban. A bare glide with no consonant (wa, yo) is untouched. */
 const CG_GLIDE = [["y",3],["w",1]];
 const SHAPES = [["CV",48],["CVN",14],["CGV",10],["V",13],["VN",8],["GV",7]];
-function makeSyllable(shape, prevSeg){
+function makeSyllable(shape, prevSeg, forceV){
   let s = "";
   if(shape[0]==="C"){
     let c; let guard=0;
@@ -1511,8 +1517,11 @@ function makeSyllable(shape, prevSeg){
   let v; let vg=0;
   do{ v = pick(VOW_W); vg++; }
   while(vg<30 && ((gl==="y"&&v==="i")||(gl==="w"&&v==="u")));   // no yi, no wu
+  // 2026-10-29 — the seeds: a forced vowel (U_SEED), or z taking i (J_SEED)
+  if(forceV && !((gl==="y"&&forceV==="i")||(gl==="w"&&forceV==="u"))) v = forceV;
+  else if(gl==="z" && Math.random() < J_SEED) v = "i";
   s += v;
-  if(shape.endsWith("N")) s += "n";
+  if(shape.endsWith("N") && !(forceV === "u")) s += "n";   // an oral u, or R6 lowers it and R13 never sees it
   return s;
 }
 const IRREG_RATE = 0.25;   // share of verb draws given a nasal proto final
@@ -1588,8 +1597,16 @@ const LONG_SEED = 0.05, LONG_SEED_C = ["p","p","p","t","t","t","k","k","k","s","
 function generateRoot(cls, nSyl){
   if(cls==="func" && !nSyl) nSyl = 1;   // only when no explicit count is chosen
   let body = "", forced = "";
+  // 2026-10-29 — U_SEED: the first syllable takes u and the second an i, so R13
+  // fronts it: ü. The first syllable is stressed in proto, so R3 never deletes it.
+  // Only where the second syllable can take i — a verb's or a deverbal noun's
+  // final vowel cannot.
+  const uSeed = nSyl >= 2 && Math.random() < U_SEED &&
+                (nSyl >= 3 || cls === "pnoun" || cls === "pron" || cls === "func");
   for(let i=0;i<nSyl-1;i++){
     const prev = body[body.length-1];
+    if(uSeed && i === 0){ body += makeSyllable(weighted(SHAPES.filter(x => x[0] !== "GV")), prev, "u"); continue; }
+    if(uSeed && i === 1){ body += makeSyllable(weighted(SHAPES.filter(x => !x[0].endsWith("N"))), prev, "i"); continue; }
     // medial only: never the first syllable, and the last one carries the theme
     // A seed in the previous syllable fixed this one's onset. It is an ordinary
     // CV or CVN syllable otherwise, and it takes no seed of its own.
@@ -1640,7 +1657,13 @@ function generateRoot(cls, nSyl){
   if(cls==="verb" || cls==="adjv") fin += (Math.random() < IRREG_RATE ? pick(["un","in","en"]) : "u");
   else if(cls==="irreg") fin += pick(["un","in","en"]);
   else if(cls==="dnoun") fin += "a";
-  else if(cls==="pnoun" || cls==="pron") fin += pick(["a","e","i","o"]) + (Math.random()<0.45 ? "n" : "");
+  else if(cls==="pnoun" || cls==="pron"){
+    const lastC = fin.replace(/[yw]$/, "").slice(-1);
+    const fv = (uSeed && nSyl === 2) ? "i"                                  // U_SEED in a two-syllable noun
+             : (lastC === "z" && !/[yw]$/.test(fin) && Math.random() < J_SEED) ? "i"   // J_SEED on the final syllable
+             : pick(["a","e","i","o"]);
+    fin += fv + (Math.random()<0.45 && !(uSeed && nSyl === 2) ? "n" : "");
+  }
   else                   fin += pick(VOW_W) + (Math.random()<0.4 ? "n" : "");
   return (body + fin).toUpperCase();
 }
