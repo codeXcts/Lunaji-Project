@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1207 · made on build 2026-10-29-0748</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1228 · made on build 2026-10-29-1207</div>
 <p class="sub">Blind root draw and R1–R15 derivation. Runs offline.</p>
 
 <nav role="tablist">
@@ -719,7 +719,7 @@ details.panel>summary{cursor:pointer}
   <p class="hint"><b>Proto R15, final vowel loss in nouns — ruled 2026-10-29.</b> A noun's final oral vowel is lost after a single <i>r</i>, <i>l</i>, <i>s</i>, <i>z</i> or <i>sh</i> that follows an oral vowel: <i>hotori</i> → <i>hotor</i>, <i>posha</i> → <i>posh</i>. It runs after R14. Not where only a vowel and a consonant would be left (<i>ole</i>, <i>elo</i>, <i>ora</i> stay); not where a native <i>ü</i> would lose the <i>i</i> after it (<i>tsüri</i> stays); never on <i>emose</i>; a loan only where its source word ends in that consonant. Verbs, nasal-final nouns and numerals are untouched. It is a regular rule: Derive and Draw run it on every noun from this build on, and Borrow keeps such a final consonant on a noun.</p>
   <p class="hint">The topic after a final consonant is <i>-a</i>, and the consonant links into it: <i>gitar</i> + <i>a</i> → <i>gitara</i>. Every other particle and ending meets the consonant: <i>gitarni</i>, <i>masta</i>, <i>hotorjo</i>. Inside a phrase the consonant links into a following vowel-initial word (<i>gitar uã</i>). A closed final syllable is heavy.</p>
   <div class="panel">
-    <button class="btn" id="r15Apply">Apply R15 — 74 nouns, the phrasebook, the sentence bank and waiting sentences</button>
+    <button class="btn" id="r15Apply">Apply R15 — 75 nouns, the phrasebook, the sentence bank and waiting sentences</button>
     <div id="r15ApplyOut"></div>
   </div>
   <div class="panel">
@@ -6216,12 +6216,12 @@ loadWork();
 
 /* ══════════ R15 — build 2026-10-29-1207 ══════════
    Proto R15, final vowel loss in nouns, ruled 2026-10-29. Replaces the trial tab
-   of build 0748. R15_LIST is the existing lexicon's 74 nouns; new nouns get the
+   of build 0748. R15_LIST is the existing lexicon's 75 nouns (polisa added in build 2026-10-29-1228, once its source was tagged); new nouns get the
    rule in derive(). Apply writes the list into the lexicon (each entry gains
    fin: {from, d} — a field added to the lexicon save, nothing removed), the
    phrasebook, the sentence bank and waiting Confirm sentences. */
 const R15_DATE = "2026-10-29";
-const R15_LIST = {"alfire":"alfir","alwera":"alwer","amwala":"amwal","arale":"aral","armwara":"armwar","aroza":"aroz","asukara":"asukar","avrila":"avril","banywara":"banywar","böra":"bör","dusha":"dush","ederi":"eder","enale":"enal","eriza":"eriz","etajera":"etajer","eyosa":"eyos","fudera":"fuder","fura":"fur","gahire":"gahir","gitara":"gitar","glasa":"glas","hotori":"hotor","imyeri":"imyer","inwoze":"inwoz","inyezo":"inyez","ittali":"ittal","iuse":"ius","jura":"jur","kaweshi":"kawesh","keshe":"kesh","kiwoshi":"kiwosh","kizese":"kizes","kolizo":"koliz","kusha":"kush","kuso":"kus","kyugashi":"kyugash","kõfitsüra":"kõfitsür","loshiro":"loshir","lusha":"lush","lwairo":"lwair","lwize":"lwiz","masa":"mas","mesore":"mesor","moshizo":"moshiz","mukose":"mukos","naiza":"naiz","nanero":"naner","nwattole":"nwattol","oashi":"oash","omyuze":"omyuz","poela":"poel","posha":"posh","ramali":"ramal","shemisa":"shemis","shesa":"shes","shoeshe":"shoesh","shĩtsüra":"shĩtsür","sosa":"sos","soshisa":"soshis","tilo":"til","timozo":"timoz","tirara":"tirar","tottire":"tottir","tõtoshi":"tõtosh","umosa":"umos","unore":"unor","uyazo":"uyaz","welola":"welol","wigyuza":"wigyuz","yüskiri":"yüskir","zwashi":"zwash","ãleso":"ãles","õfashi":"õfash","ĩkosa":"ĩkos"};
+const R15_LIST = {"polisa":"polis","alfire":"alfir","alwera":"alwer","amwala":"amwal","arale":"aral","armwara":"armwar","aroza":"aroz","asukara":"asukar","avrila":"avril","banywara":"banywar","böra":"bör","dusha":"dush","ederi":"eder","enale":"enal","eriza":"eriz","etajera":"etajer","eyosa":"eyos","fudera":"fuder","fura":"fur","gahire":"gahir","gitara":"gitar","glasa":"glas","hotori":"hotor","imyeri":"imyer","inwoze":"inwoz","inyezo":"inyez","ittali":"ittal","iuse":"ius","jura":"jur","kaweshi":"kawesh","keshe":"kesh","kiwoshi":"kiwosh","kizese":"kizes","kolizo":"koliz","kusha":"kush","kuso":"kus","kyugashi":"kyugash","kõfitsüra":"kõfitsür","loshiro":"loshir","lusha":"lush","lwairo":"lwair","lwize":"lwiz","masa":"mas","mesore":"mesor","moshizo":"moshiz","mukose":"mukos","naiza":"naiz","nanero":"naner","nwattole":"nwattol","oashi":"oash","omyuze":"omyuz","poela":"poel","posha":"posh","ramali":"ramal","shemisa":"shemis","shesa":"shes","shoeshe":"shoesh","shĩtsüra":"shĩtsür","sosa":"sos","soshisa":"soshis","tilo":"til","timozo":"timoz","tirara":"tirar","tottire":"tottir","tõtoshi":"tõtosh","umosa":"umos","unore":"unor","uyazo":"uyaz","welola":"welol","wigyuza":"wigyuz","yüskiri":"yüskir","zwashi":"zwash","ãleso":"ãles","õfashi":"õfash","ĩkosa":"ĩkos"};
 (function(){
   const TRKEY = "lunaji-r15trial";
   let TR = {sent: ""};
