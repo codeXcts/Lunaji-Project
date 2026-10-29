@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lunaji Composer</title>
+<meta name="lunaji-build" content="2026-10-29-1930">
+<style>
+:root{
+  --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
+  --accent:#3b5bdb; --accent-soft:#e7ecfd;
+  --part:#2f6f4f; --part-soft:#e2f1e8;
+  --end:#9a4d12; --end-soft:#fbeadb;
+  --elide:#7a3fa0; --elide-soft:#f1e6f8;
+  --gap:#a3282b; --gap-soft:#fbe5e5;
+  --warn:#8a5a00; --warn-soft:#fff4d6;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16171a; --card:#1f2024; --ink:#ece8e1; --muted:#a39d93; --line:#33343a;
+    --accent:#8ea6ff; --accent-soft:#252c45;
+    --part:#7fd1a4; --part-soft:#1d3328;
+    --end:#f2a66a; --end-soft:#3a2818;
+    --elide:#cf9bf0; --elide-soft:#33243d;
+    --gap:#ff8f8f; --gap-soft:#3d2022;
+    --warn:#f3c560; --warn-soft:#3a2f14;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16171a; --card:#1f2024; --ink:#ece8e1; --muted:#a39d93; --line:#33343a;
+  --accent:#8ea6ff; --accent-soft:#252c45;
+  --part:#7fd1a4; --part-soft:#1d3328;
+  --end:#f2a66a; --end-soft:#3a2818;
+  --elide:#cf9bf0; --elide-soft:#33243d;
+  --gap:#ff8f8f; --gap-soft:#3d2022;
+  --warn:#f3c560; --warn-soft:#3a2f14;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 96px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:14px 0 8px}
+header h1{font-size:18px;margin:0;letter-spacing:.02em}
+header .meta{font-size:12px;color:var(--muted);text-align:right}
+button{font:inherit;color:inherit}
+.lu{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+
+/* result */
+.result{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0 10px}
+.rcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 14px 12px;box-shadow:var(--shadow)}
+.sentence{font-size:26px;line-height:1.35;word-break:break-word;min-height:1.35em}
+.sentence .w{white-space:nowrap}
+.pc{border-radius:4px;padding:0 1px;cursor:pointer}
+.pc.part{color:var(--part);background:var(--part-soft)}
+.pc.end{color:var(--end);background:var(--end-soft)}
+.pc.elide{color:var(--elide);background:var(--elide-soft)}
+.pc.gap{color:var(--gap);background:var(--gap-soft);border:1px dashed var(--gap);font-family:system-ui,sans-serif;font-size:.8em;padding:0 4px}
+.pc.root.noted{text-decoration:underline dotted var(--muted);text-underline-offset:4px}
+.pc.sel{outline:2px solid var(--accent);outline-offset:1px}
+.built{font-size:13px;color:var(--muted);margin-top:6px}
+.tip{margin-top:10px;font-size:14px;background:var(--accent-soft);border-radius:10px;padding:8px 10px;display:none}
+.tip.on{display:block}
+.tip b{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-size:16px}
+.placeholder{color:var(--muted);font-size:16px}
+.nc{background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn);border-radius:8px;padding:8px 10px;font-size:14px;margin-top:6px}
+.nc b{color:var(--warn)}
+
+/* slots */
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;margin:8px 0 12px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:9px 4px;font-size:14px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .seg button.on{color:#111}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button.on{color:#111}}
+.slot{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.slot.off{opacity:.55}
+.slot .lab{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.slot .lab .req{color:var(--accent)}
+.pick{display:flex;align-items:center;gap:8px;margin-top:6px}
+.pick .val{flex:1;border:1px solid var(--line);background:transparent;border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;min-height:46px}
+.pick .val .en{font-size:15px}
+.pick .val .luv{font-size:17px;margin-left:6px;color:var(--muted)}
+.pick .val.empty{color:var(--muted)}
+.pick .x{border:0;background:transparent;font-size:22px;color:var(--muted);width:40px;height:40px;cursor:pointer;border-radius:10px}
+.opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.opts button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer}
+.opts button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.opts button:disabled{opacity:.4}
+.hint{font-size:13px;color:var(--muted);margin-top:6px}
+
+/* why */
+h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.why{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 12px}
+.why .row{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.why .row:last-child{border-bottom:0}
+.why .row .k{min-width:72px;font-size:17px}
+.why .gen{color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend span .pc{cursor:default}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:20}
+.scrim.on{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:88vh;background:var(--card);border-radius:18px 18px 0 0;z-index:21;display:none;flex-direction:column;box-shadow:0 -6px 24px rgba(0,0,0,.2)}
+.sheet.on{display:flex}
+.sheet .top{padding:12px 16px 8px;border-bottom:1px solid var(--line)}
+.sheet .top .t{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.sheet .top .t button{border:0;background:transparent;font-size:15px;color:var(--accent);cursor:pointer;padding:6px}
+.sheet input{width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);margin-top:8px}
+.sheet .list{overflow:auto;padding:4px 8px 24px;-webkit-overflow-scrolling:touch}
+.sheet .sec{font-size:12px;color:var(--muted);padding:12px 8px 4px;text-transform:uppercase;letter-spacing:.06em}
+.sheet .it{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;border:0;background:transparent;padding:11px 8px;border-radius:10px;text-align:left;cursor:pointer;font-size:15px}
+.sheet .it:active,.sheet .it:hover{background:var(--accent-soft)}
+.sheet .it .l{font-size:17px;color:var(--muted);white-space:nowrap}
+.sheet .gapbtn{margin:10px 8px;border:1px dashed var(--gap);color:var(--gap);background:var(--gap-soft);border-radius:10px;padding:10px;width:calc(100% - 16px);cursor:pointer;font-size:14px}
+.sheet .more{font-size:13px;color:var(--muted);padding:8px}
+
+/* lexicon panel */
+.lex{font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:22px}
+.lex button,.lex label{border:1px solid var(--line);background:transparent;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;display:inline-block;margin:6px 6px 0 0;color:var(--ink)}
+.lex input{display:none}
+.empty-lex{background:var(--warn-soft);border-radius:12px;padding:12px;margin:10px 0;font-size:14px}
+.gaps{margin-top:8px;font-size:13px}
+.gaps button{border:1px solid var(--line);background:transparent;border-radius:8px;padding:4px 8px;font-size:12px;cursor:pointer;margin-left:6px;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Lunaji Composer</h1>
+    <div class="meta"><span id="stamp"></span><br><span id="lexline">loading lexicon…</span></div>
+  </header>
+
+  <div class="result">
+    <div class="rcard">
+      <div class="sentence lu" id="sentence"></div>
+      <div class="built" id="built"></div>
+      <div id="ncbox"></div>
+      <div class="tip" id="tip"></div>
+    </div>
+  </div>
+
+  <div id="nolex"></div>
+
+  <div class="seg" id="types">
+    <button data-t="statement" class="on">Statement</button>
+    <button data-t="question">Question</button>
+    <button data-t="command">Command</button>
+    <button data-t="lets">Let's</button>
+  </div>
+
+  <div id="slots"></div>
+
+  <h2>Why each piece is there</h2>
+  <div class="why" id="why"></div>
+  <div class="legend">
+    <span><span class="pc part">particle</span> marks what a word does</span>
+    <span><span class="pc end">ending</span> on the verb</span>
+    <span><span class="pc elide">n'</span> vowel dropped</span>
+    <span><span class="pc gap">[gap]</span> no word yet</span>
+  </div>
+  <div class="gaps" id="gaps"></div>
+
+  <div class="lex" id="lexpanel"></div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true">
+  <div class="top">
+    <div class="t"><span id="sheetTitle"></span><button id="sheetClose">Done</button></div>
+    <input id="q" type="search" placeholder="Search in English" autocomplete="off" autocapitalize="off" spellcheck="false">
+  </div>
+  <div class="list" id="sheetList"></div>
+</div>
+
+<script>
+"use strict";
+const BUILD = "2026-10-29-1930";
+const LEX_URL = "lunaji-lexicon.txt";      // put the Forge's lexicon save next to this page, under this name
+const CACHE_KEY = "lunaji-composer-lex";
+const STATE_KEY = "lunaji-composer-state";
+
+/* ---------- small helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const NASAL = {"ã":"a","ĩ":"i","õ":"o"};
+const isNasal = ch => ch in NASAL;
+const oral = ch => NASAL[ch] || ch;
+const CONS_FINAL = /(r|l|s|z|sh)$/;           // Proto R15 finals (Grammar §2)
+const stripMarks = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ü/g,"u");
+const ls = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } }
+};
+
+/* ---------- lexicon ---------- */
+let LEX = null, LEXSRC = "", NOUNS = [], VERBS = [];
+const QWORDS = new Set(["mõzo","emose"]);
+const NOT_NOUNS = new Set(["hena","dã","mõzo","emose"]);   // function-like nouns kept out of the noun lists
+const NOT_VERBS = new Set(["gu"]);                          // past copula: a function word (§4.6)
+// §2.2 (twenty-third pass): these point from the moment of speaking and never take wa
+const DEICTIC = {gono:"today", sunõ:"tomorrow", moke:"yesterday", ãko:"now", toye:"later", ümi:"here", sedo:"there"};
+const TIME_DEICTIC = ["gono","sunõ","moke","ãko","toye"];
+const PLACE_DEICTIC = ["ümi","sedo"];
+const TIME_NAMES = ["lõji","zemi","wasnĩ"];
+
+function cleanGloss(g){ return String(g||"").replace(/\s+,/g,",").replace(/\s+/g," ").trim(); }
+function shortGloss(g){
+  g = cleanGloss(g);
+  return g.replace(/^to /i,"").split(/\s[—-]\s/)[0];
+}
+function useLex(obj, src){
+  const L = obj && obj.LEX ? obj.LEX : obj;
+  if(!L || typeof L !== "object") throw new Error("No LEX in that file");
+  LEX = L; LEXSRC = src;
+  NOUNS = []; VERBS = [];
+  for(const [k,v] of Object.entries(L)){
+    if(!v || typeof v!=="object") continue;
+    if(v.c==="noun" && !NOT_NOUNS.has(k)) NOUNS.push({k, g:cleanGloss(v.g)});
+    if(v.c==="verb" && !NOT_VERBS.has(k)) VERBS.push({k, g:cleanGloss(v.g), irr:v.irr||null});
+  }
+  const byG = (a,b)=> shortGloss(a.g).toLowerCase().localeCompare(shortGloss(b.g).toLowerCase());
+  NOUNS.sort(byG); VERBS.sort(byG);
+}
+async function loadLex(){
+  let ok = false;
+  try{
+    const r = await fetch(LEX_URL, {cache:"no-store"});
+    if(r.ok){
+      const txt = await r.text();
+      useLex(JSON.parse(txt), "from the site");
+      ls.set(CACHE_KEY, txt); ok = true;
+    }
+  }catch(e){}
+  if(!ok){
+    const c = ls.get(CACHE_KEY);
+    if(c){ try{ useLex(JSON.parse(c), "saved on this device"); ok = true; }catch(e){} }
+  }
+  renderLexPanel();
+  render();
+}
+function loadFile(file){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      useLex(JSON.parse(fr.result), "loaded from file");
+      ls.set(CACHE_KEY, fr.result);
+    }catch(e){ alert("That file isn't a Lunaji lexicon save."); }
+    renderLexPanel(); render();
+  };
+  fr.readAsText(file);
+}
+function inLex(k){ return !!(LEX && LEX[k]); }
+function glossOf(k){ return LEX && LEX[k] ? shortGloss(LEX[k].g) : (DEICTIC[k]||k); }
+
+/* ---------- pronouns (§3.1, §3.5) ---------- */
+const PRONOUNS = [
+  {lu:"nuswa", base:"nuswa", en:"I"},
+  {lu:"lwaji", base:"lwaji", en:"you"},
+  {lu:"nwoli", base:"nwoli", en:"he / she", animate:true},
+  {lu:"luswazo", base:"luswazo", en:"we (you and me)"},
+  {lu:"nuswata", base:"nuswa", ta:true, en:"we (not you)"},
+  {lu:"lwajita", base:"lwaji", ta:true, en:"you (all)"},
+  {lu:"nwolita", base:"nwoli", ta:true, en:"they", animate:true},
+];
+
+/* ---------- state ---------- */
+const blank = () => ({type:"statement", verb:null, past:false, neg:false,
+  subj:null, role:"topic", obj:null, time:null, place:null, rel:"at"});
+let S = blank();
+try{ const s = JSON.parse(ls.get(STATE_KEY)||"null"); if(s && typeof s==="object") S = Object.assign(blank(), s); }catch(e){}
+const save = () => ls.set(STATE_KEY, JSON.stringify(S));
+
+/* ---------- notes ---------- */
+const N = {
+  topicNa: "Topic: what the sentence is about — \"as for…\". After a vowel the topic is na (§2.2, §2.3).",
+  topicLinkN: w => `Topic. After a nasal vowel the topic is a, and the nasal turns into n and links into it: ${w} + a → ${linkN(w)}a (§1a, §1b.3).`,
+  topicLinkC: w => `Topic. After a final consonant the topic is a, and the consonant links into it: ${w} + a → ${w}a (§1b.3).`,
+  ba: "Subject: who or what does it (§2.2).",
+  ni: "Object: what the action is done to. Every object takes ni (§2.2).",
+  wa: "At, in, on — for a place or a named time (§2.2).",
+  di: "To. di is the catch-all: to, with, by, about (§2.2).",
+  toma: "From. toma is two syllables and is written as its own word (§2.2, §1b.4).",
+  deictic: w => `${w} points from right now, so it stands bare and never takes wa (§2.2).`,
+  ze: "Past. -ze is always the last ending on the verb (§4.1).",
+  ena: "Not. -ena goes on the verb, before the past ending (§4.3).",
+  linkVerb: w => `${w} ends in a nasal vowel; before -ena the nasal turns into n and links (§1a, §4.3).`,
+  jin: "Closes a yes/no question (§4.5).",
+  mozo: "Question word for something that acts — who, or what made that sound. It stays in its own slot with that slot's particle (§3.6).",
+  emose: "Question word for a thing. It stays in its own slot with that slot's particle (§3.6).",
+  emosewa: "Where or when: one form, because wa covers place and time (§3.6).",
+  emoseToma: "From where: emose + toma (§3.6).",
+  qForceBa: "A question word as subject takes ba — mõzoba, emoseba (§3.6).",
+  nwoli: "He or she — only for something that moves or makes sound on its own (§3.3).",
+  ta: "Plural -ta, for animates only (§3.5).",
+  luswazo: "We, you and me. \"Let's\" is luswazo + the bare verb, with no particle (§4.10).",
+  gap: en => `No Lunaji word for "${en}" yet. Missing words go to TOOL Queue Lists for the Forge Queue.`,
+};
+function linkN(w){ return w.slice(0,-1) + oral(w.slice(-1)) + "n"; }
+
+/* ---------- builders: each returns a token {pieces:[{t,cls,note}], tail?, gap?} ---------- */
+function P(t, cls, note){ return {t, cls, note}; }
+
+function baseNounPieces(item){
+  if(item.kind==="pron"){
+    const p = PRONOUNS.find(x=>x.lu===item.lu) || {lu:item.lu, base:item.lu};
+    const pcs = [];
+    if(p.ta && !inLex(p.lu)){ pcs.push(P(p.base,"root", p.animate?N.nwoli:null)); pcs.push(P("ta","part",N.ta)); }
+    else pcs.push(P(p.lu,"root", p.lu==="luswazo"?null:(p.animate?N.nwoli:null)));
+    return pcs;
+  }
+  if(item.kind==="q") return [P(item.lu,"root", item.lu==="mõzo"?N.mozo:N.emose)];
+  return [P(item.lu,"root",null)];
+}
+
+// particle: "topic" | "ba" | "ni" | "wa" | "di"
+function nounToken(item, particle){
+  if(item.kind==="gap"){
+    const pcs = [P("["+item.en+"]","gap",N.gap(item.en))];
+    if(particle==="topic") pcs.push(P("·na/a","part","Topic. Its shape — na or a — depends on how the missing word ends (§1b.3)."));
+    else pcs.push(P(particle,"part",N[particle]));
+    return {pieces:pcs, gap:true};
+  }
+  const w = item.lu, last = w.slice(-1);
+  if(particle==="topic"){
+    if(isNasal(last)) return {pieces:[P(w.slice(0,-1)+oral(last),"root",null), P("na","part",N.topicLinkN(w))]};
+    if(item.kind!=="pron" && CONS_FINAL.test(w)) return {pieces:[P(w,"root",null), P("a","part",N.topicLinkC(w))]};
+    return {pieces:[...baseNounPieces(item), P("na","part",N.topicNa)], tail:{p:"na", v:"a"}};
+  }
+  const pcs = [...baseNounPieces(item), P(particle,"part",N[particle])];
+  return {pieces:pcs, tail:{p:particle, v:particle.slice(-1)}};
+}
+
+function regularForm(k, past, neg){
+  let s = k, link = false;
+  if(neg){ if(isNasal(k.slice(-1))){ s = linkN(k); link = true; } s += "ena"; }
+  if(past) s += "ze";
+  return {s, link};
+}
+function verbToken(item, past, neg){
+  if(item.kind==="gap"){
+    const pcs = [P("["+item.en+"]","gap",N.gap(item.en))];
+    if(neg) pcs.push(P("+ena","end","Not (§4.3). How it joins depends on how the missing verb ends."));
+    if(past) pcs.push(P("+ze","end",N.ze));
+    return {pieces:pcs, gap:true};
+  }
+  const k = item.lu, v = LEX[k] || {}, irr = v.irr;
+  const slot = neg && past ? "enaze" : neg ? "ena" : past ? "ze" : "bare";
+  const reg = regularForm(k, past, neg);
+  if(irr && irr[slot] && irr[slot] !== reg.s){
+    const regTxt = slot==="bare" ? k : reg.s;
+    const why = slot==="bare"
+      ? `Irregular (§4.12): the bare form of ${k} is ${irr.bare}. Learned, not worked out.`
+      : `Irregular (§4.12): ${irr[slot]}, not ${regTxt}. Learned, not worked out.`;
+    return {pieces:[P(irr[slot],"end irr",why)]};
+  }
+  const pcs = [];
+  if(neg && reg.link) pcs.push(P(linkN(k),"root",N.linkVerb(k)));
+  else pcs.push(P(k,"root",null));
+  if(neg) pcs.push(P("ena","end",N.ena));
+  if(past) pcs.push(P("ze","end",N.ze));
+  return {pieces:pcs};
+}
+
+/* ---------- compose ---------- */
+function isQ(x){ return x && x.kind==="q"; }
+
+function compose(){
+  const out = {tokens:[], notes:[], nc:[], built:[], gaps:[]};
+  const t = S.type;
+  if(!S.verb){ return out; }
+
+  const qCount = [S.subj,S.obj,S.time,S.place].filter(isQ).length;
+  const subj = (t==="command"||t==="lets") ? null : S.subj;
+
+  // not covered
+  if(t==="command" && S.past) out.nc.push("A command is the bare verb (§4.5), so it has no past form.");
+  if(t==="lets" && (S.past||S.neg)) out.nc.push("Let's is luswazo + the bare verb (§4.10). A past or negative let's isn't written in Grammar.md.");
+  if(t==="lets" && (S.obj||S.time||S.place)) out.nc.push("§4.10 shows let's only with a bare verb. Where luswazo stands beside an object, time or place isn't written in Grammar.md.");
+  if((t==="command"||t==="lets") && qCount) out.nc.push("A question word in a command or a let's isn't covered by Grammar.md.");
+  if(qCount>1) out.nc.push("Two question words in one sentence isn't covered by Grammar.md.");
+  if(out.nc.length) return out;
+
+  const T = out.tokens, B = out.built;
+  const push = (tok, en) => { T.push(tok); if(en) B.push(en); };
+
+  if(t==="lets"){
+    push({pieces:[P("luswazo","root",N.luswazo)]}, "let's (we)");
+  }
+
+  // subject as topic
+  let role = S.role;
+  if(subj){
+    if(isQ(subj)) role = "doer";
+    if(role==="drop" && subj.kind!=="pron") role = "topic";
+  }
+  if(subj && role==="topic") push(nounToken(subj,"topic"), subj.en+" (topic)");
+
+  // time
+  if(S.time){
+    const x = S.time;
+    if(isQ(x)) push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)]}, "when?");
+    else if(x.kind!=="gap" && DEICTIC[x.lu]) push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}, x.en);
+    else push(nounToken(x,"wa"), "at "+x.en);
+  }
+
+  // place: at / from (before the subject)
+  let placeTo = null;
+  if(S.place){
+    const x = S.place;
+    if(isQ(x) && x.fixed==="wa") push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)]}, "where?");
+    else if(isQ(x) && x.fixed==="toma"){ push({pieces:[P("emose","root",N.emose)]}); push({pieces:[P("toma","part",N.emoseToma)]}, "from where?"); }
+    else if(S.rel==="from"){ push({pieces:baseNounPieces(x).map(p=>x.kind==="gap"?P("["+x.en+"]","gap",N.gap(x.en)):p), gap:x.kind==="gap"}); push({pieces:[P("toma","part",N.toma)]}, "from "+x.en); }
+    else if(S.rel==="to") placeTo = x;
+    else if(x.kind!=="gap" && DEICTIC[x.lu]) push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}, x.en);
+    else push(nounToken(x,"wa"), "at "+x.en);
+  }
+
+  // subject with ba
+  if(subj && role==="doer"){
+    const tok = nounToken(subj,"ba");
+    if(isQ(subj)) tok.pieces[tok.pieces.length-1].note = N.ba+" "+N.qForceBa;
+    push(tok, subj.en+" (does it)");
+  }
+
+  // place: to (di)
+  if(placeTo) push(nounToken(placeTo,"di"), "to "+placeTo.en);
+
+  // object
+  if(S.obj) push(nounToken(S.obj,"ni"), S.obj.en+" (object)");
+
+  // verb
+  const vneg = S.neg, vpast = (t==="command") ? false : S.past;
+  push(verbToken(S.verb, vpast, vneg), (vneg ? (t==="command"?"don't ":"not ") : "") + S.verb.en + (vpast?" (past)":""));
+
+  // question
+  let isQuestion = false;
+  if(qCount){
+    isQuestion = true;
+    out.notes.push(t==="question"
+      ? "No jĩ: a question word already marks the question where it stands (§3.6, §4.5)."
+      : "This is a question because of its question word, which marks the question where it stands. No jĩ is used with it (§3.6, §4.5).");
+  } else if(t==="question"){
+    isQuestion = true;
+    push({pieces:[P("jĩ","part",N.jin)]}, "?");
+  }
+
+  // sentence-level notes
+  if(subj && S.role==="drop" && subj.kind==="pron") out.notes.push(`"${subj.en}" is left out: a neutral sentence has no pronoun in it (§2.3).`);
+  if(subj && S.role==="drop" && subj.kind!=="pron") out.notes.push(`"Leave out" is for pronouns, so ${subj.en} stays, as the topic.`);
+  if(t==="command") out.notes.push(S.neg ? "A command is the bare verb; with -ena it means don't (§4.5)." : "A command is the bare verb, with no subject (§4.5).");
+  if(t!=="command" && t!=="lets" && !S.past && S.verb.kind!=="gap") out.notes.push("No -ze, so the verb is non-past: it covers now and later (§4.1).");
+  if(t!=="lets" && (S.time||S.place||S.obj||subj)) out.notes.push("Neutral order: topic → time → place → subject (ba) → to (di) → object (ni) → verb. Any other order is legal too, but the topic stays first and the verb last (§5.2).");
+
+  // elision (§1b.4): a one-syllable particle drops its vowel before the same vowel, and joins the next word
+  for(let i=0;i<T.length-1;i++){
+    const a = T[i], b = T[i+1];
+    if(!a.tail || a.gap || b.gap) continue;
+    const first = b.pieces[0].t.charAt(0);
+    if(oral(first) === a.tail.v){
+      const pc = a.pieces[a.pieces.length-1];
+      pc.t = a.tail.p.slice(0,-1) + "'";
+      pc.cls = "elide";
+      pc.note = `${a.tail.p} drops its ${a.tail.v} before the ${first} of the next word and is written joined to it (§1b.4). `+(pc.note||"");
+      a.join = true;
+    }
+  }
+
+  // gaps
+  for(const x of [S.subj,S.obj,S.time,S.place,S.verb]) if(x && x.kind==="gap") out.gaps.push(x.en);
+
+  out.question = isQuestion;
+  return out;
+}
+
+/* ---------- render ---------- */
+let pieceIndex = [];
+function render(){
+  save();
+  document.querySelectorAll("#types button").forEach(b=>b.classList.toggle("on", b.dataset.t===S.type));
+  renderSlots();
+  const c = compose();
+  const sEl = $("#sentence"), tip = $("#tip");
+  tip.classList.remove("on");
+  pieceIndex = [];
+  $("#ncbox").innerHTML = c.nc.map(m=>`<div class="nc"><b>Not covered.</b> ${esc(m)}</div>`).join("");
+
+  if(!S.verb){
+    sEl.innerHTML = `<span class="placeholder">${LEX ? "Pick a verb to start." : "Load the lexicon to start."}</span>`;
+    $("#built").textContent = "";
+  } else if(c.nc.length){
+    sEl.innerHTML = `<span class="placeholder">—</span>`;
+    $("#built").textContent = "";
+  } else {
+    let html = "", first = true;
+    c.tokens.forEach((tok,ti)=>{
+      html += `<span class="w">`;
+      tok.pieces.forEach(p=>{
+        let t = p.t;
+        if(first && p.cls!=="gap"){ t = t.charAt(0).toUpperCase()+t.slice(1); }
+        first = false;
+        const idx = pieceIndex.length; pieceIndex.push(p);
+        const cls = p.cls.split(" ")[0];
+        html += `<span class="pc ${cls}${p.note&&cls==="root"?" noted":""}" data-i="${idx}">${esc(t)}</span>`;
+      });
+      html += `</span>`;
+      if(ti < c.tokens.length-1 && !tok.join) html += " ";
+    });
+    html += c.question ? "?" : ".";
+    sEl.innerHTML = html;
+    $("#built").textContent = "Built from: " + c.built.join(" · ");
+  }
+
+  // why list
+  const rows = [];
+  if(S.verb && !c.nc.length){
+    for(const p of pieceIndex) if(p.note) rows.push(`<div class="row"><div class="k lu"><span class="pc ${p.cls.split(" ")[0]}">${esc(p.t)}</span></div><div>${esc(p.note)}</div></div>`);
+    for(const n of c.notes) rows.push(`<div class="row gen"><div class="k">•</div><div>${esc(n)}</div></div>`);
+  }
+  $("#why").innerHTML = rows.join("") || `<div class="row gen"><div>Build a sentence and each particle and ending is explained here. Tap any piece of the sentence to see why it's there.</div></div>`;
+
+  const gaps = [...new Set(c.gaps)];
+  $("#gaps").innerHTML = gaps.length
+    ? `Missing words: ${gaps.map(esc).join(", ")}<button id="copyGaps">Copy</button>`
+    : "";
+  const cg = $("#copyGaps");
+  if(cg) cg.onclick = () => { try{ navigator.clipboard.writeText(gaps.join("\n")); cg.textContent="Copied"; }catch(e){} };
+}
+
+$("#sentence").addEventListener("click", e=>{
+  const el = e.target.closest(".pc"); const tip = $("#tip");
+  document.querySelectorAll("#sentence .pc.sel").forEach(x=>x.classList.remove("sel"));
+  if(!el){ tip.classList.remove("on"); return; }
+  const p = pieceIndex[+el.dataset.i];
+  if(!p) return;
+  el.classList.add("sel");
+  const g = (p.cls==="root" && LEX && LEX[p.t]) ? ` — ${esc(shortGloss(LEX[p.t].g))}` : "";
+  tip.innerHTML = `<b>${esc(p.t)}</b>${g}<br>${esc(p.note || (p.cls==="root" ? "The word itself." : ""))}`;
+  tip.classList.add("on");
+});
+
+/* ---------- slots ---------- */
+const SLOT_DEF = {
+  verb:  {label:"Verb — what happens", req:true},
+  subj:  {label:"Who or what does it"},
+  obj:   {label:"Object — what it's done to"},
+  time:  {label:"When"},
+  place: {label:"Where"},
+};
+function valHtml(x, ph){
+  if(!x) return `<span class="en">${ph}</span>`;
+  if(x.kind==="gap") return `<span class="en">${esc(x.en)}</span><span class="luv" style="color:var(--gap)">no word yet</span>`;
+  return `<span class="en">${esc(x.en)}</span><span class="luv lu">${esc(x.show||x.lu)}</span>`;
+}
+function renderSlots(){
+  const t = S.type, h = [];
+  const slot = (key, inner, opts="", off=false, hint="") => {
+    const d = SLOT_DEF[key];
+    h.push(`<div class="slot${off?" off":""}"><div class="lab"><span>${d.label}</span>${d.req?'<span class="req">needed</span>':''}</div>${inner}${opts}${hint?`<div class="hint">${hint}</div>`:""}</div>`);
+  };
+  const picker = (key, ph) => `<div class="pick"><button class="val${S[key]?"":" empty"}" data-open="${key}">${valHtml(S[key], ph)}</button>${S[key]?`<button class="x" data-clear="${key}" aria-label="Clear">×</button>`:""}</div>`;
+
+  // verb
+  const vopts = t==="lets" ? "" : `<div class="opts">
+      ${t==="command" ? "" : `<button data-tog="past" class="${S.past?"on":""}">Past</button>`}
+      <button data-tog="neg" class="${S.neg?"on":""}">${t==="command"?"Don't":"Not"}</button></div>`;
+  slot("verb", picker("verb","Tap to pick a verb"), vopts);
+
+  // subject
+  if(t==="command") slot("subj", `<div class="hint">A command has no subject (§4.5).</div>`, "", true);
+  else if(t==="lets") slot("subj", `<div class="pick"><div class="val"><span class="en">we (you and me)</span><span class="luv lu">luswazo</span></div></div>`, "", true, "Fixed for let's (§4.10).");
+  else{
+    const q = isQ(S.subj), pron = S.subj && S.subj.kind==="pron";
+    const ropts = S.subj ? `<div class="opts">
+      <button data-role="topic" class="${S.role==="topic"&&!q?"on":""}" ${q?"disabled":""}>As for… (topic)</button>
+      <button data-role="doer" class="${S.role==="doer"||q?"on":""}">Doer (ba)</button>
+      ${pron?`<button data-role="drop" class="${S.role==="drop"?"on":""}">Leave out</button>`:""}</div>` : "";
+    slot("subj", picker("subj","Optional"), ropts, false, q ? "A question word as subject takes ba (§3.6)." : "");
+  }
+
+  slot("obj", picker("obj","Optional"));
+  slot("time", picker("time","Optional"));
+
+  const pq = isQ(S.place);
+  const popts = S.place && !pq ? `<div class="opts">
+      <button data-rel="at" class="${S.rel==="at"?"on":""}">at / in</button>
+      <button data-rel="to" class="${S.rel==="to"?"on":""}">to</button>
+      <button data-rel="from" class="${S.rel==="from"?"on":""}">from</button></div>` : "";
+  slot("place", picker("place","Optional"), popts);
+
+  $("#slots").innerHTML = h.join("");
+}
+$("#slots").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.open){ openSheet(b.dataset.open); return; }
+  if(b.dataset.clear){ S[b.dataset.clear] = null; render(); return; }
+  if(b.dataset.tog){ S[b.dataset.tog] = !S[b.dataset.tog]; render(); return; }
+  if(b.dataset.role){ S.role = b.dataset.role; render(); return; }
+  if(b.dataset.rel){ S.rel = b.dataset.rel; render(); return; }
+});
+$("#types").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  S.type = b.dataset.t; render();
+});
+
+/* ---------- picker sheet ---------- */
+let sheetKey = null;
+const TITLES = {verb:"Pick a verb", subj:"Who or what does it", obj:"Object", time:"When", place:"Where"};
+function openSheet(key){
+  if(!LEX && key!=="subj" && key!=="obj"){ alert("Load the lexicon first."); return; }
+  sheetKey = key;
+  $("#sheetTitle").textContent = TITLES[key];
+  $("#q").value = "";
+  $("#q").placeholder = key==="verb" ? "Search verbs in English" : "Search in English";
+  drawList();
+  $("#scrim").classList.add("on"); $("#sheet").classList.add("on");
+  setTimeout(()=>{ try{ $("#q").focus({preventScroll:true}); }catch(e){} }, 50);
+}
+function closeSheet(){ $("#scrim").classList.remove("on"); $("#sheet").classList.remove("on"); sheetKey = null; }
+$("#scrim").onclick = closeSheet; $("#sheetClose").onclick = closeSheet;
+$("#q").addEventListener("input", drawList);
+
+function matchScore(q, g, k){
+  if(!q) return 1;
+  const gl = g.toLowerCase(), sg = shortGloss(g).toLowerCase();
+  const words = gl.replace(/[^a-z0-9' ]+/g," ").split(" ").filter(Boolean);
+  if(sg===q || words.join(" ")===q) return 100;
+  if(words.includes(q)) return 80;
+  if(words.some(w=>w.startsWith(q))) return 60;
+  if(q.length>=4 && gl.includes(q)) return 40;
+  if(stripMarks(k).startsWith(stripMarks(q))) return 30;
+  return 0;
+}
+function filterItems(items, q){
+  return items.map(it=>({it, s:Math.max(matchScore(q, it.full||it.en, it.lu), matchScore(q, it.en, it.lu))})).filter(x=>x.s>0)
+    .sort((a,b)=>b.s-a.s).map(x=>x.it);
+}
+function drawList(){
+  const key = sheetKey; if(!key) return;
+  const q = $("#q").value.trim().toLowerCase();
+  const secs = [];
+  const fromLex = k => inLex(k) ? {kind:"word", lu:k, en:DEICTIC[k] || glossOf(k)} : null;
+  const pronItems = () => PRONOUNS.filter(p=>inLex(p.lu)||inLex(p.base)||!LEX).map(p=>({kind:"pron", lu:p.lu, en:p.en}));
+
+  if(key==="verb"){
+    secs.push(["Verbs", VERBS.map(v=>({kind:"word", lu:v.k, en:shortGloss(v.g), show:v.irr&&v.irr.bare?v.irr.bare:v.k, full:v.g}))]);
+  }
+  if(key==="subj"||key==="obj"){
+    secs.push(["People words", pronItems()]);
+    secs.push(["Ask", [{kind:"q", lu:"mõzo", en:"who? (something that acts)"},{kind:"q", lu:"emose", en:"what? (a thing)"}]]);
+    secs.push(["Nouns", NOUNS.map(n=>({kind:"word", lu:n.k, en:shortGloss(n.g), full:n.g}))]);
+  }
+  if(key==="time"){
+    secs.push(["Pointing from now — no wa", TIME_DEICTIC.map(fromLex).filter(Boolean)]);
+    secs.push(["Times of day — take wa", TIME_NAMES.map(fromLex).filter(Boolean)]);
+    secs.push(["Ask", [{kind:"q", lu:"emose", fixed:"wa", show:"emosewa", en:"when?"}]]);
+    secs.push(["Other nouns — take wa", NOUNS.filter(n=>!DEICTIC[n.k]&&!TIME_NAMES.includes(n.k)).map(n=>({kind:"word", lu:n.k, en:shortGloss(n.g), full:n.g}))]);
+  }
+  if(key==="place"){
+    secs.push(["Pointing from here — no wa", PLACE_DEICTIC.map(fromLex).filter(Boolean)]);
+    secs.push(["Ask", [{kind:"q", lu:"emose", fixed:"wa", show:"emosewa", en:"where?"},{kind:"q", lu:"emose", fixed:"toma", show:"emose toma", en:"from where?"}]]);
+    secs.push(["Places and things — take wa", NOUNS.filter(n=>!DEICTIC[n.k]).map(n=>({kind:"word", lu:n.k, en:shortGloss(n.g), full:n.g}))]);
+  }
+
+  let html = "", total = 0, store = [];
+  for(const [title, items] of secs){
+    let list = q ? filterItems(items, q) : items;
+    if(!list.length) continue;
+    const cap = q ? 60 : (title==="Nouns"||title.startsWith("Other")||title.startsWith("Places")||title==="Verbs" ? 400 : 50);
+    html += `<div class="sec">${esc(title)}</div>`;
+    list.slice(0,cap).forEach(it=>{
+      const i = store.length; store.push(it);
+      html += `<button class="it" data-pick="${i}"><span>${esc(it.en)}</span><span class="l lu">${esc(it.show||it.lu)}</span></button>`;
+    });
+    if(list.length>cap) html += `<div class="more">${list.length-cap} more — type to narrow</div>`;
+    total += list.length;
+  }
+  if(q){
+    html += `<button class="gapbtn" data-gap="1">${total?"Not here? ":"No Lunaji word found. "}Use “${esc(q)}” as a gap</button>`;
+  }
+  if(!html) html = `<div class="more">Nothing to show.</div>`;
+  const el = $("#sheetList"); el.innerHTML = html; el.scrollTop = 0;
+  el.onclick = e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    if(b.dataset.gap){ setSlot(key, {kind:"gap", en:q}); return; }
+    const it = store[+b.dataset.pick]; if(it) setSlot(key, {kind:it.kind, lu:it.lu, en:it.en, show:it.show, fixed:it.fixed});
+  };
+}
+function setSlot(key, val){
+  S[key] = val;
+  if(key==="subj" && val.kind!=="pron" && S.role==="drop") S.role = "topic";
+  closeSheet(); render();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+/* ---------- lexicon panel ---------- */
+function renderLexPanel(){
+  const n = LEX ? Object.keys(LEX).length : 0;
+  $("#lexline").textContent = LEX ? `${n} words · ${LEXSRC}` : "no lexicon loaded";
+  $("#stamp").textContent = "build " + BUILD;
+  $("#nolex").innerHTML = LEX ? "" : `<div class="empty-lex">No lexicon yet. Put the Forge's lexicon save on the site as <b>${LEX_URL}</b> next to this page, or load the file below.</div>`;
+  $("#lexpanel").innerHTML = `Lexicon: ${LEX ? `${n} words (${NOUNS.length} nouns, ${VERBS.length} verbs), ${esc(LEXSRC)}.` : "none loaded."}
+    <br><label>Load a lexicon file<input type="file" id="lexfile" accept=".txt,.json,text/plain,application/json"></label><button id="lexreload">Reload from site</button><button id="resetAll">Clear sentence</button>`;
+  $("#lexfile").onchange = e => { const f = e.target.files[0]; if(f) loadFile(f); };
+  $("#lexreload").onclick = () => loadLex();
+  $("#resetAll").onclick = () => { S = blank(); render(); };
+}
+
+renderLexPanel();
+render();
+loadLex();
+</script>
+</body>
+</html>
