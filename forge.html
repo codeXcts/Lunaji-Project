@@ -102,8 +102,8 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1318 · made on build 2026-10-29-1228</div>
-<p class="sub">Blind root draw and R1–R15 derivation. Runs offline.</p>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1702 · made on build 2026-10-29-1318</div>
+<p class="sub">Blind root draw and R1–R15 derivation; R16 conjugates the eight irregular verbs. Runs offline.</p>
 
 <nav role="tablist">
   <button role="tab" aria-selected="true" data-tab="draw">Draw</button>
@@ -114,7 +114,7 @@ details.panel>summary{cursor:pointer}
   <button role="tab" aria-selected="false" data-tab="borrow">Borrow</button>
   <button role="tab" aria-selected="false" data-tab="compound">Compound</button>
   <button role="tab" aria-selected="false" data-tab="wear">Wear</button>
-  <button role="tab" aria-selected="false" data-tab="trial">R15</button>
+  <button role="tab" aria-selected="false" data-tab="trial">R15 · R16</button>
   <button role="tab" aria-selected="false" data-tab="phrases">Phrases</button>
   <button role="tab" aria-selected="false" data-tab="paradigm">Paradigm</button>
   <button role="tab" aria-selected="false" data-tab="review">Review</button>
@@ -723,6 +723,11 @@ details.panel>summary{cursor:pointer}
     <div id="r15ApplyOut"></div>
   </div>
   <div class="panel">
+    <p class="hint"><b>Proto R16, the irregular verbs — ruled 2026-10-29.</b> Eight verbs, where an ending meets the stem directly: <i>hi · hize · hinena · hinenaze</i> (was <i>hĩ</i>); <i>yu · yuze · yuena · yuenaze</i>, <i>yozuri</i>; <i>kazõ · kazõse · kazena · kazenase</i>; <i>shĩyu · shĩze · shinena · shinenaze</i>; <i>onu · õze · onena · onenaze</i>; <i>shimu · shimuze · shimena · shimenaze</i>; <i>sofu · sofuze · sofena · sofenaze</i>; <i>kuwanu · kuwãze · kuwanena · kuwanenaze</i>. Every form, Paradigm and the phrase tools use these from this build. Apply renames <i>hĩ</i> to <i>hi</i>, gives the eight entries an <i>irr</i> field, and respells stored lines.</p>
+    <button class="btn" id="r16Apply">Apply R16 — the eight verbs, the phrasebook, the sentence bank and waiting sentences</button>
+    <div id="r16ApplyOut"></div>
+  </div>
+  <div class="panel">
     <p id="trSum" style="margin:0 0 8px"></p>
     <div class="row">
       <input id="trQ" placeholder="find a word or gloss" spellcheck="false" autocapitalize="off">
@@ -1301,7 +1306,7 @@ const LEX_SEED = {
   "nuswa":["I","pron"],"lwaji":["you","pron"],"nwoli":["he, she — animate","pron"],
   "luswazo":["we — inclusive","pron"],"nuswata":["we — exclusive","pron"],
   /* verbs */
-  "hin":["to exist — animate","irreg"],"yozu":["to exist — inanimate","verb"],
+  "hi":["to exist — animate","verb"],"yozu":["to exist — inanimate","verb"],
   "inku":["to exist — unknown","verb"],"gu":["was, were — past copula","verb"],
   "kominu":["to be tired","verb"],"inoyu":["to be dark","verb"],
   "nialipu":["to stir; to move slightly","verb"],"kazon":["to come","irreg"],
@@ -2285,9 +2290,57 @@ function renderDerivation(){
 const VSLOTS = [["na","wa","di","a"],["ze"],["ena"],["ri"],["du"],["bi"],["vu"]];   // peeled right to left
 const VORDER = ["vu","bi","du","ri","ena","ze"];                                     // written left to right
 function verbForm(w){
+  const ends = [].slice.call(arguments, 1).filter(Boolean);
+  if(R16[w]) return r16Form(w, ends);          // 2026-10-29 — Proto R16, the eight irregular verbs
   let out = w;
-  for(let i = 1; i < arguments.length; i++) if(arguments[i]) out = joinSuffix(out, arguments[i]);
+  for(const e of ends) out = joinSuffix(out, e);
   return out;
+}
+/* ══════════ R16 — the irregular verbs, build 2026-10-29-1702 ══════════
+   Proto R16, ruled 2026-10-29; paradigms ruled by RULE Grammar (§4.12). The
+   irregularity is only where an ending meets the stem directly: the bare form,
+   -ze, -ena and -ena-ze, and what is built on them (clause particles). -vu -bi
+   -du -ri -ga go on the base form. hĩ is hi in every form. */
+const R16_DATE = "2026-10-29";
+const R16 = {
+  "hi":     {base: "hi",     bare: "hi",     ze: "hize",    ena: "hinena",   enaze: "hinenaze",   g: "to exist — animate"},
+  "yozu":   {base: "yozu",   bare: "yu",     ze: "yuze",    ena: "yuena",    enaze: "yuenaze",    g: "to exist — inanimate"},
+  "kaz\u00f5": {base: "kaz\u00f5", bare: "kaz\u00f5", ze: "kaz\u00f5se", ena: "kazena", enaze: "kazenase", g: "to come"},
+  "sh\u0129yu": {base: "sh\u0129yu", bare: "sh\u0129yu", ze: "sh\u0129ze", ena: "shinena", enaze: "shinenaze", g: "to go"},
+  "onu":    {base: "onu",    bare: "onu",    ze: "\u00f5ze", ena: "onena",    enaze: "onenaze",    g: "to say"},
+  "shimu":  {base: "shimu",  bare: "shimu",  ze: "shimuze", ena: "shimena",  enaze: "shimenaze",  g: "to do"},
+  "sofu":   {base: "sofu",   bare: "sofu",   ze: "sofuze",  ena: "sofena",   enaze: "sofenaze",   g: "to see"},
+  "kuwanu": {base: "kuwanu", bare: "kuwanu", ze: "kuw\u00e3ze", ena: "kuwanena", enaze: "kuwanenaze", g: "to know a fact"}
+};
+R16["h\u0129"] = R16["hi"];                  // the key before Apply R16 renames it
+function r16Form(w, ends){
+  const t = R16[w], rest = ends.slice(); let f;
+  if(!rest.length) return t.bare;
+  if(rest[0] === "ze"){ f = t.ze; rest.shift(); }
+  else if(rest[0] === "ena"){ rest.shift(); if(rest[0] === "ze"){ f = t.enaze; rest.shift(); } else f = t.ena; }
+  else if(["na","a","wa","di"].includes(rest[0])) f = t.bare;    // a clause particle on the bare form: yuna, hina, kazona
+  else f = t.base;                                              // -vu -bi -du -ri -ga on the base
+  for(const e of rest) f = joinSuffix(f, e === "a" ? "na" : e);
+  return f;
+}
+// every form of the eight, for the parser: form → {stem, ends}
+let R16_REV = null;
+function r16Rev(){
+  if(R16_REV) return R16_REV;
+  R16_REV = {};
+  Object.keys(R16).forEach(k => {
+    if(!LEX[k]) return;
+    const slots = ["vu","bi","du","ri","ena","ze"];
+    for(let m = 0; m < 64; m++){
+      const ends = slots.filter((x, i) => m & (1 << i));
+      ["", "na", "wa", "di"].forEach(c => {
+        const e = c ? ends.concat([c]) : ends;
+        const f = verbForm(k, ...e);
+        if(!(f in R16_REV)) R16_REV[f] = {stem: k, ends: e};
+      });
+    }
+  });
+  return R16_REV;
 }
 function lexVerbKey(x){
   x = x.replace(/'$/, "");
@@ -2298,6 +2351,7 @@ function lexVerbKey(x){
 function verbStem(tok){
   const s = toN(String(tok || "").toLowerCase().replace(/[.?!,]/g, ""));
   if(!s) return null;
+  { const r = r16Rev()[toTilde(s)]; if(r) return {stem: r.stem, ends: r.ends.slice()}; }   // 2026-10-29 — R16
   const k0 = lexVerbKey(s);
   if(k0) return {stem: k0, ends: []};
   const walk = (x, from, ends) => {
@@ -2810,19 +2864,19 @@ function framesFor(w, cls){
     put("Modified", "kominu " + w, "an adjectival verb in front");
     put("Counted", "rako " + w, "numeral plus inanimate counter");
     put("Owned", "nuswape " + w, startsV(w) ? "pe drops its vowel before a vowel (\u00a71b.4)" : "pe joins the owner; the owned follows");
-    put("Full clause", "Lõjiwa " + withNi(w) + " sofuenaze.", "against the benchmark");
+    put("Full clause", "Lõjiwa " + withNi(w) + " sofenaze.", "against the benchmark");
     F.push({l:"Bare", line:w, why:"legality only", legality:true});
   } else if(cls === "pron"){
     // A pronoun is spoken only when it is doing contrastive work (Grammar §2.3),
     // so the OVERT PRONOUN warning is expected on the subject frame.
-    put("Subject, contrastive", w + "ba saĩkowa kazõze.", "the only place a subject pronoun is said \u2014 the warning is expected here");
+    put("Subject, contrastive", w + "ba saĩkowa kazõse.", "the only place a subject pronoun is said \u2014 the warning is expected here");
     put("Object", withNi(w) + " kyõkuze", "ni joins");
     put("Possessor", w + "pe akyozana", "my/your name \u2014 pe drops its vowel before a vowel (\u00a71b.4)");
     put("Topic", withTop(w) + " kominu", nas ? "the nasal dissolves, the weight moves" : "");
     put("Plural", w + "ta", "-ta, as every pronoun takes");
     put("Answer to mõzo", w, "a bare pronoun as a whole reply");
   } else {
-    put("After the verb", "sofuenaze " + w, "its commonest left neighbour");
+    put("After the verb", "sofenaze " + w, "its commonest left neighbour");
     put("Joined to a long noun", "onãkõzã" + w, "if it cliticizes");
     put("Braced", "helãba lõji" + w + " sofuze", "long words both sides \u2014 \u00a71b.5");
     put("Full clause", "Lõjiwa noayeni kyõkuenaze " + w + ".", "in the tail");
@@ -3698,9 +3752,9 @@ function nounTables(w){
       pdRow("that", "na " + w, "demonstrative precedes; covers <em>the</em>", null)
     ]),
     pdTable("With existence", [
-      pdRow("there is (animate)", w + "ba hin", "introducing something that acts", null),
+      pdRow("there is (animate)", w + "ba hi", "introducing something that acts", null),
       pdRow("there is (inanimate)", w + "ba yozu", "", null),
-      pdRow("it is here", top + " hin", "locating a known referent — topic, not <em>ba</em>", null)
+      pdRow("it is here", top + " hi", "locating a known referent — topic, not <em>ba</em>", null)
     ])
   ].join("");
 }
@@ -4640,7 +4694,7 @@ const BANK_DEFAULT = {
          "___bi jĩ | can (you) ___?",
          "___du norõ ___biena | (I) want to ___ but can't",
          "___na nuswani onu | if (you) ___, tell me",
-         "___ kazõze | came, ___ing",
+         "___ kazõse | came, ___ing",
          "ila ___ | has ___ed",
          "zoka ___ | habitually ___s"].join("\n"),
   noun: ["___na konu | the ___ is tired",
@@ -5033,7 +5087,7 @@ $("lxAudit").onclick = () => {
     const e = LEX[w], bits = [];
     if(!e.g || e.g === "(no gloss yet)") bits.push("no gloss");
     if(e.c === "noun" && /u$/.test(w)) bits.push("noun ends in \u2013u");
-    if(e.c === "verb" && !/(u|[aio]n)$/.test(toN(w))) bits.push("class is verb, but no theme \u2013u or nasal final");
+    if(e.c === "verb" && !/(u|[aio]n)$/.test(toN(w)) && !R16[w]) bits.push("class is verb, but no theme \u2013u or nasal final");   // hi is the one exception (Proto R16)
     if(hasSyZy(w)) bits.push("sy / zy \u2014 should be " + palSpell(w) + " (rule 2: s and z palatalize before y)");
     // R13, 2026-09-29 — native words only; ö is loan-only
     if(!isLoan(e) && !e.cmp){                     // a modern compound seam: R13 is not running
@@ -6339,6 +6393,79 @@ const R15_LIST = {"polisa":"polis","alfire":"alfir","alwera":"alwer","amwala":"a
   };
 })();
 
+
+/* ══════════ Apply R16 — build 2026-10-29-1702 ══════════
+   Renames hĩ → hi, adds irr: {bare, ze, ena, enaze, d} to the eight entries (a
+   field added to the lexicon save, nothing removed), and respells stored lines:
+   every regular form of the eight that R16 changes becomes the irregular one. */
+(function(){
+  const NAS = {"\u00e3":"a","\u0129":"i","\u00f5":"o"};
+  const regJoin = (w, e) => {                 // the regular joining, as before R16
+    const nas = /[\u00e3\u0129\u00f5]$/.test(w);
+    if(nas && (e === "na" || e === "ena")) return w.slice(0, -1) + NAS[w.slice(-1)] + "n" + (e === "na" ? "a" : "ena");
+    return w + e;
+  };
+  function r16Map(){
+    const map = {}, slots = ["vu","bi","du","ri","ena","ze"];
+    [["h\u0129","hi"],["yozu","yozu"],["kaz\u00f5","kaz\u00f5"],["sh\u0129yu","sh\u0129yu"],["onu","onu"],["shimu","shimu"],["sofu","sofu"],["kuwanu","kuwanu"]].forEach(([old, nw]) => {
+      for(let m = 0; m < 64; m++){
+        const ends = slots.filter((x, i) => m & (1 << i));
+        ["", "na", "wa", "di"].forEach(c => {
+          const e = c ? ends.concat([c]) : ends;
+          let reg = old; e.forEach(x => reg = regJoin(reg, x));
+          const irr = r16Form(nw, e);
+          if(reg !== irr) map[reg] = irr;
+        });
+      }
+    });
+    return map;
+  }
+  function r16Line(line, map){
+    return line.split(/(\s+)/).map(tok => {
+      if(/^\s*$/.test(tok)) return tok;
+      const lead = tok.match(/^[^a-zA-Z\u00fc\u00f6\u00e3\u0129\u00f5\u00dc\u00d6\u00c3\u0128\u00d5]*/)[0];
+      const tail = tok.match(/[^a-zA-Z\u00fc\u00f6\u00e3\u0129\u00f5\u00dc\u00d6\u00c3\u0128\u00d5]*$/)[0];
+      const body = tok.slice(lead.length, tok.length - tail.length); if(!body) return tok;
+      const cap = body[0] !== body[0].toLowerCase(), low = body[0].toLowerCase() + body.slice(1);
+      // an elided word in front (il'onu, n'...) keeps its prefix
+      const k = low.lastIndexOf("'"), pre = k < 0 ? "" : low.slice(0, k + 1), w = k < 0 ? low : low.slice(k + 1);
+      if(!map[w]) return tok;
+      let out = pre + map[w]; if(cap) out = out[0].toUpperCase() + out.slice(1);
+      return lead + out + tail;
+    }).join("");
+  }
+  $("r16Apply").onclick = () => {
+    const map = r16Map();
+    const todo = Object.keys(R16).filter(k => k !== "hi" && LEX[k] && (!LEX[k].irr || k === "h\u0129"));
+    const jobs = [];
+    r14Lines().forEach(x => {
+      const k = x.l.indexOf("|"), lu = k < 0 ? x.l : x.l.slice(0, k);
+      const out = r16Line(lu, map);
+      if(out !== lu) jobs.push({where: x.where, from: x.l, to: out + (k < 0 ? "" : x.l.slice(k)), en: x.en, go: n => x.set(n)});
+    });
+    if(!todo.length && !jobs.length){ $("r16ApplyOut").innerHTML = `<p class="hint">Nothing to apply \u2014 R16 is already in this lexicon and no stored line has an old form.</p>`; return; }
+    $("r16ApplyOut").innerHTML = `<p class="hint">${todo.length} verb entr${todo.length === 1 ? "y" : "ies"} to mark${LEX["h\u0129"] ? " · h\u0129 renamed hi" : ""}</p>` +
+      (jobs.length ? `<label style="display:block;margin-top:8px">${jobs.length} stored line${jobs.length === 1 ? "" : "s"} to respell \u2014 untick any that should stay</label>
+        <table>${jobs.map((j, i) => `<tr><td><input type="checkbox" data-r16="${i}" checked></td><td><div class="lun">${esc(j.from)}</div><div class="lun" style="color:var(--lamp)">\u2192 ${esc(j.to)}</div><div class="hint" style="margin:0">${esc(j.where)}${j.en ? " \u00b7 " + esc(j.en) : ""}</div></td></tr>`).join("")}</table>` : "") +
+      `<button class="btn" id="r16Go" style="margin-top:8px">Apply</button>`;
+    $("r16Go").onclick = () => {
+      let n = 0, lines = 0;
+      todo.forEach(k => {
+        const t = R16[k], irr = {bare: t.bare, ze: t.ze, ena: t.ena, enaze: t.enaze, d: R16_DATE};
+        if(k === "h\u0129"){ irr.from = "h\u0129"; LEX["hi"] = Object.assign({}, LEX[k], {irr}); delete LEX[k]; }
+        else LEX[k] = Object.assign({}, LEX[k], {irr});
+        n++;
+      });
+      R16_REV = null;
+      jobs.forEach((j, i) => { const b = document.querySelector(`[data-r16="${i}"]`); if(b && b.checked){ j.go(j.to); lines++; } });
+      saveLex(); savePB(); saveBank(); if(typeof saveQ === "function") saveQ();
+      $("bankVerb").value = BANK.verb || ""; $("bankNoun").value = BANK.noun || "";
+      renderLex(); paintPB();
+      logLine(`${stamp()}  applied R16: ${n} irregular verb entries marked${LEX["hi"] ? ", h\u0129 \u2192 hi" : ""}; ${lines} stored line${lines === 1 ? "" : "s"} respelled`);
+      $("r16ApplyOut").innerHTML = `<p class="hint">${n} verb entries marked; ${lines} stored line${lines === 1 ? "" : "s"} respelled. <b>Save the lexicon and the phrasebook</b> (Lexicon tab), then export.</p>`;
+    };
+  };
+})();
 </script>
 </body>
 </html>
