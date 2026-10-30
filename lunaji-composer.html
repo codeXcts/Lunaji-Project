@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-30-0043">
+<meta name="lunaji-build" content="2026-10-30-0101">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -229,7 +229,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-30-0043";
+const BUILD = "2026-10-30-0101";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -325,9 +325,9 @@ try{ const s = JSON.parse(ls.get(STATE_KEY)||"null"); if(s && s.c1) { S = Object
 const save = () => ls.set(STATE_KEY, JSON.stringify(S));
 const UI = {open:null, det:{}, stack:["c1"]};
 const UIKEY = "lunaji-composer-ui";
-const UIS = {mode:"simple"};
+const UIS = {mode:"simple", hints:true};
 try{ Object.assign(UIS, JSON.parse(ls.get(UIKEY)||"{}")); }catch(e){}
-const saveUI = () => ls.set(UIKEY, JSON.stringify({mode:UIS.mode}));
+const saveUI = () => ls.set(UIKEY, JSON.stringify({mode:UIS.mode, hints:UIS.hints}));
 function getP(path){ return path.split(".").reduce((o,k)=>o==null?undefined:o[k], S); }
 function setP(path,v){ const ks = path.split("."); let o = S; for(let i=0;i<ks.length-1;i++){ if(o[ks[i]]==null) o[ks[i]] = {}; o = o[ks[i]]; } o[ks[ks.length-1]] = v; }
 
@@ -401,7 +401,7 @@ const N = {
   gaPe: "With a -ga word, what the action is done to comes first, joined with pe (§2.6).",
   vu: "-vu: the state the action leaves on whatever it happened to. It makes a new verb, so the other endings follow it (§4.11).",
   vuVu: " On a verb that ends in -vu the syllable doubles; legal, and a watch item (§4.11, §8).",
-  dip: "di — with, by, about: a person, tool or cause takes the di slot, after the subject (§2.2, §5.2).",
+  dip: "di — to, with, by, about: a person, tool or cause takes the di slot, after the subject (§2.2, §5.2).",
   dipVu: "With -vu, the one who did it is named with di (§4.11).",
   emosedi: "How or why: one form, because di covers instrument and cause (§3.6).",
   howMany: "How many: the question word takes the counter in place of a number — mõzore for what acts, emoseko for things (§3.6, §7).",
@@ -739,7 +739,7 @@ function buildVerb(c,o,r){
     if(isQ(subj)){ const tk = T[T.length-1]; tk.pieces[tk.pieces.length-1].note = N.ba+" "+N.qForceBa; }
     void before;
   }
-  if(c.dip){ addNP(r, c.dip, "di", (c.vu?"by ":"with / about ")+npEn(c.dip)); markLast(T, c.vu ? N.dipVu : N.dip); }
+  if(c.dip){ addNP(r, c.dip, "di", (c.vu?"by ":"to / with ")+npEn(c.dip)); markLast(T, c.vu ? N.dipVu : N.dip); }
   if(c.why){ T.push({pieces:[P("emose","root",N.emose), P("di","part",N.emosedi)], tail:{p:"di",trig:"i"}}); B.push("how / why?"); }
   if(c.aux && cp==="di"){ addNP(r, c.causee, "di", npEn(c.causee)+" (made/let to act)"); markLast(T, N.causeeDi); }
   if(c.obj && !quote) addNP(r, c.obj, "ni", npEn(c.obj)+" (object)");
@@ -1173,7 +1173,8 @@ function clauseScreen(px, c, ctx){
     // verb row
     let vb = picker(px+".verb","verb","Tap to pick a verb");
     if(!lets){
-      vb += opts("", (cmd?"":tog(px+".past","Past")) + tog(px+".neg", cmd?"Don't":"Not") + (full && !cmd ? tog(px+".can","Can (-bi)")+tog(px+".want","Want to (-du)")+tog(px+".ongoing","Ongoing (-ri)")+tog(px+".vu","State (-vu)") : ""), false);
+      vb += opts("", (cmd?"":tog(px+".past","Past")) + tog(px+".neg", cmd?"Don't":"Not") + (!cmd ? tog(px+".can","Can (-bi)")+tog(px+".want","Want to (-du)") : "") + (full && !cmd ? tog(px+".ongoing","Ongoing (-ri)")+tog(px+".vu","State (-vu)") : ""), false);
+      if(UIS.hints && !cmd) vb += `<div class="hint">No future form: without Past the verb means now or later — “will” and “going to” included (§4.1).</div>`;
       if(full && !cmd){
         vb += opts("Aspect:", setb(px+".aspect","ila","has done (ila)",1)+setb(px+".aspect","zoka","habitually (zoka)",1));
         vb += opts("ãto:", setb(px+".ato","always","always",1)+setb(px+".ato","never","never",1));
@@ -1187,7 +1188,7 @@ function clauseScreen(px, c, ctx){
           vb += opts("Source:", setb(px+".evid","la","heard / felt (la)",1)+setb(px+".evid","po","it seems (po)",1)+setb(px+".evid","ke","I assume (ke)",1));
         if(!nested) vb += opts("Ask:", tog(px+".why","how / why? (emosedi)"));
         vb += opts("Second verb:", c.verb2 ? setb(px+".vjoin","and","and (fa)")+setb(px+".vjoin","or","or (puso)")+`<span class="chip">${esc(c.verb2.en)}<button data-clear="${px}.verb2">×</button></span>`+tog(px+".neg2","not "+esc(c.verb2.en)) : `<button data-open="${px}.verb2|verb">+ and / or another verb</button>`);
-      } else if(!full && !cmd && (c.can||c.want||c.ongoing||c.vu||c.aspect||c.ato||c.manner||c.might||c.aux||c.evid||c.why||c.verb2)){
+      } else if(!full && !cmd && (c.ongoing||c.vu||c.aspect||c.ato||c.manner||c.might||c.aux||c.evid||c.why||c.verb2)){
         vb += `<div class="hint">This verb uses Full options. Switch to Full to see them.</div>`;
       }
     }
@@ -1202,7 +1203,7 @@ function clauseScreen(px, c, ctx){
       const subOnlyBa = ctx.sub || ctx.rel || ctx.yeti;
       h.push(row(K("subj"), c.aux?"Who makes or lets":"Who or what does it", nounSum(c.subj)+(c.subj && c.role==="drop" && !subOnlyBa?' <span class="tags">left out</span>':""),
         picker(px+".subj", nounMode("subj"), "Optional") + (subOnlyBa ? "" : roles(true, true, true)) + detailsBlock(px+".subj"),
-        {hint: subOnlyBa ? "No topic in here, so it takes ba (§6.2)." : isQ(c.subj) ? "A question word as subject takes ba (§3.6)." : ""}));
+        {hint: subOnlyBa ? "No topic in here, so it takes ba (§6.2)." : isQ(c.subj) ? "A question word as subject takes ba (§3.6)." : (UIS.hints && (!c.subj || c.subj.kind==="pron")) ? "Usually left empty for I or you: a neutral sentence has no pronoun in it (§2.3)." : ""}));
     }
 
     // object
@@ -1211,8 +1212,8 @@ function clauseScreen(px, c, ctx){
     h.push(row(K("obj"), "Object — what it's done to", nounSum(c.obj), picker(px+".obj", nounMode("obj"), "Optional")+detailsBlock(px+".obj"), {hint:objHint, off:trv==="intr"&&!c.obj}));
 
     // di slot
-    if(full || c.dip || c.vu) h.push(row(K("dip"), c.vu ? "By whom (di)" : "With / by / about (di)", nounSum(c.dip), picker(px+".dip","noun","Optional")+detailsBlock(px+".dip"),
-      {hint: c.vu ? "With -vu the one who did it takes di (§4.11)." : "A person, tool or cause takes di here, after the subject (§2.2, §5.2)."}));
+    h.push(row(K("dip"), c.vu ? "By whom (di)" : "To / with / by / about (di)", nounSum(c.dip), picker(px+".dip","noun","Optional")+detailsBlock(px+".dip"),
+      {hint: c.vu ? "With -vu the one who did it takes di (§4.11)." : "A person, a tool or a cause: to someone, with something, about something. A place you go to belongs in Where (§2.2, §5.2)."}));
 
     // when / where
     const canFrame = full && !(ctx.main && SUBS.includes(S.link)) && (c.time||c.place) && ((lets) || (c.subj && c.role==="topic" && !isQ(c.subj) && !cmd && !nested));
@@ -1270,7 +1271,7 @@ function clausesSection(){
 
 function usesFull(){
   const c = S.c1;
-  return !!(S.link || c.kind==="compare" || c.kind==="word" || c.can || c.want || c.ongoing || c.vu || c.aspect || c.ato || c.manner || c.might || c.evid || c.aux || c.verb2 || c.dip || c.why || c.frame || (c.trel && c.trel!=="at"));
+  return !!(S.link || c.kind==="compare" || c.kind==="word" || c.ongoing || c.vu || c.aspect || c.ato || c.manner || c.might || c.evid || c.aux || c.verb2 || c.why || c.frame || (c.trel && c.trel!=="at"));
 }
 
 function renderEditor(){
@@ -1490,7 +1491,8 @@ function renderLexPanel(){
   $("#stamp").textContent = "build " + BUILD;
   $("#nolex").innerHTML = LEX ? "" : `<div class="empty-lex">No lexicon yet. Put the Forge's lexicon save on the site as <b>${LEX_URL}</b> next to this page, or load the file below.</div>`;
   $("#lexpanel").innerHTML = `Lexicon: ${LEX ? `${n} words (${NOUNS.length} nouns, ${VERBS.length} verbs), ${esc(LEXSRC)}.` : "none loaded."}
-    <br><label>Load a lexicon file<input type="file" id="lexfile" accept=".txt,.json,text/plain,application/json"></label><button id="lexreload">Reload from site</button><button id="resetAll">Clear sentence</button>`;
+    <br><label>Load a lexicon file<input type="file" id="lexfile" accept=".txt,.json,text/plain,application/json"></label><button id="lexreload">Reload from site</button><button id="resetAll">Clear sentence</button><button id="hintsBtn">Beginner hints: ${UIS.hints?"on":"off"}</button>`;
+  $("#hintsBtn").onclick = () => { UIS.hints = !UIS.hints; saveUI(); renderLexPanel(); render(); };
   $("#lexfile").onchange = e => { const f = e.target.files[0]; if(f) loadFile(f); };
   $("#lexreload").onclick = () => loadLex();
   $("#resetAll").onclick = () => { S = blank(); UI.stack = ["c1"]; UI.open = null; render(); };
