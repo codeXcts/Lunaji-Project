@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-29-2241">
+<meta name="lunaji-build" content="2026-10-29-2259">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -192,7 +192,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-29-2241";
+const BUILD = "2026-10-29-2259";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -280,7 +280,7 @@ const PRONOUNS = [
 
 /* ---------- state ---------- */
 const blankClause = () => ({kind:"verb", verb:null, past:false, neg:false, can:false, want:false, ongoing:false,
-  aspect:"", manner:null, might:"", evid:"", aux:"", auxNeg:false, auxCan:false, auxWant:false, causee:null,
+  aspect:"", manner:null, might:"", evid:"", aux:"", auxNeg:false, auxCan:false, auxWant:false, causee:null, frame:false,
   subj:null, role:"topic", obj:null, time:null, place:null, rel:"at", pred:null, std:null, cmp:"more"});
 const blank = () => ({type:"statement", c1:blankClause(), link:"", c2:null});
 let S = blank();
@@ -305,7 +305,7 @@ const N = {
   dem: "na — that, the. It stands before the noun and drops its vowel before any vowel (§2.4, §1b.4).",
   ta: "Plural -ta, only for something that moves or makes sound on its own (§2.1, §3.3).",
   jo: "-jo: little, dear — affectionate. It lives on names and kin terms (§2.1a).",
-  desc: "A describing word is a verb. Standing bare before a noun, it describes the noun (§5.1).",
+  desc: "A describing word is a verb. Standing bare before a noun, it describes the noun. Several details go in this order: whose → na → number → describing word → noun (§5.1).",
   manner: "The same bare verb standing right before the verb says how it is done (§5.2).",
   num: n => `${n}${n>10&&n%10?": one word, tens then units":""}. A number with its counter stands before the noun (§7, §7.1).`,
   re: "Counter for something that moves or makes sound on its own (§7).",
@@ -322,7 +322,7 @@ const N = {
   linkVerb: w => `${w} ends in a nasal vowel; before -ena the nasal turns into n and links (§1a, §4.3).`,
   ila: "ila — has done: completed. It stands in front of the verb, takes no endings, and drops its a before a vowel (§4.2, §1b.4).",
   zoka: "zoka — habitually. It stands in front of the verb, takes no endings, and drops its a before a vowel (§4.2, §1b.4).",
-  oya: "oyã — might, maybe. It stands at the outer edge of the clause (§5.3).",
+  oya: "oyã — might, maybe. It opens the clause, or stands right after a topic (§5.3).",
   oyaHena: "oyã hena — can't be. oyã is not a verb, so it takes free hena (§5.3, §4.3).",
   tsoba: "tsobã — to make (someone do it). It follows the main verb and carries the past (§4.10, §4.1).",
   idovu: "idovu — to let. Built like tsobã: after the main verb, carrying the past (§4.10).",
@@ -340,7 +340,7 @@ const N = {
   qForceBa: "A question word as subject takes ba — mõzoba, emoseba (§3.6).",
   nwoli: "He or she — only for something that moves or makes sound on its own (§3.3).",
   luswazo: "We, you and me. \"Let's\" is luswazo + the bare verb, with no particle (§4.10).",
-  name: "A name. It takes the same particles as any noun (§2.2), as in Mimini and Mimidi (§4.10).",
+  name: "A name. It takes the same particles as any noun (§2.2), as in Mimini and Mimidi (§4.10). A final y sound is spelled i, and particles join it as after a vowel (§2).",
   gu: "gu — the past copula, \"was\". A function word that appears only in the past (§4.6).",
   guNeg: "gu takes -ena before -ze, as a verb does: guenaze, wasn't (§4.3).",
   henaFree: "hena — not, standing free. There's no verb here, so the negation is the free word (§4.3).",
@@ -381,8 +381,8 @@ function headToken(item, mods, particle){
   const pcs = basePieces(item);
   const m = mods || {};
   if(item.kind!=="pron" && item.kind!=="q"){
-    if(m.ta) pcs.push(P("ta","part",N.ta));
     if(m.jo) pcs.push(P("jo","part",N.jo));
+    if(m.ta) pcs.push(P("ta","part", m.jo ? N.ta+" -jo comes before -ta: mumãjota (§2.1a)." : N.ta));
   }
   const tok = {pieces:pcs, gap:item.kind==="gap"};
   if(!particle) return tok;
@@ -429,15 +429,14 @@ function descToken(item, note){
 function np(item, particle){
   const res = {tokens:[], nc:[], notes:[]};
   const T = res.tokens;
-  const checkName = x => { if(x && x.kind==="name" && !nameFinalOk(x.lu)) res.nc.push(`Grammar.md doesn't say how a particle joins a name ending in “${x.lu.slice(-1)}”. Names ending in a vowel, a nasal vowel (ã ĩ õ) or r, l, s, z, sh are covered.`); };
+  const checkName = x => { if(x && x.kind==="name" && !nameFinalOk(x.lu)) res.nc.push(/y$/i.test(x.lu)
+      ? `A name's final y sound is spelled i (§2): ${x.lu.slice(0,-1)}i. Pick the name again to use that spelling.`
+      : `Grammar.md doesn't say how a particle joins a name ending in “${x.lu.slice(-1)}”. Names ending in a vowel, a nasal vowel (ã ĩ õ) or r, l, s, z, sh are covered. How a name is spelled in Lunaji is TOOL Forge Edits' (Lexicology §4).`); };
   checkName(item);
   const m = item.mods || {};
   const canMod = ["word","name","gap"].includes(item.kind);
   if(canMod){
-    const pre = (m.pos?1:0)+(m.dem?1:0)+(m.num?1:0)+(m.desc?1:0);
-    if(pre>1) res.nc.push("More than one of whose / that / a number / a describing word before one noun: the order isn't written in Grammar.md.");
     if(m.num && m.ta) res.nc.push("A counted noun never takes -ta: counter and -ta don't go together (§7).");
-    if(m.ta && m.jo) res.nc.push("-ta and -jo on one noun: their order isn't written in Grammar.md.");
     if(m.pos){ checkName(m.pos); T.push(headToken(m.pos, null, "pe")); }
     if(m.dem) T.push(FW("na", N.dem, ANY));
     if(m.num) T.push(numberToken(m.num));
@@ -545,10 +544,9 @@ function buildVerb(c,o,r){
   if(cmd && c.past) r.nc.push("A command is the bare verb (§4.5), so it has no past form.");
   if(cmd && (c.aspect||c.can||c.want||c.ongoing||c.might||c.evid||c.aux)) r.nc.push("A command is the bare verb (§4.5). A command with can, want, an aspect, might, a source word or make/let isn't written in Grammar.md.");
   if(lets && (c.past||c.neg||c.can||c.want||c.ongoing||c.aspect||c.might||c.evid||c.aux||c.manner)) r.nc.push("Let's is luswazo + the bare verb (§4.10). Anything added to the verb isn't written in Grammar.md.");
-  if(lets && (c.obj||c.time||c.place)) r.nc.push("§4.10 shows let's only with a bare verb. Where luswazo stands beside an object, time or place isn't written in Grammar.md.");
   if((cmd||lets) && r.qCount) r.nc.push("A question word in a command or a let's isn't covered by Grammar.md.");
   if(c.might==="cant" && c.neg) r.nc.push("oyã hena with a negative verb isn't written in Grammar.md.");
-  if(c.might && subj && role==="topic") r.nc.push("oyã with a topic isn't written: the topic comes first (§5.2), and oyã stands at the front of the clause (§5.3).");
+  if(c.might==="cant" && subj && role==="topic") r.nc.push("oyã hena with a topic isn't written: §5.3 rules oyã after a topic, and oyã hena only at the front of the clause.");
   if(c.evid && !o.matrix) r.nc.push("la, po and ke go only in the main clause (§6.2).");
   if(o.sub && c.might) r.nc.push("oyã inside an if / when / because clause isn't written in Grammar.md.");
 
@@ -571,26 +569,40 @@ function buildVerb(c,o,r){
   if(c.aux && c.obj && tr==="intr") r.warns.push(`${c.verb.en} is tagged in the lexicon as taking no object, but an object is filled in.`);
   if(r.nc.length) return;
 
-  if(c.might){ T.push(FW("oyã", c.might==="cant"?N.oyaHena:N.oya)); if(c.might==="cant") T.push(FW("hena", N.oyaHena)); B.push(c.might==="cant"?"can't be":"might"); }
-  if(lets){ T.push({pieces:[P("luswazo","root",N.luswazo)]}); B.push("let's (we)"); }
-  if(subj && role==="topic"){ addNP(r, subj, "topic", npEn(subj)+" (topic)"); r.hasTopic = true; }
-
-  if(c.time){
-    const x = c.time;
-    if(isQ(x)){ T.push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)], tail:{p:"wa",trig:"a"}}); B.push("when?"); }
-    else if(x.kind==="word" && DEICTIC[x.lu]){ T.push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}); B.push(x.en); }
-    else addNP(r, x, "wa", "at "+npEn(x));
-  }
+  const cap = fn => { const keep = r.tokens; r.tokens = []; fn(); const got = r.tokens; r.tokens = keep; return got; };
+  const mightToks = cap(()=>{ if(!c.might) return; r.tokens.push(FW("oyã", c.might==="cant"?N.oyaHena:N.oya)); if(c.might==="cant") r.tokens.push(FW("hena", N.oyaHena)); B.push(c.might==="cant"?"can't be":"might"); });
+  const topicToks = cap(()=>{
+    if(lets){ r.tokens.push({pieces:[P("luswazo","root",N.luswazo)]}); B.push("let's (we)"); }
+    if(subj && role==="topic"){ addNP(r, subj, "topic", npEn(subj)+" (topic)"); r.hasTopic = true; }
+  });
   let placeTo = null;
-  if(c.place){
-    const x = c.place;
-    if(isQ(x) && x.fixed==="wa"){ T.push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)], tail:{p:"wa",trig:"a"}}); B.push("where?"); }
-    else if(isQ(x) && x.fixed==="toma"){ T.push({pieces:[P("emose","root",N.emose)]}); T.push(FW("toma",N.emoseToma)); B.push("from where?"); }
-    else if(c.rel==="from"){ addNP(r, x, null); T.push(FW("toma",N.toma)); B.push("from "+npEn(x)); }
-    else if(c.rel==="to") placeTo = x;
-    else if(x.kind==="word" && DEICTIC[x.lu]){ T.push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}); B.push(x.en); }
-    else addNP(r, x, "wa", "at "+npEn(x));
-  }
+  const frameToks = cap(()=>{
+    const Tf = r.tokens;
+    if(c.time){
+      const x = c.time;
+      if(isQ(x)){ Tf.push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)], tail:{p:"wa",trig:"a"}}); B.push("when?"); }
+      else if(x.kind==="word" && DEICTIC[x.lu]){ Tf.push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}); B.push(x.en); }
+      else addNP(r, x, "wa", "at "+npEn(x));
+    }
+    if(c.place){
+      const x = c.place;
+      if(isQ(x) && x.fixed==="wa"){ Tf.push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)], tail:{p:"wa",trig:"a"}}); B.push("where?"); }
+      else if(isQ(x) && x.fixed==="toma"){ Tf.push({pieces:[P("emose","root",N.emose)]}); Tf.push(FW("toma",N.emoseToma)); B.push("from where?"); }
+      else if(c.rel==="from"){ addNP(r, x, null); Tf.push(FW("toma",N.toma)); B.push("from "+npEn(x)); }
+      else if(c.rel==="to") placeTo = x;
+      else if(x.kind==="word" && DEICTIC[x.lu]){ Tf.push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}); B.push(x.en); }
+      else addNP(r, x, "wa", "at "+npEn(x));
+    }
+  });
+  const hasFront = r.hasTopic || lets;
+  const frameFirst = !!(c.frame && hasFront && frameToks.length);
+  if(frameFirst && o.main && o.hasSub) r.nc.push("A when / where frame before the topic, together with an if / when / because clause, isn't written in Grammar.md.");
+  if(c.might && o.main && o.hasSub) r.nc.push("oyã in a main clause that has an if / when / because clause isn't written in Grammar.md.");
+  let lead;
+  if(!hasFront){ lead = [...mightToks, ...frameToks]; r.topicLen = 0; }
+  else if(frameFirst){ lead = [...frameToks, ...topicToks, ...mightToks]; r.topicLen = 0; r.notes.push("When / where stands before the topic as the frame (§5.2)."); }
+  else { lead = [...topicToks, ...mightToks, ...frameToks]; r.topicLen = topicToks.length; }
+  if(c.might && r.hasTopic) r.notes.push("oyã stands right after the topic: the topic is outside what is doubted (§5.3).");
   if(subj && role==="doer"){
     const before = T.length;
     addNP(r, subj, "ba", npEn(subj)+" (does it)");
@@ -632,6 +644,8 @@ function buildVerb(c,o,r){
   if(!cmd && !lets && !c.past && c.verb.kind!=="gap") r.notes.push("No -ze, so the verb is non-past: it covers now and later (§4.1).");
   if(c.verb.kind==="word" && ["hi","yozu","ĩku"].includes(c.verb.lu)) r.notes.push("Being there: hi for something that moves or makes sound on its own, yu for what doesn't, ĩku when something acted and you can't tell what (§4.7). X-ba hi: there's an X. X-na hi: the X is here (§4.7a). Owner-pe X-ba hi / yu: the owner has an X (§3.3b).");
   if(c.aux) r.notes.push("With make or let, the past goes on the last verb, and -ena goes on whichever verb it negates (§4.10, §4.3).");
+  if(lets && (c.obj||c.time||c.place)) r.notes.push("Let's: luswazo, bare, opens the clause, and the rest follows the neutral order (§4.10).");
+  r.tokens = lead.concat(r.tokens);
 }
 
 function markLast(T, note){ const tk = T[T.length-1]; const p = tk.pieces[tk.pieces.length-1]; if(p.cls==="part") p.note = note; }
@@ -641,18 +655,21 @@ function buildIs(c,o,r){
   if(type==="command"||type==="lets") r.nc.push("A command or let's built on \"is\" isn't written in Grammar.md.");
   if(o.sub) r.nc.push("An if / when / because clause built on \"is\" isn't covered yet.");
   r.qCount = qIn(c.subj)+qIn(c.pred);
-  if(r.qCount) r.nc.push("A question word in an \"X is Y\" sentence isn't written in Grammar.md.");
+  const qPred = isQ(c.pred) && !(c.pred.mods && c.pred.mods.pos);
+  if(qIn(c.subj) || (c.pred && c.pred.mods && isQ(c.pred.mods.pos))) r.nc.push("A question word in the first part of an \"X is Y\" sentence isn't written in Grammar.md. It stands bare in the second place (§3.6).");
+  if(qPred && c.neg) r.nc.push("A negative \"X is Y\" question with a question word isn't written in Grammar.md.");
   if(c.subj && c.role==="doer") r.nc.push("§4.6 shows \"X is Y\" with X as the topic or left out, not with ba.");
   if(r.nc.length) return;
-  if(c.subj && c.role!=="drop"){ addNP(r, c.subj, "topic", npEn(c.subj)+" (topic)"); r.hasTopic = true; }
-  if(c.subj && c.role==="drop" && c.subj.kind!=="pron") { addNP(r, c.subj, "topic", npEn(c.subj)+" (topic)"); r.hasTopic = true; }
-  addNP(r, c.pred, null, "is "+npEn(c.pred));
+  if(c.subj && (c.role!=="drop" || c.subj.kind!=="pron")){ addNP(r, c.subj, "topic", npEn(c.subj)+" (topic)"); r.hasTopic = true; r.topicLen = r.tokens.length; }
+  if(qPred){ r.tokens.push({pieces:[P(c.pred.lu,"root",(c.pred.lu==="mõzo"?N.mozo:N.emose).replace(/It stays.*$/,"")+" In an \"X is Y\" question it stands bare in the second place, with no jĩ (§3.6).")]}); B.push(c.pred.en); }
+  else addNP(r, c.pred, null, "is "+npEn(c.pred));
   if(c.past){
     if(LEX && !inLex("gu")) T.push({pieces:[P("[gu]","gap",N.missingFW("gu"))], gap:true});
     else { const pcs = [P("gu","root",N.gu)]; if(c.neg) pcs.push(P("ena","end",N.guNeg)); pcs.push(P("ze","end",N.ze)); T.push({pieces:pcs}); }
     B.push(c.neg?"wasn't":"was");
   } else if(c.neg){ T.push(FW("hena", N.henaFree)); B.push("not"); }
-  if(o.matrix && type==="question"){ r.question = true; T.push(FW("jĩ", N.jin)); }
+  if(o.matrix && qPred) r.question = true;
+  else if(o.matrix && type==="question"){ r.question = true; T.push(FW("jĩ", N.jin)); }
   if(!c.past) r.notes.push("No word for \"is\" now: the copula is zero when it isn't past (§4.6).");
   if(c.subj && c.role==="drop" && c.subj.kind==="pron") r.notes.push(`"${c.subj.en}" is left out: a neutral sentence has no pronoun in it (§2.3).`);
 }
@@ -667,7 +684,7 @@ function buildCompare(c,o,r){
   if(r.nc.length) return;
   const topic = c.role==="topic";
   addNP(r, c.subj, topic?"topic":"ba", npEn(c.subj)+(topic?" (topic)":""));
-  r.hasTopic = topic;
+  r.hasTopic = topic; r.topicLen = topic ? r.tokens.length : 0;
   if(c.cmp==="as"){ addNP(r, c.std, null); T.push(FW("uã", N.ua)); B.push("as "+npEn(c.std)); }
   else { T.push(FW("kügi", N.kugi, ANY)); addNP(r, c.std, null); B.push("than "+npEn(c.std)); }
   T.push(verbToken(c.verb, {neg:c.neg, past:c.past}));
@@ -691,7 +708,7 @@ function compose(){
   if(!clauseReady(c1)){ out.wait = c1.kind==="is" ? "Pick what it is." : c1.kind==="compare" ? "Pick who, compared with whom, and the describing word." : "Pick a verb to start."; return out; }
   if(c2 && !clauseReady(c2)){ out.wait = "Finish the second clause, or remove it."; return out; }
 
-  const A = buildClause(c1, {type:t, main:true, matrix: !c2 || sub});
+  const A = buildClause(c1, {type:t, main:true, matrix: !c2 || sub, hasSub: sub});
   const Bc = c2 ? buildClause(c2, {type:"statement", main:false, matrix:false, sub: sub ? link : null}) : null;
   out.nc.push(...A.nc); if(Bc) out.nc.push(...Bc.nc);
   out.warns.push(...A.warns); if(Bc) out.warns.push(...Bc.warns);
@@ -702,7 +719,6 @@ function compose(){
     if(!sub && (t==="question" || A.qCount || (Bc&&Bc.qCount) || c1.evid || c2.evid)) out.nc.push("A question, or la / po / ke, in two clauses joined by mishi or norõ isn't written in Grammar.md.");
     if(sub && c2.kind!=="verb") out.nc.push("The if / when / because part needs a verb; other kinds aren't covered yet.");
     if(sub && Bc && Bc.qCount) out.nc.push("A question word in an if / when / because clause isn't covered.");
-    if(sub && A.hasTopic) out.nc.push("A topic in the main clause beside an if / when / because clause isn't written: §5.2 puts the topic first, and §6.1a puts the clause first.");
   }
   if(out.nc.length) return out;
 
@@ -715,7 +731,9 @@ function compose(){
       else { vt.pieces.push(P("na","part",N.ifNa)); vt.tail = {p:"na", trig:"a"}; }
     } else if(link==="when"){ vt.pieces.push(P("wa","part",N.whenWa)); vt.tail = {p:"wa", trig:"a"}; }
     else { vt.pieces.push(P("di","part",N.becauseDi)); vt.tail = {p:"di", trig:"i"}; }
-    T = [...Bc.tokens, ...A.tokens];
+    const tl = A.topicLen || 0;
+    T = [...A.tokens.slice(0,tl), ...Bc.tokens, ...A.tokens.slice(tl)];
+    if(tl) out.notes.push("A noun topic may stand before the "+link+" part (§6.1a). The part first is legal too; there's no topic inside it.");
     out.built = [link+": "+Bc.built.join(" · "), ...A.built];
     out.notes.push("The "+link+" part comes first, with its particle straight on its verb and no comma (§6.1, §6.1a). Each clause has its own negation and tense (§6.2).");
   } else if(c2){
@@ -725,7 +743,7 @@ function compose(){
   } else { T = A.tokens; out.built = A.built; }
   out.question = A.question;
   out.notes.push(...A.notes); if(Bc) out.notes.push(...Bc.notes);
-  if(c1.kind==="verb" && t!=="lets" && T.length>2) out.notes.push("Neutral order: topic → time → place → subject (ba) → di → object (ni) → how → verb. Any other order of the noun phrases is legal too, but the topic stays first and the verb last (§5.2).");
+  if(c1.kind==="verb" && T.length>2) out.notes.push("Neutral order: topic → time → place → subject (ba) → di → object (ni) → how → verb. Only the verb's place is fixed: any other order of the noun phrases is legal, and when or where may stand before the topic as the frame (§5.2).");
 
   // elision (§1b.4, §6, §6.0)
   for(let i=0;i<T.length-1;i++){
@@ -908,10 +926,12 @@ function renderClause(px, c, ctx){
     const trv = getTrans(c.verb), ven = c.verb ? esc(c.verb.en) : "";
     const objHint = trv==="intr" ? `“${ven}” takes no object.` : trv==="tr" ? `“${ven}” takes an object.` : trv==="both" ? `“${ven}” works with or without an object.` : "";
     h.push(slot("Object — what it's done to", picker(px+".obj","noun","Optional"), nounDetails(px+".obj"), {hint:objHint, off:trv==="intr"&&!c.obj}));
-    h.push(slot("When", picker(px+".time","time","Optional"), nounDetails(px+".time")));
+    const canFrame = (c.time||c.place) && ((type==="lets" && ctx.main) || (c.subj && c.role==="topic" && !isQ(c.subj) && type!=="command" && !ctx.sub));
+    const frameBtn = canFrame ? `<div class="opts small">${tog(px+".frame", type==="lets"&&ctx.main ? "Say when / where before luswazo" : "Say when / where before the topic")}</div>` : "";
+    h.push(slot("When", picker(px+".time","time","Optional"), nounDetails(px+".time") + (c.time ? frameBtn : "")));
     const pl = c.place, deic = pl && pl.kind==="word" && DEICTIC[pl.lu];
     const popts = pl && !isQ(pl) ? `<div class="opts">${setb(px+".rel","at","at / in")}${setb(px+".rel","to","to")}${setb(px+".rel","from","from")}</div>` : "";
-    h.push(slot("Where", picker(px+".place","place","Optional"), popts + (deic?"":nounDetails(px+".place"))));
+    h.push(slot("Where", picker(px+".place","place","Optional"), popts + (deic?"":nounDetails(px+".place")) + (!c.time ? frameBtn : "")));
   }
   if(c.kind==="is"){
     h.push(slot("What you're talking about", picker(px+".subj","noun","Optional"), subjRoles(px+".subj", true, false, true)+nounDetails(px+".subj")));
@@ -1037,7 +1057,8 @@ function drawList(){
     if(list.length>cap) html += `<div class="more2">${list.length-cap} more — type to narrow</div>`;
     total += list.length;
   }
-  if(q && (mode==="noun"||mode==="owner"||mode==="join")) html += `<button class="gapbtn namebtn" data-name="1">Use “${esc(raw)}” as a name</button>`;
+  const nmSpell = /y$/i.test(raw) ? raw.slice(0,-1)+"i" : raw;
+  if(q && (mode==="noun"||mode==="owner"||mode==="join")) html += `<button class="gapbtn namebtn" data-name="1">Use “${esc(nmSpell.charAt(0).toUpperCase()+nmSpell.slice(1))}” as a name${nmSpell!==raw?" — a final y sound is spelled i (§2)":""}</button>`;
   if(q) html += `<button class="gapbtn" data-gap="1">${total?"Not here? ":"No Lunaji word found. "}Use “${esc(raw)}” as a gap</button>`;
   if(!html) html = `<div class="more2">Nothing to show.</div>`;
   const el = $("#sheetList"); el.innerHTML = html; el.scrollTop = 0;
@@ -1045,7 +1066,7 @@ function drawList(){
     const b = e.target.closest("button"); if(!b) return;
     let item = null;
     if(b.dataset.gap) item = {kind:"gap", en:raw};
-    else if(b.dataset.name){ const n = raw.charAt(0).toUpperCase()+raw.slice(1); addName(n); item = {kind:"name", lu:n, en:n}; }
+    else if(b.dataset.name){ const n = nmSpell.charAt(0).toUpperCase()+nmSpell.slice(1); addName(n); item = {kind:"name", lu:n, en:n}; }
     else { const it = store[+b.dataset.pick]; if(it) item = {kind:it.kind, lu:it.lu, en:it.en, show:it.show, fixed:it.fixed}; }
     if(item) pickItem(item);
   };
