@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-30-0028">
+<meta name="lunaji-build" content="2026-10-30-0043">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -130,6 +130,37 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 .sheet .namebtn{border:1px solid var(--accent);color:var(--accent);background:var(--accent-soft)}
 .sheet .more2{font-size:13px;color:var(--muted);padding:8px}
 
+.seg.mini{margin:0 0 4px;max-width:220px}
+.seg.mini button{padding:6px 2px;font-size:13px}
+.acts{display:flex;gap:8px;align-items:center;margin-top:10px}
+.acts button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 14px;font-size:14px;cursor:pointer}
+.acts #saveBtn{border-color:var(--accent);color:var(--accent)}
+#flash{font-size:13px;color:var(--part);opacity:0;transition:opacity .2s}
+#flash.on{opacity:1}
+.row2{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:8px;overflow:hidden}
+.row2.off{opacity:.6}
+.row2.open{border-color:var(--accent)}
+.rhead{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;padding:12px;text-align:left;cursor:pointer;min-height:52px}
+.rhead .rl{font-size:13px;color:var(--muted);flex:0 0 32%;line-height:1.25}
+.rhead .rl em{font-style:normal;color:var(--accent);display:block;font-size:11px}
+.rhead .rv{flex:1;font-size:15px;line-height:1.3;word-break:break-word}
+.rhead .rv .lu{font-size:17px;color:var(--muted)}
+.rhead .rv .tags{display:block;font-size:12px;color:var(--accent)}
+.rhead .rv i{color:var(--muted);font-style:normal}
+.rhead .ph{color:var(--muted)}
+.rhead .chev{color:var(--muted);font-size:12px}
+.rbody{padding:0 12px 12px}
+.crumbs{display:flex;align-items:center;gap:10px;margin:4px 0 10px;font-size:13px;color:var(--muted)}
+.crumbs button{border:1px solid var(--accent);color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;flex:none}
+.gobtn{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:1;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:10px 12px;font-size:14px;cursor:pointer;text-align:left;margin-top:8px}
+.gobtn span{font-size:18px}
+.detbtn{border:0;background:transparent;color:var(--accent);font-size:14px;padding:8px 0 0;cursor:pointer}
+.crow{display:flex;align-items:center;gap:6px}
+.ghead2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 4px}
+.sv{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line)}
+.svopen{flex:1;border:0;background:transparent;text-align:left;padding:10px 8px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.svopen .lu{font-size:18px}
+.svb{font-size:12px;color:var(--muted)}
 .lex{font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:22px}
 .lex button,.lex label{border:1px solid var(--line);background:transparent;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;display:inline-block;margin:6px 6px 0 0;color:var(--ink)}
 .lex input{display:none}
@@ -144,6 +175,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
     <h1>Lunaji Composer</h1>
     <div class="meta"><span id="stamp"></span><br><span id="lexline">loading lexicon…</span></div>
   </header>
+  <div class="seg mini" id="modeSeg"><button data-mode="simple">Simple</button><button data-mode="full">Full</button></div>
 
   <div class="result">
     <div class="rcard">
@@ -152,6 +184,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
       <div id="ncbox"></div>
       <div id="answers"></div>
       <div class="tip" id="tip"></div>
+      <div class="acts"><button id="saveBtn">Save</button><button id="savedBtn">Saved (0)</button><span id="flash"></span></div>
     </div>
   </div>
 
@@ -180,6 +213,10 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 </div>
 
 <div class="scrim" id="scrim"></div>
+<div class="sheet" id="saved" role="dialog" aria-modal="true">
+  <div class="top"><div class="t"><span>Saved sentences</span><button id="savedClose">Done</button></div></div>
+  <div class="list" id="savedList"></div>
+</div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true">
   <div class="top">
     <div class="t"><span id="sheetTitle"></span><button id="sheetClose">Done</button></div>
@@ -192,7 +229,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-30-0028";
+const BUILD = "2026-10-30-0043";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -286,7 +323,11 @@ const blank = () => ({type:"statement", c1:blankClause(), link:"", c2:null, more
 let S = blank();
 try{ const s = JSON.parse(ls.get(STATE_KEY)||"null"); if(s && s.c1) { S = Object.assign(blank(), s); S.c1 = Object.assign(blankClause(), s.c1); if(s.c2) S.c2 = Object.assign(blankClause(), s.c2); S.more = Array.isArray(s.more) ? s.more.map(m=>({link:m.link, c:Object.assign(blankClause(), m.c)})) : []; } }catch(e){}
 const save = () => ls.set(STATE_KEY, JSON.stringify(S));
-const UI = {more:{}};
+const UI = {open:null, det:{}, stack:["c1"]};
+const UIKEY = "lunaji-composer-ui";
+const UIS = {mode:"simple"};
+try{ Object.assign(UIS, JSON.parse(ls.get(UIKEY)||"{}")); }catch(e){}
+const saveUI = () => ls.set(UIKEY, JSON.stringify({mode:UIS.mode}));
 function getP(path){ return path.split(".").reduce((o,k)=>o==null?undefined:o[k], S); }
 function setP(path,v){ const ks = path.split("."); let o = S; for(let i=0;i<ks.length-1;i++){ if(o[ks[i]]==null) o[ks[i]] = {}; o = o[ks[i]]; } o[ks[ks.length-1]] = v; }
 
@@ -979,7 +1020,8 @@ $("#sentence").addEventListener("click", e=>{
   tip.classList.add("on");
 });
 
-/* ---------- slot UI ---------- */
+/* ---------- UI: folded slots, clause screens, Simple / Full ---------- */
+const isFull = () => UIS.mode==="full";
 function valHtml(x, ph){
   if(!x) return `<span class="en">${ph}</span>`;
   if(x.kind==="name") return `<span class="en">${esc(x.en)}</span><span class="luv">name</span>`;
@@ -991,173 +1033,271 @@ function valHtml(x, ph){
 const picker = (path, mode, ph) => { const v = getP(path); return `<div class="pick"><button class="val${v?"":" empty"}" data-open="${path}|${mode}">${valHtml(v, ph)}</button>${v?`<button class="x" data-clear="${path}" aria-label="Clear">×</button>`:""}</div>`; };
 const tog = (path, label) => `<button data-tog="${path}" class="${getP(path)?"on":""}">${label}</button>`;
 const setb = (path, val, label, unset) => `<button data-set="${path}" data-v="${val}"${unset?' data-unset="1"':""} class="${getP(path)===val?"on":""}">${label}</button>`;
+const opts = (label, inner, small) => `<div class="opts${small===false?"":" small"}">${label?`<span class="ol">${label}</span>`:""}${inner}</div>`;
 
-function nounDetails(path){
+function nounSum(x){
+  if(!x) return "";
+  if(x.kind==="clause") return `that… <i>a clause</i>`;
+  if(x.kind==="quote") return `“…” <i>a quotation</i>`;
+  const lu = x.kind==="name" ? "" : x.kind==="gap" ? "" : (x.show||x.lu||"");
+  return esc(npEn(x)) + (lu ? ` <span class="lu">${esc(lu)}</span>` : "") + (x.kind==="gap" ? ` <span class="tags" style="color:var(--gap)">no word yet</span>` : "");
+}
+function verbSum(c){
+  if(!c.verb) return "";
+  const f = [];
+  if(c.past) f.push("past"); if(c.neg) f.push("not"); if(c.can) f.push("can"); if(c.want) f.push("want to");
+  if(c.ongoing) f.push("ongoing"); if(c.vu) f.push("-vu"); if(c.aspect) f.push(c.aspect); if(c.ato) f.push(c.ato);
+  if(c.manner) f.push("how: "+c.manner.en); if(c.might) f.push(c.might==="cant"?"can't be":"might");
+  if(c.aux) f.push(c.aux==="tsobã"?"make":"let"); if(c.evid) f.push(c.evid); if(c.why) f.push("how / why?");
+  if(c.verb2) f.push((c.vjoin==="or"?"or ":"and ")+c.verb2.en);
+  const lu = c.verb.kind==="word" ? verbBare(c.verb.lu) : "";
+  return esc(c.verb.en) + (lu?` <span class="lu">${esc(lu)}</span>`:"") + (f.length?` <span class="tags">${esc(f.join(" · "))}</span>`:"");
+}
+function clauseSum(c){
+  if(!c) return "";
+  if(c.kind==="is") return c.pred ? (c.neg?"isn't ":"is ")+esc(npEn(c.pred)) : "";
+  if(c.kind==="compare") return c.verb ? "compare: "+esc(c.verb.en) : "";
+  if(c.kind==="word") return c.word ? esc(npEn(c.word)) : "";
+  return c.verb ? esc(c.verb.en)+(c.subj?" — "+esc(npEn(c.subj)):"")+(c.obj?" · "+esc(npEn(c.obj)):"") : "";
+}
+
+function ctxOf(path){
+  if(path==="c1") return {main:true};
+  if(path==="c2") return SUBS.includes(S.link) ? {sub:true} : {coord:true};
+  if(/^more\.\d+\.c$/.test(path)) return {coord:true};
+  if(/\.relc$/.test(path)) return {rel:true};
+  if(/\.clause$/.test(path)){ const it = getP(path.replace(/\.clause$/,"")); return it && it.kind==="quote" ? {quote:true} : {yeti:true}; }
+  return {};
+}
+function titleOf(path){
+  const x = ctxOf(path);
+  if(x.main) return "Sentence";
+  if(path==="c2") return x.sub ? LINKS[S.link]+" part" : "Second clause";
+  if(/^more\.(\d+)\.c$/.test(path)) return "Clause "+(+path.split(".")[1]+3);
+  if(x.rel) return "The one that…";
+  if(x.quote) return "Quotation";
+  if(x.yeti) return "That… clause";
+  return "Clause";
+}
+
+function row(key, label, val, body, o){
+  o = o || {};
+  const open = UI.open===key;
+  return `<div class="row2${open?" open":""}${o.off?" off":""}">
+    <button class="rhead" data-row="${key}"><span class="rl">${label}${o.req?' <em>needed</em>':''}</span>
+      <span class="rv">${val || `<span class="ph">${o.ph||"Add"}</span>`}</span><span class="chev">${open?"▴":"▾"}</span></button>
+    ${open ? `<div class="rbody">${body}${o.hint?`<div class="hint">${o.hint}</div>`:""}</div>` : ""}</div>`;
+}
+const goBtn = (path, label) => `<button class="gobtn" data-go="${path}">${label} <span>›</span></button>`;
+
+/* noun details: set ones always show as chips; the rest behind "+ details" */
+function detailsBlock(path){
   const x = getP(path);
-  if(x && x.kind==="clause") return miniClause(path+".clause", {subject:true, label:"The clause (it takes yeti)"});
-  if(x && x.kind==="quote") return miniClause(path+".clause", {subject:true, types:true, label:"The quoted sentence"});
-  if(!x || !["word","name","gap","ga"].includes(x.kind)) return "";
-  const m = x.mods || {}, mp = path+".mods";
+  if(!x) return "";
+  if(x.kind==="clause") return goBtn(path+".clause", "Edit the clause (it takes yeti)");
+  if(x.kind==="quote") return goBtn(path+".clause", "Edit the quoted sentence");
+  if(!["word","name","gap","ga"].includes(x.kind)) return "";
+  const m = x.mods || {}, mp = path+".mods", full = isFull();
   const depth = path.split(".").length;
   let h = "";
-  if(x.kind==="ga") h += `<div class="opts small"><span class="ol">One who…</span>${tog(path+".ga.vu","-vu (state)")}${tog(path+".ga.bi","can")}${tog(path+".ga.du","wants to")}${tog(path+".ga.neg","doesn't")}</div>`;
-  h += `<div class="opts small"><span class="ol">Add:</span>`;
-  const posLabel = x.kind==="ga" ? "what it's done to (pe)" : "whose";
-  h += m.pos ? `<span class="chip">${x.kind==="ga"?"done to":"whose"}: ${esc(m.pos.en)}<button data-clear="${mp}.pos">×</button></span>` : `<button data-open="${mp}.pos|owner">${posLabel}</button>`;
-  h += tog(mp+".dem","that (na)");
-  h += m.num ? "" : `<button data-numon="${mp}.num">number</button>`;
-  if(!m.relc && depth < 9) h += `<button data-relon="${mp}.relc">the one that… (clause)</button>`;
-  h += m.desc ? `<span class="chip">describe: ${esc(m.desc.en)}${m.desc.kind==="word"?`<button data-tog="${mp}.desc.vu" style="font-size:12px;${m.desc.vu?"font-weight:700":""}">-vu</button>`:""}<button data-clear="${mp}.desc">×</button></span>` : `<button data-open="${mp}.desc|desc">describe</button>`;
-  h += tog(mp+".ta","more than one (-ta)");
-  h += tog(mp+".jo","little / dear (-jo)");
-  h += `<button data-open="${mp}.join|join">+ and / or</button></div>`;
+  if(x.kind==="ga") h += opts("One who…", tog(path+".ga.vu","-vu (state)")+tog(path+".ga.bi","can")+tog(path+".ga.du","wants to")+tog(path+".ga.neg","doesn't"));
+  const chips = [];
+  if(m.pos) chips.push(`<span class="chip">${x.kind==="ga"?"done to":"whose"}: ${esc(m.pos.en)}<button data-clear="${mp}.pos">×</button></span>`);
+  if(m.dem) chips.push(`<span class="chip">that (na)<button data-clear="${mp}.dem">×</button></span>`);
+  if(m.desc) chips.push(`<span class="chip">describe: ${esc(m.desc.en)}${m.desc.kind==="word"?`<button data-tog="${mp}.desc.vu" style="font-size:12px;${m.desc.vu?"font-weight:700":""}">-vu</button>`:""}<button data-clear="${mp}.desc">×</button></span>`);
+  if(m.ta) chips.push(`<span class="chip">more than one (-ta)<button data-clear="${mp}.ta">×</button></span>`);
+  if(m.jo) chips.push(`<span class="chip">little / dear (-jo)<button data-clear="${mp}.jo">×</button></span>`);
+  if(chips.length) h += opts("", chips.join(""));
   if(m.num) h += `<div class="numrow">${m.num.q ? "how many?" : `Number <input type="number" inputmode="numeric" min="0" max="99" value="${esc(m.num.n)}" data-num="${mp}.num">`} counter
      <span class="opts small" style="margin:0">${setb(mp+".num.ctr","re","acts (-re)")}${setb(mp+".num.ctr","ko","thing (-ko)")}${tog(mp+".num.q","how many?")}</span><button class="x" data-clear="${mp}.num">×</button></div>`;
-  if(m.relc) h += miniClause(mp+".relc", {subject:true, label:"The one that… — a clause before the noun", rm:mp+".relc",
-     hint:"The noun fills whatever the clause leaves out — the one doing it, or what it's done to: Mimiba gezemuze yãki, the cup Mimi dropped (§6.1). Leave that slot empty here."});
+  if(m.relc) h += `<div class="opts small"><span class="ol">The one that…</span>${goBtn(mp+".relc", m.relc.verb ? esc(clauseSum(m.relc)) : "Build the clause")}<button class="x" data-clear="${mp}.relc" aria-label="Remove">×</button></div>`;
   if(m.join && m.join.items && m.join.items.length){
-    h += `<div class="opts small"><span class="ol">Join with:</span>${setb(mp+".join.type","and","and (fa)")}${setb(mp+".join.type","or","or (puso)")}`;
-    m.join.items.forEach((it,i)=>{ h += `<span class="chip">${esc(it.en)}<button data-joinrm="${mp}.join" data-i="${i}">×</button></span>`; });
-    h += `</div>`;
+    h += opts("Join with:", setb(mp+".join.type","and","and (fa)")+setb(mp+".join.type","or","or (puso)")+m.join.items.map((it,i)=>`<span class="chip">${esc(it.en)}<button data-joinrm="${mp}.join" data-i="${i}">×</button></span>`).join(""));
   }
+  const open = UI.det[path];
+  const add = [];
+  if(!m.pos) add.push(`<button data-open="${mp}.pos|owner">${x.kind==="ga"?"what it's done to (pe)":"whose"}</button>`);
+  if(!m.dem) add.push(`<button data-tog="${mp}.dem">that (na)</button>`);
+  if(!m.num) add.push(`<button data-numon="${mp}.num">number</button>`);
+  if(!m.desc) add.push(`<button data-open="${mp}.desc|desc">describe</button>`);
+  if(!m.ta) add.push(`<button data-tog="${mp}.ta">more than one (-ta)</button>`);
+  if(full){
+    if(!m.relc && depth < 9) add.push(`<button data-relon="${mp}.relc">the one that… (clause)</button>`);
+    if(!m.jo) add.push(`<button data-tog="${mp}.jo">little / dear (-jo)</button>`);
+    add.push(`<button data-open="${mp}.join|join">+ and / or</button>`);
+  }
+  h += `<button class="detbtn" data-det="${path}">${open ? "Hide details ▴" : "+ details"}</button>`;
+  if(open) h += opts("Add:", add.join(""));
   return h;
 }
 
-function miniClause(path, cfg){
-  const c = getP(path); if(!c) return "";
-  const r = [];
-  r.push(`<div class="slot" style="margin:8px 0 0;border-style:dashed"><div class="lab"><span>${cfg.label||"Clause"}</span>${cfg.rm?`<button class="x" data-clear="${cfg.rm}" aria-label="Remove" style="width:32px;height:32px">×</button>`:""}</div>`);
-  if(cfg.types) r.push(`<div class="opts small">${setb(path+".qtype","statement","statement")}${setb(path+".qtype","question","question")}${setb(path+".qtype","command","command")}</div>`);
-  r.push(picker(path+".verb","verb","Pick its verb"));
-  const cmd = cfg.types && c.qtype==="command";
-  r.push(`<div class="opts small">${cmd?"":tog(path+".past","past")}${tog(path+".neg",cmd?"don't":"not")}${cmd?"":tog(path+".can","can")+tog(path+".want","want to")+tog(path+".ongoing","ongoing")+tog(path+".vu","-vu")+setb(path+".aspect","ila","has done",1)+setb(path+".aspect","zoka","habitually",1)}</div>`);
-  if(cfg.subject && !cmd){
-    r.push(`<div class="hint" style="margin-top:8px">Who or what does it</div>`+picker(path+".subj","noun","Optional"));
-    if(c.subj && cfg.types) r.push(`<div class="opts small">${setb(path+".role","topic","as for… (topic)")}${setb(path+".role","doer","doer (ba)")}${c.subj.kind==="pron"?setb(path+".role","drop","leave out"):""}</div>`);
-    else if(c.subj) r.push(`<div class="hint">No topic in here, so it takes ba (§6.2).</div>`);
-  }
-  r.push(`<div class="hint" style="margin-top:8px">Object</div>`+picker(path+".obj","noun","Optional")+nounDetails(path+".obj"));
-  r.push(`<div class="hint" style="margin-top:8px">When / where</div>`+picker(path+".time","time","When — optional")+picker(path+".place","place","Where — optional"));
-  if(c.place && !isQ(c.place)) r.push(`<div class="opts small">${setb(path+".rel","at","at / in")}${setb(path+".rel","to","to")}${setb(path+".rel","from","from")}</div>`);
-  if(cfg.hint) r.push(`<div class="hint">${cfg.hint}</div>`);
-  r.push(`</div>`);
-  return r.join("");
-}
+function clauseScreen(px, c, ctx){
+  const h = [], full = isFull();
+  const top = ctx.main || ctx.coord || (ctx.sub && px==="c2");
+  const type = ctx.main ? S.type : ctx.quote ? (c.qtype||"statement") : "statement";
+  const cmd = type==="command", lets = type==="lets" && ctx.main;
+  const nounMode = (name) => top || (ctx.quote && name==="obj" && false) ? "nounc" : "noun";
 
-function slot(label, inner, extra, opt){
-  opt = opt || {};
-  return `<div class="slot${opt.off?" off":""}"><div class="lab"><span>${label}</span>${opt.req?'<span class="req">needed</span>':''}</div>${inner}${extra||""}${opt.hint?`<div class="hint">${opt.hint}</div>`:""}</div>`;
-}
+  // kind
+  let kinds = null;
+  if(ctx.main) kinds = full ? (S.link ? ["verb","is","compare"] : ["verb","is","compare","word"]) : ["verb","is"];
+  else if(ctx.sub && S.link==="if") kinds = ["verb","is"];
+  else if(ctx.coord) kinds = full ? ["verb","is","compare"] : ["verb","is"];
+  if(kinds){
+    if(!kinds.includes(c.kind)) kinds = [...kinds, c.kind];
+    h.push(`<div class="seg">${kinds.map(k=>`<button data-set="${px}.kind" data-v="${k}" class="${c.kind===k?"on":""}">${{verb:"Does",is:ctx.sub?"X is / isn't Y":"X is Y",compare:"Compare",word:"One word"}[k]}</button>`).join("")}</div>`);
+  }
+  if(ctx.quote) h.push(`<div class="seg">${["statement","question","command"].map(k=>`<button data-set="${px}.qtype" data-v="${k}" class="${type===k?"on":""}">${k[0].toUpperCase()+k.slice(1)}</button>`).join("")}</div>`);
+  if(ctx.rel) h.push(`<div class="hint" style="margin:0 0 8px">The noun fills whatever this clause leaves out — the one doing it, or what it's done to: <span class="lu">Mimiba gezemuze yãki</span>, the cup Mimi dropped (§6.1). Leave that slot empty.</div>`);
+  if(ctx.yeti) h.push(`<div class="hint" style="margin:0 0 8px">This clause becomes a thing with yeti: <span class="lu">Konu yetini õze</span>, (she) said that (she) was tired (§6.1).</div>`);
 
-function renderClause(px, c, ctx){
-  const h = [];
-  const type = ctx.main ? S.type : "statement";
-  if(ctx.sub && S.link==="if"){
-    h.push(`<div class="seg">${["verb","is"].map(k=>`<button data-set="${px}.kind" data-v="${k}" class="${c.kind===k?"on":""}">${{verb:"Does",is:"X is / isn't Y"}[k]}</button>`).join("")}</div>`);
-  }
-  if(ctx.main || !ctx.sub){
-    h.push(`<div class="seg">${(ctx.main && !S.link ? ["verb","is","compare","word"] : ["verb","is","compare"]).map(k=>`<button data-set="${px}.kind" data-v="${k}" class="${c.kind===k?"on":""}">${{verb:"Does",is:"X is Y",compare:"Compare",word:"One word"}[k]}</button>`).join("")}</div>`);
-  }
-  const subjRoles = (path, allowDrop, allowDoer, allowTopic) => {
-    const x = getP(path); if(!x) return "";
+  const roles = (allowTopic, allowDoer, allowDrop) => {
+    const x = c.subj; if(!x) return "";
     const q = isQ(x), pron = x.kind==="pron";
-    const role = c.role;
-    let s = `<div class="opts">`;
-    if(allowTopic) s += `<button data-set="${px}.role" data-v="topic" class="${role==="topic"&&!q?"on":""}" ${q?"disabled":""}>As for… (topic)</button>`;
-    if(allowDoer) s += `<button data-set="${px}.role" data-v="doer" class="${role==="doer"||q?"on":""}">Doer (ba)</button>`;
-    if(allowDrop && pron) s += `<button data-set="${px}.role" data-v="drop" class="${role==="drop"?"on":""}">Leave out</button>`;
-    return s + `</div>`;
+    let s = "";
+    if(allowTopic) s += `<button data-set="${px}.role" data-v="topic" class="${c.role==="topic"&&!q?"on":""}" ${q?"disabled":""}>As for… (topic)</button>`;
+    if(allowDoer) s += `<button data-set="${px}.role" data-v="doer" class="${c.role==="doer"||q?"on":""}">Doer (ba)</button>`;
+    if(allowDrop && pron) s += `<button data-set="${px}.role" data-v="drop" class="${c.role==="drop"?"on":""}">Leave out</button>`;
+    return s ? opts("", s, false) : "";
   };
+  const K = name => px+"|"+name;
+  const nested = ctx.rel || ctx.yeti || (ctx.sub && px==="c2");
+
+  if(c.kind==="word"){
+    h.push(row(K("word"), "The word", nounSum(c.word),
+      picker(px+".word","noun","Tap to pick") + opts("Or:", `<button data-setword="${px}|dã">yes (dã)</button><button data-setword="${px}|hena">no (hena)</button>`) + detailsBlock(px+".word"),
+      {req:true, hint:"A bare noun is a whole sentence: a name to call someone, or the answer to a question-word question (§2.4a, §6.3)."}));
+  }
 
   if(c.kind==="verb"){
-    const more = UI.more[px];
-    let vo = "";
-    if(type!=="lets"){
-      vo += `<div class="opts">${type==="command"?"":tog(px+".past","Past")}${tog(px+".neg", type==="command"?"Don't":"Not")}${type==="command"?"":tog(px+".can","Can (-bi)")+tog(px+".want","Want to (-du)")+tog(px+".ongoing","Ongoing (-ri)")+tog(px+".vu","State (-vu)")}</div>`;
-      if(type!=="command"){
-        vo += `<button class="more" data-more="${px}">${more?"Fewer options ▴":"More: has done, habitually, always / never, how, might, make / let, source, a second verb ▾"}</button>`;
-        if(more){
-          vo += `<div class="opts small"><span class="ol">Aspect:</span>${setb(px+".aspect","ila","has done (ila)",1)}${setb(px+".aspect","zoka","habitually (zoka)",1)}</div>`;
-          vo += `<div class="opts small"><span class="ol">ãto:</span>${setb(px+".ato","always","always",1)}${setb(px+".ato","never","never",1)}</div>`;
-          vo += `<div class="opts small"><span class="ol">Ask:</span>${tog(px+".why","how / why? (emosedi)")}</div>`;
-          vo += `<div class="opts small"><span class="ol">Second verb:</span>${c.verb2?`${setb(px+".vjoin","and","and (fa)")}${setb(px+".vjoin","or","or (puso)")}<span class="chip">${esc(c.verb2.en)}<button data-clear="${px}.verb2">×</button></span>${tog(px+".neg2","not "+esc(c.verb2.en))}`:`<button data-open="${px}.verb2|verb">+ and / or another verb</button>`}</div>`;
-          vo += `<div class="opts small"><span class="ol">How:</span>${c.manner?`<span class="chip">${esc(c.manner.en)}<button data-clear="${px}.manner">×</button></span>`:`<button data-open="${px}.manner|desc">pick a describing word</button>`}</div>`;
-          if(!ctx.sub) vo += `<div class="opts small"><span class="ol">Certainty:</span>${setb(px+".might","oya","might (oyã)",1)}${setb(px+".might","cant","can't be (oyã hena)",1)}${c.might && ctx.main && SUBS.includes(S.link) ? tog(px+".mightWide","before the "+S.link+" part") : ""}</div>`;
-          vo += `<div class="opts small"><span class="ol">Make / let:</span>${setb(px+".aux","tsobã","make (tsobã)",1)}${setb(px+".aux","idovu","let (idovu)",1)}</div>`;
-          if(c.aux) vo += `<div class="opts small"><span class="ol">On ${c.aux}:</span>${tog(px+".auxNeg","Not")}${tog(px+".auxCan","Can")}${tog(px+".auxWant","Want to")}</div>`;
-          if(ctx.main && !S.link || ctx.main && SUBS.includes(S.link))
-            vo += `<div class="opts small"><span class="ol">Source:</span>${setb(px+".evid","la","heard / felt (la)",1)}${setb(px+".evid","po","it seems (po)",1)}${setb(px+".evid","ke","I assume (ke)",1)}</div>`;
+    // verb row
+    let vb = picker(px+".verb","verb","Tap to pick a verb");
+    if(!lets){
+      vb += opts("", (cmd?"":tog(px+".past","Past")) + tog(px+".neg", cmd?"Don't":"Not") + (full && !cmd ? tog(px+".can","Can (-bi)")+tog(px+".want","Want to (-du)")+tog(px+".ongoing","Ongoing (-ri)")+tog(px+".vu","State (-vu)") : ""), false);
+      if(full && !cmd){
+        vb += opts("Aspect:", setb(px+".aspect","ila","has done (ila)",1)+setb(px+".aspect","zoka","habitually (zoka)",1));
+        vb += opts("ãto:", setb(px+".ato","always","always",1)+setb(px+".ato","never","never",1));
+        vb += opts("How:", c.manner ? `<span class="chip">${esc(c.manner.en)}<button data-clear="${px}.manner">×</button></span>` : `<button data-open="${px}.manner|desc">pick a describing word</button>`);
+        if(!nested) vb += opts("Certainty:", setb(px+".might","oya","might (oyã)",1)+setb(px+".might","cant","can't be (oyã hena)",1)+(c.might && ctx.main && SUBS.includes(S.link) ? tog(px+".mightWide","before the "+S.link+" part") : ""));
+        if(!ctx.rel && !ctx.yeti){
+          vb += opts("Make / let:", setb(px+".aux","tsobã","make (tsobã)",1)+setb(px+".aux","idovu","let (idovu)",1));
+          if(c.aux) vb += opts("On "+c.aux+":", tog(px+".auxNeg","Not")+tog(px+".auxCan","Can")+tog(px+".auxWant","Want to"));
         }
+        if((ctx.main && (!S.link || SUBS.includes(S.link))) || ctx.quote)
+          vb += opts("Source:", setb(px+".evid","la","heard / felt (la)",1)+setb(px+".evid","po","it seems (po)",1)+setb(px+".evid","ke","I assume (ke)",1));
+        if(!nested) vb += opts("Ask:", tog(px+".why","how / why? (emosedi)"));
+        vb += opts("Second verb:", c.verb2 ? setb(px+".vjoin","and","and (fa)")+setb(px+".vjoin","or","or (puso)")+`<span class="chip">${esc(c.verb2.en)}<button data-clear="${px}.verb2">×</button></span>`+tog(px+".neg2","not "+esc(c.verb2.en)) : `<button data-open="${px}.verb2|verb">+ and / or another verb</button>`);
+      } else if(!full && !cmd && (c.can||c.want||c.ongoing||c.vu||c.aspect||c.ato||c.manner||c.might||c.aux||c.evid||c.why||c.verb2)){
+        vb += `<div class="hint">This verb uses Full options. Switch to Full to see them.</div>`;
       }
     }
-    h.push(slot("Verb — what happens", picker(px+".verb","verb","Tap to pick a verb"), vo, {req:true}));
-    if(c.aux) h.push(slot(`Who is ${c.aux==="tsobã"?"made":"let"} to do it`, picker(px+".causee","noun","Tap to pick"), nounDetails(px+".causee"), {hint:"Takes di if the verb can take an object, said or not; ni only if it never takes one (§4.10)."}));
+    h.push(row(K("verb"), "Verb", verbSum(c), vb, {req:true, ph:"Pick a verb"}));
 
-    if(type==="command") h.push(slot("Who or what does it", `<div class="hint">A command has no subject (§4.5).</div>`, "", {off:true}));
-    else if(type==="lets" && ctx.main) h.push(slot("Who or what does it", `<div class="pick"><div class="val"><span class="en">we (you and me)</span><span class="luv lu">luswazo</span></div></div>`, "", {off:true, hint:"Fixed for let's (§4.10)."}));
-    else h.push(slot(c.aux?"Who makes or lets":"Who or what does it", picker(px+".subj", px.split(".").length<=3 ? "nounc" : "noun","Optional"), subjRoles(px+".subj", true, true, !ctx.sub)+nounDetails(px+".subj"), {hint: ctx.sub ? "No topic in this part, so the subject takes ba (§6.2)." : isQ(c.subj) ? "A question word as subject takes ba (§3.6)." : ""}));
-    if(c.vu || c.dip) h.push(slot(c.vu ? "By whom (di) — who did it" : "With / by / about (di)", picker(px+".dip","noun","Optional"), nounDetails(px+".dip"), {hint: c.vu ? "With -vu the one who did it takes di (§4.11)." : "di is the catch-all: with, by, about (§2.2)."}));
-    else h.push(`<div class="addc" style="margin:-4px 0 10px"><button data-open="${px}.dip|noun">+ with / by / about (di)</button></div>`);
+    if(c.aux) h.push(row(K("causee"), `Who is ${c.aux==="tsobã"?"made":"let"} to do it`, nounSum(c.causee), picker(px+".causee","noun","Tap to pick")+detailsBlock(px+".causee"), {hint:"Takes di if the verb can take an object, said or not; ni only if it never takes one (§4.10)."}));
+
+    // subject
+    if(cmd && ctx.main) h.push(row(K("subj"), "Who does it", `<span class="ph">none — a command has no subject (§4.5)</span>`, "", {off:true}));
+    else if(lets) h.push(row(K("subj"), "Who does it", `we (you and me) <span class="lu">luswazo</span>`, `<div class="hint">Fixed for let's (§4.10).</div>`, {off:true}));
+    else if(!(ctx.quote && cmd)){
+      const subOnlyBa = ctx.sub || ctx.rel || ctx.yeti;
+      h.push(row(K("subj"), c.aux?"Who makes or lets":"Who or what does it", nounSum(c.subj)+(c.subj && c.role==="drop" && !subOnlyBa?' <span class="tags">left out</span>':""),
+        picker(px+".subj", nounMode("subj"), "Optional") + (subOnlyBa ? "" : roles(true, true, true)) + detailsBlock(px+".subj"),
+        {hint: subOnlyBa ? "No topic in here, so it takes ba (§6.2)." : isQ(c.subj) ? "A question word as subject takes ba (§3.6)." : ""}));
+    }
+
+    // object
     const trv = getTrans(c.verb), ven = c.verb ? esc(c.verb.en) : "";
     const objHint = trv==="intr" ? `“${ven}” takes no object.` : trv==="tr" ? `“${ven}” takes an object.` : trv==="both" ? `“${ven}” works with or without an object.` : "";
-    h.push(slot("Object — what it's done to", picker(px+".obj", px.split(".").length<=3 ? "nounc" : "noun","Optional"), nounDetails(px+".obj"), {hint:objHint, off:trv==="intr"&&!c.obj}));
-    const canFrame = !(ctx.main && SUBS.includes(S.link)) && (c.time||c.place) && ((type==="lets" && ctx.main) || (c.subj && c.role==="topic" && !isQ(c.subj) && type!=="command" && !ctx.sub));
-    const frameBtn = canFrame ? `<div class="opts small">${tog(px+".frame", type==="lets"&&ctx.main ? "Say when / where before luswazo" : "Say when / where before the topic")}</div>` : "";
-    const topts = c.time && !isQ(c.time) ? `<div class="opts">${setb(px+".trel","at","at / on")}${setb(px+".trel","from","from (toma)")}${setb(px+".trel","until","until (rowo)")}</div>` : "";
-    h.push(slot("When", picker(px+".time","time","Optional"), topts + nounDetails(px+".time") + (c.time ? frameBtn : "")));
+    h.push(row(K("obj"), "Object — what it's done to", nounSum(c.obj), picker(px+".obj", nounMode("obj"), "Optional")+detailsBlock(px+".obj"), {hint:objHint, off:trv==="intr"&&!c.obj}));
+
+    // di slot
+    if(full || c.dip || c.vu) h.push(row(K("dip"), c.vu ? "By whom (di)" : "With / by / about (di)", nounSum(c.dip), picker(px+".dip","noun","Optional")+detailsBlock(px+".dip"),
+      {hint: c.vu ? "With -vu the one who did it takes di (§4.11)." : "A person, tool or cause takes di here, after the subject (§2.2, §5.2)."}));
+
+    // when / where
+    const canFrame = full && !(ctx.main && SUBS.includes(S.link)) && (c.time||c.place) && ((lets) || (c.subj && c.role==="topic" && !isQ(c.subj) && !cmd && !nested));
+    const frameBtn = canFrame ? opts("", tog(px+".frame", lets ? "Say when / where before luswazo" : "Say when / where before the topic")) : "";
+    const tsum = c.time ? ({from:"from ",until:"until "}[c.trel]||"")+nounSum(c.time) : "";
+    const topts = c.time && !isQ(c.time) && full ? opts("", setb(px+".trel","at","at / on")+setb(px+".trel","from","from (toma)")+setb(px+".trel","until","until (rowo)")) : "";
+    h.push(row(K("time"), "When", tsum, picker(px+".time","time","Optional")+topts+detailsBlock(px+".time")+(c.time?frameBtn:"")));
     const pl = c.place, deic = pl && pl.kind==="word" && DEICTIC[pl.lu];
-    const popts = pl && !isQ(pl) ? `<div class="opts">${setb(px+".rel","at","at / in")}${setb(px+".rel","to","to")}${setb(px+".rel","from","from")}</div>` : "";
-    h.push(slot("Where", picker(px+".place","place","Optional"), popts + (deic?"":nounDetails(px+".place")) + (!c.time ? frameBtn : "")));
+    const psum = pl ? (isQ(pl) ? "" : ({to:"to ",from:"from "}[c.rel]||""))+nounSum(pl) : "";
+    const popts = pl && !isQ(pl) ? opts("", setb(px+".rel","at","at / in")+setb(px+".rel","to","to")+setb(px+".rel","from","from"), false) : "";
+    h.push(row(K("place"), "Where", psum, picker(px+".place","place","Optional")+popts+(deic?"":detailsBlock(px+".place"))+(!c.time?frameBtn:"")));
   }
-  if(c.kind==="word"){
-    h.push(slot("The word", picker(px+".word","noun","Tap to pick"), `<div class="opts small"><span class="ol">Or:</span><button data-setword="${px}|dã">yes (dã)</button><button data-setword="${px}|hena">no (hena)</button></div>`+nounDetails(px+".word"), {req:true, hint:"A bare noun is a whole sentence: a name to call someone, or the answer to a question-word question (§2.4a, §6.3)."}));
+
+  if(c.kind==="is"){
+    if(ctx.sub){
+      h.push(row(K("pred"), "…is what", nounSum(c.pred), picker(px+".pred","noun","Tap to pick")+detailsBlock(px+".pred"), {req:true}));
+    } else {
+      h.push(row(K("subj"), "What you're talking about", nounSum(c.subj), picker(px+".subj","noun","Optional")+roles(true,false,true)+detailsBlock(px+".subj"),
+        {hint: isQ(c.subj) ? "A question word here takes ba, and there's no jĩ (§3.6)." : ""}));
+      h.push(row(K("pred"), "…is what", nounSum(c.pred), picker(px+".pred","noun","Tap to pick")+detailsBlock(px+".pred"), {req:true}));
+    }
+    h.push(row(K("isopts"), "Past / not", [c.past?"was":"", c.neg?"not":""].filter(Boolean).join(" · ") || `<span class="ph">is</span>`,
+      opts("", tog(px+".past","Past (was)")+tog(px+".neg","Not"), false),
+      {hint: ctx.sub ? "If it isn't X: X henana. If it was / wasn't X: X guzena / guenazena (§6.1a)." : "No word for \"is\" now; \"was\" is guze (§4.6)."}));
   }
-  if(c.kind==="is" && ctx.sub){
-    h.push(slot("…is what", picker(px+".pred","noun","Tap to pick"), nounDetails(px+".pred"), {req:true}));
-    h.push(slot("Options", `<div class="opts">${tog(px+".past","Past (was)")}${tog(px+".neg","Not")}</div>`, "", {hint:"If it isn't X: X henana. If it was / wasn't X: X guzena / guenazena (§6.1a)."}));
-  }
-  else if(c.kind==="is"){
-    h.push(slot("What you're talking about", picker(px+".subj","noun","Optional"), subjRoles(px+".subj", true, false, true)+nounDetails(px+".subj"), {hint: isQ(c.subj) ? "A question word here takes ba, and there's no jĩ (§3.6)." : ""}));
-    h.push(slot("…is what", picker(px+".pred","noun","Tap to pick"), nounDetails(px+".pred"), {req:true}));
-    h.push(slot("Options", `<div class="opts">${tog(px+".past","Past (was)")}${tog(px+".neg","Not")}</div>`, "", {hint:"No word for \"is\" now; \"was\" is guze (§4.6)."}));
-  }
+
   if(c.kind==="compare"){
-    h.push(slot("Who or what", picker(px+".subj","noun","Tap to pick"), subjRoles(px+".subj", false, true, true)+nounDetails(px+".subj"), {req:true}));
-    h.push(slot("Compared with", picker(px+".std","noun","Tap to pick"), `<div class="opts">${setb(px+".cmp","more","more than (kügi)")}${setb(px+".cmp","as","as … as (uã)")}</div>`+nounDetails(px+".std"), {req:true}));
-    h.push(slot("Describing word", picker(px+".verb","desc","e.g. fast, big, tired"), `<div class="opts">${tog(px+".past","Past")}${tog(px+".neg","Not")}</div>`, {req:true}));
+    h.push(row(K("subj"), "Who or what", nounSum(c.subj), picker(px+".subj","noun","Tap to pick")+roles(true,true,false)+detailsBlock(px+".subj"), {req:true}));
+    h.push(row(K("std"), c.cmp==="as" ? "As … as" : "More than", nounSum(c.std), picker(px+".std","noun","Tap to pick")+opts("", setb(px+".cmp","more","more than (kügi)")+setb(px+".cmp","as","as … as (uã)"), false)+detailsBlock(px+".std"), {req:true}));
+    h.push(row(K("verb"), "Describing word", verbSum(c), picker(px+".verb","desc","e.g. fast, big, tired")+opts("", tog(px+".past","Past")+tog(px+".neg","Not"), false), {req:true}));
   }
   return h.join("");
 }
 
 const LINKS = {mishi:"and (mishi)", noro:"but (norõ)", if:"if", when:"when", because:"because", since:"since (toma)", until:"until (rowo)"};
-function renderSlots(){
-  if(S.c1.kind==="word" && S.link) S.c1.kind = "verb";
-  let h = `<div class="group"><div class="ghead"><span>${S.link && SUBS.includes(S.link) ? "Main clause" : "Sentence"}</span></div>${renderClause("c1", S.c1, {main:true})}</div>`;
-  if(S.link){
-    const sub = SUBS.includes(S.link);
-    if(!S.c2) S.c2 = blankClause();
-    h += `<div class="group c2"><div class="ghead"><span>${sub ? S.link+"… part (comes first)" : "Second clause"}</span><button data-rmlink="1">Remove</button></div>
-      <div class="opts small" style="margin:0 0 8px"><span class="ol">Joined by:</span>${Object.entries(LINKS).map(([k,l])=>`<button data-link="${k}" class="${S.link===k?"on":""}">${l}</button>`).join("")}</div>
-      ${renderClause("c2", S.c2, {main:false, sub})}</div>`;
-    if(!sub){
-      (S.more||[]).forEach((m,i)=>{
-        h += `<div class="group c2"><div class="ghead"><span>Clause ${i+3}</span><button data-rmmore="${i}">Remove</button></div>
-          <div class="opts small" style="margin:0 0 8px"><span class="ol">Joined by:</span>${setb("more."+i+".link","mishi","and (mishi)")}${setb("more."+i+".link","noro","but (norõ)")}</div>
-          ${renderClause("more."+i+".c", m.c, {main:false, sub:false})}</div>`;
-      });
-      h += `<div class="addc"><span>Add another clause:</span><button data-addmore="mishi">and (mishi)</button><button data-addmore="noro">but (norõ)</button></div>`;
-    }
-  } else if(S.c1.kind!=="word") {
-    h += `<div class="addc"><span>Add a second clause:</span>${Object.entries(LINKS).map(([k,l])=>`<button data-link="${k}">${l}</button>`).join("")}</div>`;
+function clausesSection(){
+  if(S.c1.kind==="word") return "";
+  let h = `<div class="ghead2">More clauses</div>`;
+  if(!S.link){
+    if(!isFull()) return "";
+    return h + `<div class="addc">${Object.entries(LINKS).map(([k,l])=>`<button data-link="${k}">${l}</button>`).join("")}</div>`;
   }
+  const sub = SUBS.includes(S.link);
+  h += `<div class="crow">${goBtn("c2", (sub ? esc(LINKS[S.link])+" part (comes first): " : "and / but: ")+(clauseSum(S.c2)||"<i>empty</i>"))}<button class="x" data-rmlink="1" aria-label="Remove">×</button></div>`;
+  h += opts("Joined by:", Object.entries(LINKS).map(([k,l])=>`<button data-link="${k}" class="${S.link===k?"on":""}">${l}</button>`).join(""));
+  if(!sub){
+    (S.more||[]).forEach((m,i)=>{
+      h += `<div class="crow">${goBtn("more."+i+".c", "Clause "+(i+3)+": "+(clauseSum(m.c)||"<i>empty</i>"))}<button class="x" data-rmmore="${i}" aria-label="Remove">×</button></div>`;
+      h += opts("Joined by:", setb("more."+i+".link","mishi","and (mishi)")+setb("more."+i+".link","noro","but (norõ)"));
+    });
+    h += `<div class="addc"><span>Add another:</span><button data-addmore="mishi">and (mishi)</button><button data-addmore="noro">but (norõ)</button></div>`;
+  }
+  return h;
+}
+
+function usesFull(){
+  const c = S.c1;
+  return !!(S.link || c.kind==="compare" || c.kind==="word" || c.can || c.want || c.ongoing || c.vu || c.aspect || c.ato || c.manner || c.might || c.evid || c.aux || c.verb2 || c.dip || c.why || c.frame || (c.trel && c.trel!=="at"));
+}
+
+function renderEditor(){
+  UI.stack = UI.stack.filter((p,i)=> i===0 || getP(p));
+  if(!UI.stack.length) UI.stack = ["c1"];
+  const path = UI.stack[UI.stack.length-1];
+  const ctx = ctxOf(path), c = getP(path);
+  document.querySelectorAll("#modeSeg button").forEach(b=>b.classList.toggle("on", b.dataset.mode===UIS.mode));
+  $("#types").style.display = UI.stack.length>1 ? "none" : "";
+  let h = "";
+  if(UI.stack.length>1) h += `<div class="crumbs"><button data-back="1">‹ Back</button><span>${UI.stack.map(titleOf).map(esc).join(" › ")}</span></div>`;
+  else if(!isFull() && usesFull()) h += `<div class="hint" style="margin:0 0 8px">This sentence uses Full options. Switch to Full to see all of them.</div>`;
+  h += clauseScreen(path, c, ctx);
+  if(path==="c1") h += clausesSection();
   $("#slots").innerHTML = h;
 }
+function renderSlots(){ renderEditor(); }
 
 $("#slots").addEventListener("click", e=>{
   const b = e.target.closest("button"); if(!b) return;
   const d = b.dataset;
+  if(d.row){ UI.open = UI.open===d.row ? null : d.row; render(); return; }
+  if(d.go){ UI.stack.push(d.go); UI.open = null; render(); window.scrollTo({top:0}); return; }
+  if(d.back){ UI.stack.pop(); UI.open = null; render(); return; }
+  if(d.det){ UI.det[d.det] = !UI.det[d.det]; render(); return; }
   if(d.open){ const [path, mode] = d.open.split("|"); openSheet(path, mode); return; }
-  if(d.clear){ setP(d.clear, null); render(); return; }
+  if(d.clear){ setP(d.clear, d.clear.endsWith(".dem")||d.clear.endsWith(".ta")||d.clear.endsWith(".jo") ? false : null); render(); return; }
   if(d.tog){ setP(d.tog, !getP(d.tog)); render(); return; }
   if(d.set){
     const cur = getP(d.set);
@@ -1167,12 +1307,11 @@ $("#slots").addEventListener("click", e=>{
   }
   if(d.numon){ setP(d.numon, {n:2, ctr:"re"}); render(); return; }
   if(d.joinrm){ const j = getP(d.joinrm); j.items.splice(+d.i,1); if(!j.items.length) setP(d.joinrm, null); render(); return; }
-  if(d.more){ UI.more[d.more] = !UI.more[d.more]; render(); return; }
-  if(d.link){ S.link = d.link; if(!S.c2) S.c2 = blankClause(); if(SUBS.includes(d.link)){ if(!(d.link==="if" && S.c2.kind==="is")) S.c2.kind = "verb"; S.more = []; } render(); return; }
+  if(d.link){ const fresh = !S.link; S.link = d.link; if(!S.c2) S.c2 = blankClause(); if(SUBS.includes(d.link)){ if(!(d.link==="if" && S.c2.kind==="is")) S.c2.kind = "verb"; S.more = []; } if(fresh){ UI.stack.push("c2"); UI.open = null; } render(); return; }
   if(d.rmlink){ S.link = ""; S.c2 = null; S.more = []; render(); return; }
-  if(d.addmore){ (S.more = S.more||[]).push({link:d.addmore, c:blankClause()}); render(); return; }
+  if(d.addmore){ (S.more = S.more||[]).push({link:d.addmore, c:blankClause()}); UI.stack.push("more."+(S.more.length-1)+".c"); UI.open = null; render(); return; }
   if(d.rmmore){ S.more.splice(+d.rmmore,1); render(); return; }
-  if(d.relon){ setP(d.relon, blankClause()); render(); return; }
+  if(d.relon){ setP(d.relon, blankClause()); UI.stack.push(d.relon); UI.open = null; render(); window.scrollTo({top:0}); return; }
   if(d.setword){ const [px, w] = d.setword.split("|"); setP(px+".word", {kind:"word", lu:w, en: w==="dã"?"yes":"no"}); render(); return; }
 });
 $("#slots").addEventListener("change", e=>{
@@ -1181,6 +1320,61 @@ $("#slots").addEventListener("change", e=>{
   const num = getP(el.dataset.num) || {ctr:"re"}; num.n = n; setP(el.dataset.num, num); render();
 });
 $("#types").addEventListener("click", e=>{ const b = e.target.closest("button"); if(!b) return; S.type = b.dataset.t; render(); });
+$("#modeSeg").addEventListener("click", e=>{ const b = e.target.closest("button"); if(!b) return; UIS.mode = b.dataset.mode; saveUI(); render(); });
+
+/* ---------- saved sentences ---------- */
+const SAVEKEY = "lunaji-composer-saved";
+function getSaved(){ try{ const o = JSON.parse(ls.get(SAVEKEY)||"null"); if(o && o.lists && typeof o.lists==="object") { if(!o.lists[o.current]) o.current = Object.keys(o.lists)[0] || "My sentences"; if(!o.lists[o.current]) o.lists[o.current] = []; return o; } }catch(e){} return {current:"My sentences", lists:{"My sentences":[]}}; }
+function putSaved(o){ ls.set(SAVEKEY, JSON.stringify(o)); }
+function updateSavedCount(){ const o = getSaved(); $("#savedBtn").textContent = `Saved (${(o.lists[o.current]||[]).length})`; }
+function flash(msg){ const f = $("#flash"); f.textContent = msg; f.classList.add("on"); clearTimeout(flash.t); flash.t = setTimeout(()=>f.classList.remove("on"), 1600); }
+$("#saveBtn").onclick = () => {
+  const c = compose(); if(!c.ready || c.nc.length){ flash("Build a sentence first."); return; }
+  const o = getSaved();
+  o.lists[o.current].push({lu: $("#sentence").innerText.trim(), en: c.built.join(" · "), state: JSON.parse(JSON.stringify(S)), at: Date.now()});
+  putSaved(o); updateSavedCount(); flash("Saved to “"+o.current+"”");
+};
+$("#savedBtn").onclick = () => { drawSaved(); $("#scrim").classList.add("on"); $("#saved").classList.add("on"); };
+$("#savedClose").onclick = () => { $("#saved").classList.remove("on"); $("#scrim").classList.remove("on"); };
+function drawSaved(){
+  const o = getSaved(), list = o.lists[o.current] || [];
+  const names = Object.keys(o.lists);
+  let h = `<div class="opts small" style="margin:0 0 6px">${names.map(n=>`<button data-list="${esc(n)}" class="${n===o.current?"on":""}">${esc(n)} (${o.lists[n].length})</button>`).join("")}<button data-newlist="1">+ new list</button></div>`;
+  h += `<div class="opts small" style="margin:0 0 10px"><button data-renlist="1">rename</button><button data-copylist="1">copy list as text</button>${names.length>1?`<button data-dellist="1">delete list</button>`:""}</div>`;
+  if(!list.length) h += `<div class="more2">Nothing saved in “${esc(o.current)}” yet. Build a sentence and tap Save.</div>`;
+  list.forEach((it,i)=>{
+    h += `<div class="sv"><button class="svopen" data-load="${i}"><span class="lu">${esc(it.lu)}</span><span class="svb">${esc(it.en)}</span></button><button class="x" data-del="${i}" aria-label="Delete">×</button></div>`;
+  });
+  h += `<div class="more2">Saved on this device only.</div>`;
+  $("#savedList").innerHTML = h;
+}
+$("#savedList").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  const d = b.dataset, o = getSaved();
+  if(d.list){ o.current = d.list; putSaved(o); }
+  else if(d.newlist){ const n = (prompt("Name for the new list (e.g. Lesson 3):")||"").trim(); if(n){ if(!o.lists[n]) o.lists[n] = []; o.current = n; putSaved(o); } }
+  else if(d.renlist){ const n = (prompt("New name for “"+o.current+"”:", o.current)||"").trim(); if(n && n!==o.current && !o.lists[n]){ o.lists[n] = o.lists[o.current]; delete o.lists[o.current]; o.current = n; putSaved(o); } }
+  else if(d.dellist){ if(confirm("Delete the list “"+o.current+"” and its sentences?")){ delete o.lists[o.current]; o.current = Object.keys(o.lists)[0]; putSaved(o); } }
+  else if(d.copylist){
+    const txt = o.current+"\n\n"+(o.lists[o.current]||[]).map((it,i)=>`${i+1}. ${it.lu}\n   ${it.en}`).join("\n");
+    try{ navigator.clipboard.writeText(txt); flash("List copied"); }catch(err){ flash("Couldn't copy"); }
+  }
+  else if(d.del){ o.lists[o.current].splice(+d.del,1); putSaved(o); }
+  else if(d.load){
+    const it = o.lists[o.current][+d.load]; if(!it) return;
+    loadState(JSON.parse(JSON.stringify(it.state)));
+    UI.stack = ["c1"]; UI.open = null;
+    $("#saved").classList.remove("on"); $("#scrim").classList.remove("on");
+    render(); window.scrollTo({top:0}); return;
+  }
+  drawSaved(); updateSavedCount();
+});
+function loadState(s){
+  S = Object.assign(blank(), s);
+  S.c1 = Object.assign(blankClause(), s.c1||{});
+  S.c2 = s.c2 ? Object.assign(blankClause(), s.c2) : null;
+  S.more = Array.isArray(s.more) ? s.more.map(m=>({link:m.link, c:Object.assign(blankClause(), m.c)})) : [];
+}
 
 /* ---------- picker sheet ---------- */
 let sheet = null;
@@ -1195,7 +1389,7 @@ function openSheet(path, mode){
   setTimeout(()=>{ try{ $("#q").focus({preventScroll:true}); }catch(e){} }, 50);
 }
 function closeSheet(){ $("#scrim").classList.remove("on"); $("#sheet").classList.remove("on"); sheet = null; }
-$("#scrim").onclick = closeSheet; $("#sheetClose").onclick = closeSheet;
+$("#scrim").onclick = () => { closeSheet(); $("#saved").classList.remove("on"); }; $("#sheetClose").onclick = closeSheet;
 $("#q").addEventListener("input", drawList);
 
 function matchScore(q, g, k){
@@ -1284,6 +1478,7 @@ function pickItem(item){
   } else {
     setP(path, item);
     if(/\.subj$/.test(path)){ const cl = getP(path.replace(/\.subj$/,"")); if(cl && item.kind!=="pron" && cl.role==="drop") cl.role = cl.kind==="compare" ? "doer" : "topic"; if(cl && item.kind==="clause") cl.role = "doer"; }
+    if(item.kind==="clause" || item.kind==="quote"){ UI.stack.push(path+".clause"); UI.open = null; }
   }
   closeSheet(); render();
 }
@@ -1298,11 +1493,12 @@ function renderLexPanel(){
     <br><label>Load a lexicon file<input type="file" id="lexfile" accept=".txt,.json,text/plain,application/json"></label><button id="lexreload">Reload from site</button><button id="resetAll">Clear sentence</button>`;
   $("#lexfile").onchange = e => { const f = e.target.files[0]; if(f) loadFile(f); };
   $("#lexreload").onclick = () => loadLex();
-  $("#resetAll").onclick = () => { S = blank(); render(); };
+  $("#resetAll").onclick = () => { S = blank(); UI.stack = ["c1"]; UI.open = null; render(); };
 }
 
 renderLexPanel();
 render();
+updateSavedCount();
 loadLex();
 </script>
 </body>
