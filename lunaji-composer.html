@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-29-2313">
+<meta name="lunaji-build" content="2026-10-30-0015">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -192,7 +192,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-29-2313";
+const BUILD = "2026-10-30-0015";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -280,11 +280,11 @@ const PRONOUNS = [
 
 /* ---------- state ---------- */
 const blankClause = () => ({kind:"verb", verb:null, past:false, neg:false, can:false, want:false, ongoing:false,
-  aspect:"", manner:null, might:"", evid:"", aux:"", auxNeg:false, auxCan:false, auxWant:false, causee:null, frame:false, mightWide:false,
+  aspect:"", manner:null, might:"", evid:"", aux:"", auxNeg:false, auxCan:false, auxWant:false, causee:null, frame:false, mightWide:false, vu:false, ato:"", verb2:null, vjoin:"and", neg2:false, dip:null, why:false, trel:"at", word:null, qtype:"statement",
   subj:null, role:"topic", obj:null, time:null, place:null, rel:"at", pred:null, std:null, cmp:"more"});
-const blank = () => ({type:"statement", c1:blankClause(), link:"", c2:null});
+const blank = () => ({type:"statement", c1:blankClause(), link:"", c2:null, more:[]});
 let S = blank();
-try{ const s = JSON.parse(ls.get(STATE_KEY)||"null"); if(s && s.c1) { S = Object.assign(blank(), s); S.c1 = Object.assign(blankClause(), s.c1); if(s.c2) S.c2 = Object.assign(blankClause(), s.c2); } }catch(e){}
+try{ const s = JSON.parse(ls.get(STATE_KEY)||"null"); if(s && s.c1) { S = Object.assign(blank(), s); S.c1 = Object.assign(blankClause(), s.c1); if(s.c2) S.c2 = Object.assign(blankClause(), s.c2); S.more = Array.isArray(s.more) ? s.more.map(m=>({link:m.link, c:Object.assign(blankClause(), m.c)})) : []; } }catch(e){}
 const save = () => ls.set(STATE_KEY, JSON.stringify(S));
 const UI = {more:{}};
 function getP(path){ return path.split(".").reduce((o,k)=>o==null?undefined:o[k], S); }
@@ -352,6 +352,27 @@ const N = {
   ifLink: w => `Topic particle on a clause: if. After a nasal vowel it is a, and the nasal links: ${w} + a → ${linkN(w)}a (§6.1a, §1a).`,
   whenWa: "wa on a clause: when. It goes straight onto the verb, after every ending (§6.1).",
   becauseDi: "di on a clause: because. It goes straight onto the verb, after every ending (§6.1).",
+  rel: "A clause before a noun describes it, with no word for who / that: the noun fills whatever role the clause leaves out (§6.1). It stands after na and a number, before a describing word (§5.1). It has no topic, and its tense is its own (§6.2).",
+  yeti: "yeti makes the clause before it into a thing, and takes the particle for that thing's place in the sentence (§6.1, §4.9).",
+  yetiQ: "A question word inside a yeti clause doesn't make the sentence a question (§6.2).",
+  quote: "Direct quotation: the quoted words stand first, in quotation marks with no comma, and onu closes them. No particle (§4.9, §2.2).",
+  ga: "-ga: one who does it — a trait as readily as a trade. Animate only, so it can take -ta (§2.6).",
+  gaPe: "With a -ga word, what the action is done to comes first, joined with pe (§2.6).",
+  vu: "-vu: the state the action leaves on whatever it happened to. It makes a new verb, so the other endings follow it (§4.11).",
+  vuVu: " On a verb that ends in -vu the syllable doubles; legal, and a watch item (§4.11, §8).",
+  dip: "di — with, by, about: a person, tool or cause takes the di slot, after the subject (§2.2, §5.2).",
+  dipVu: "With -vu, the one who did it is named with di (§4.11).",
+  emosedi: "How or why: one form, because di covers instrument and cause (§3.6).",
+  howMany: "How many: the question word takes the counter in place of a number — mõzore for what acts, emoseko for things (§3.6, §7).",
+  ato: "ãto — always. It stands outside the verb complex, in front of ila / zoka or a how-word, as oyã does (§5.5).",
+  atoNever: "ãto with a negative verb means never: ãto kazena, never comes (§5.5).",
+  sinceToma: "toma on a clause: since. toma is two syllables and is written as its own word (§6.1, §1b.4).",
+  untilRowo: "rowo — until, the mirror of toma, after the clause (§6.1a).",
+  timeToma: "toma — from (a time). It's written as its own word (§2.2).",
+  timeRowo: "rowo — until, the mirror of toma (§6.1a).",
+  verbFa: "fa between two verbs: and. They share the last verb's tense (§6.0).",
+  verbPuso: "puso between two verbs: or. They share the last verb's tense (§6, §6.0).",
+  bare: "A bare noun is a complete sentence on its own, with no particle (§2.4a).",
   gap: en => `No Lunaji word for "${en}" yet. Missing words go to TOOL Queue Lists for the Forge Queue.`,
   missingFW: w => `"${w}" is written in Grammar.md but isn't in the lexicon.`,
 };
@@ -373,6 +394,11 @@ function basePieces(item){
   }
   if(item.kind==="q") return [P(item.lu,"root", item.lu==="mõzo"?N.mozo:N.emose)];
   if(item.kind==="name") return [P(item.lu,"root",N.name)];
+  if(item.kind==="ga"){
+    const g = item.ga || {};
+    const vt = item.verb ? verbToken(item.verb, {vu:g.vu, bi:g.bi, du:g.du, neg:g.neg}) : {pieces:[]};
+    return [...vt.pieces, P("ga","part",N.ga)];
+  }
   return [P(item.lu,"root",null)];
 }
 
@@ -412,6 +438,10 @@ function numberWord(n){
   return {word:parts.join(""), parts};
 }
 function numberToken(num){
+  if(num.q){
+    const ctr = num.ctr==="ko" ? "ko" : "re", w = ctr==="ko" ? "emose" : "mõzo";
+    return {pieces:[P(w,"root",N.howMany), P(ctr,"part",N[ctr])]};
+  }
   const n = Math.max(0, Math.min(99, parseInt(num.n,10)||0));
   const w = numberWord(n);
   const miss = w.parts.filter(p=>LEX && !inLex(p));
@@ -433,14 +463,36 @@ function np(item, particle){
       ? `A name's final y sound is spelled i (§2): ${x.lu.slice(0,-1)}i. Pick the name again to use that spelling.`
       : `Grammar.md doesn't say how a particle joins a name ending in “${x.lu.slice(-1)}”. Names ending in a vowel, a nasal vowel (ã ĩ õ) or r, l, s, z, sh are covered. How a name is spelled in Lunaji is TOOL Forge Edits' (Lexicology §4).`); };
   checkName(item);
+  if(item.kind==="clause"){
+    const cl = item.clause;
+    if(!cl || !clauseReady(cl)){ res.nc.push("Finish the clause that goes with yeti."); return res; }
+    const rc = buildClause(cl, {type:"statement", main:false, matrix:false, sub:"yeti"});
+    res.nc.push(...rc.nc); T.push(...rc.tokens);
+    if(particle==="topic"){ res.nc.push("A yeti clause as the topic isn't written in Grammar.md."); return res; }
+    const yt = FW("yeti", N.yeti);
+    if(particle && !yt.gap){ yt.pieces.push(P(particle,"part",N[particle])); yt.tail = {p:particle, trig:particle.slice(-1)}; }
+    T.push(yt);
+    if(rc.qCount) res.notes.push(N.yetiQ);
+    return res;
+  }
   const m = item.mods || {};
-  const canMod = ["word","name","gap"].includes(item.kind);
+  const canMod = ["word","name","gap","ga"].includes(item.kind);
   if(canMod){
     if(m.num && m.ta) res.nc.push("A counted noun never takes -ta: counter and -ta don't go together (§7).");
-    if(m.pos){ checkName(m.pos); T.push(headToken(m.pos, null, "pe")); }
+    if(m.pos){ checkName(m.pos); const pt = headToken(m.pos, null, "pe"); if(item.kind==="ga"){ const pp = pt.pieces[pt.pieces.length-1]; if(pp.cls==="part") pp.note = N.gaPe; } T.push(pt); }
     if(m.dem) T.push(FW("na", N.dem, ANY));
     if(m.num) T.push(numberToken(m.num));
-    if(m.desc) T.push(descToken(m.desc, N.desc));
+    if(m.relc){
+      const rcl = m.relc;
+      if(!rcl.verb) res.nc.push("Pick the verb for the clause before the noun, or remove it.");
+      else {
+        const rc = buildClause(rcl, {type:"statement", main:false, matrix:false, sub:"rel"});
+        res.nc.push(...rc.nc);
+        if(rc.qCount) res.nc.push("A question word inside a clause before a noun isn't covered by Grammar.md.");
+        T.push(...rc.tokens); res.notes.push(N.rel);
+      }
+    }
+    if(m.desc) T.push(m.desc.vu && m.desc.kind==="word" ? {pieces:[P(m.desc.lu,"root",N.desc), P("vu","end",N.vu)]} : descToken(m.desc, N.desc));
   }
   const extra = (canMod && m.join && m.join.items) ? m.join.items : [];
   extra.forEach(checkName);
@@ -462,6 +514,8 @@ function np(item, particle){
 }
 function npEn(item){
   if(!item) return "";
+  if(item.kind==="clause") return "that… (clause)";
+  if(item.kind==="quote") return "“…”";
   const m = item.mods||{}; let s = item.en;
   if(m.desc) s = m.desc.en.replace(/^be /,"")+" "+s;
   if(m.num) s = (m.num.n||0)+" "+s;
@@ -483,12 +537,12 @@ function regularForm(k, past, neg){
 function verbToken(item, o){
   if(item.kind==="gap"){
     const pcs = [gapPiece(item)];
-    for(const [f,t,n] of [["bi","+bi",N.bi],["du","+du",N.du],["ri","+ri",N.ri],["neg","+ena","Not (§4.3). How it joins depends on how the missing verb ends."],["past","+ze",N.ze]])
+    for(const [f,t,n] of [["vu","+vu",N.vu],["bi","+bi",N.bi],["du","+du",N.du],["ri","+ri",N.ri],["neg","+ena","Not (§4.3). How it joins depends on how the missing verb ends."],["past","+ze",N.ze]])
       if(o[f]) pcs.push(P(t,"end",n));
     return {pieces:pcs, gap:true};
   }
   const k = item.lu, v = (LEX&&LEX[k]) || {}, irr = v.irr;
-  if(!(o.bi||o.du||o.ri)){
+  if(!(o.bi||o.du||o.ri||o.vu)){
     const slot = o.neg && o.past ? "enaze" : o.neg ? "ena" : o.past ? "ze" : "bare";
     const reg = regularForm(k, o.past, o.neg);
     if(irr && irr[slot] && irr[slot] !== reg.s){
@@ -506,6 +560,7 @@ function verbToken(item, o){
   const rootNote = k==="yozu" ? "yozu: the full stem of yu, kept before -ri, -bi and -du (§4.12)."
     : irr ? `${k} is irregular, but these endings go on its base form and stay regular (§4.12).` : null;
   const pcs = [P(k,"root",rootNote)];
+  if(o.vu) pcs.push(P("vu","end", N.vu + (/vu$/.test(k) ? N.vuVu : "")));
   if(o.bi) pcs.push(P("bi","end",N.bi));
   if(o.du) pcs.push(P("du","end", /du$/.test(k)&&!o.bi ? N.du+" On a verb that ends in -du the syllable doubles; legal, and a watch item (§4.10, §8)." : N.du));
   if(o.ri) pcs.push(P("ri","end",N.ri));
@@ -516,11 +571,12 @@ function verbToken(item, o){
 
 /* ---------- clauses ---------- */
 const isQ = x => x && x.kind==="q";
-function qIn(item){ if(!item) return 0; let n = isQ(item)?1:0; if(item.mods && isQ(item.mods.pos)) n++; return n; }
+function qIn(item){ if(!item) return 0; let n = isQ(item)?1:0; if(item.mods && isQ(item.mods.pos)) n++; if(item.mods && item.mods.num && item.mods.num.q) n++; return n; }
 
 function buildClause(c, o){
   const r = {tokens:[], built:[], notes:[], nc:[], warns:[], qCount:0, hasTopic:false, question:false, verbTok:null};
-  if(c.kind==="is") buildIs(c,o,r);
+  if(c.kind==="word") buildWord(c,o,r);
+  else if(c.kind==="is") buildIs(c,o,r);
   else if(c.kind==="compare") buildCompare(c,o,r);
   else buildVerb(c,o,r);
   return r;
@@ -538,17 +594,22 @@ function buildVerb(c,o,r){
   const subj = (cmd||lets) ? null : c.subj;
   let role = c.role;
   if(subj){ if(isQ(subj)) role = "doer"; if(role==="drop" && subj.kind!=="pron") role = "topic"; }
-  if(subj && o.sub && role==="topic"){ role = "doer"; r.notes.push("No topic inside an if / when / because clause, so its subject takes ba (§6.2)."); }
-  r.qCount = qIn(subj)+qIn(c.obj)+qIn(c.time)+qIn(c.place)+qIn(c.causee);
+  if(subj && o.sub && role==="topic"){ role = "doer"; r.notes.push("No topic inside a subordinate clause, so its subject takes ba (§6.2)."); }
+  r.qCount = qIn(subj)+qIn(c.obj)+qIn(c.time)+qIn(c.place)+qIn(c.causee)+qIn(c.dip)+(c.why?1:0);
+  const neg = c.neg || c.ato==="never";
+  const quote = c.obj && c.obj.kind==="quote" ? c.obj : null;
 
   if(cmd && c.past) r.nc.push("A command is the bare verb (§4.5), so it has no past form.");
-  if(cmd && (c.aspect||c.can||c.want||c.ongoing||c.might||c.evid||c.aux)) r.nc.push("A command is the bare verb (§4.5). A command with can, want, an aspect, might, a source word or make/let isn't written in Grammar.md.");
-  if(lets && (c.past||c.neg||c.can||c.want||c.ongoing||c.aspect||c.might||c.evid||c.aux||c.manner)) r.nc.push("Let's is luswazo + the bare verb (§4.10). Anything added to the verb isn't written in Grammar.md.");
+  if(cmd && (c.aspect||c.can||c.want||c.ongoing||c.might||c.evid||c.aux||c.vu||c.ato)) r.nc.push("A command is the bare verb (§4.5). A command with can, want, -vu, an aspect, ãto, might, a source word or make/let isn't written in Grammar.md.");
+  if(lets && (c.past||c.neg||c.can||c.want||c.ongoing||c.aspect||c.might||c.evid||c.aux||c.manner||c.vu||c.ato)) r.nc.push("Let's is luswazo + the bare verb (§4.10). Anything added to the verb isn't written in Grammar.md.");
   if(r.qCount>1) r.nc.push("Two question words in one sentence isn't covered by Grammar.md.");
   if((cmd||lets) && r.qCount) r.nc.push("A question word in a command or a let's isn't covered by Grammar.md.");
-  if(c.might==="cant" && c.neg) r.nc.push("oyã hena with a negative verb isn't written in Grammar.md.");
+  if(c.verb2 && (c.can||c.want||c.ongoing||c.vu||c.aux||c.ato||c.aspect||c.manner)) r.nc.push("When fa or puso joins two verbs, Grammar.md places the past (on the last verb) and -ena (on each verb it negates), but not the other endings, ãto, an aspect, a how-word or make / let (§6.0).");
+  if(quote && !(c.verb.kind==="word" && c.verb.lu==="onu")) r.nc.push("A quotation is closed by onu, to say (§4.9). Pick onu as the verb.");
+  if(quote && quote.clause && !clauseReady(quote.clause)) r.nc.push("Finish the quoted sentence.");
+  if(c.might==="cant" && neg) r.nc.push("oyã hena with a negative verb isn't written in Grammar.md.");
   if(c.evid && !o.matrix) r.nc.push("la, po and ke go only in the main clause (§6.2).");
-  if(o.sub && c.might) r.nc.push("oyã inside an if / when / because clause isn't written in Grammar.md.");
+  if(o.sub && c.might) r.nc.push("oyã inside a subordinate clause isn't written in Grammar.md.");
 
   // make / let: the causee's particle
   let cp = null;
@@ -562,14 +623,28 @@ function buildVerb(c,o,r){
       else if(c.verb.kind==="gap") r.nc.push("Under make / let, ni or di depends on whether the verb can take an object (§4.10). A missing verb has no tag yet.");
       else r.nc.push("Under make / let, ni or di depends on whether the verb can take an object (§4.10). This verb has no tag in the lexicon.");
     }
-    if(cp==="di" && c.place && c.rel==="to" && !isQ(c.place)) r.nc.push("Two di phrases (to a place, and the one made or let to act): their order isn't written in Grammar.md.");
   }
+  const nDi = (cp==="di" ? 1 : 0) + (c.dip ? 1 : 0) + (c.why ? 1 : 0);
+  if(nDi>1) r.nc.push("Two di phrases of a person, tool or cause in one clause (with / by / about, how / why, or the one made or let to act): their order isn't written in Grammar.md. A di of place is fine beside one (§5.2).");
   const tr = getTrans(c.verb);
   if(c.obj && tr==="intr" && !c.aux) r.warns.push(`${c.verb.en} is tagged in the lexicon as taking no object, but an object is filled in.`);
   if(c.aux && c.obj && tr==="intr") r.warns.push(`${c.verb.en} is tagged in the lexicon as taking no object, but an object is filled in.`);
   if(r.nc.length) return;
 
   const cap = fn => { const keep = r.tokens; r.tokens = []; fn(); const got = r.tokens; r.tokens = keep; return got; };
+  let quoteToks = [];
+  if(quote){
+    const qc = quote.clause;
+    const inner = buildClause(qc, {type: qc.qtype || "statement", main:true, matrix:true});
+    r.nc.push(...inner.nc);
+    if(!inner.nc.length && inner.tokens.length){
+      quoteToks = inner.tokens;
+      quoteToks[0].pieces.unshift(P("“","punct",N.quote));
+      const lt = quoteToks[quoteToks.length-1];
+      lt.pieces.push(P((inner.question?"?":"")+"”","punct",null)); lt.tail = null;
+      B.push("“"+inner.built.join(" · ")+"”");
+    }
+  }
   const mightToks = cap(()=>{ if(!c.might) return; r.tokens.push(FW("oyã", c.might==="cant"?N.oyaHena:N.oya)); if(c.might==="cant") r.tokens.push(FW("hena", N.oyaHena)); B.push(c.might==="cant"?"can't be":"might"); });
   const topicToks = cap(()=>{
     if(lets){ r.tokens.push({pieces:[P("luswazo","root",N.luswazo)]}); B.push("let's (we)"); }
@@ -581,6 +656,10 @@ function buildVerb(c,o,r){
     if(c.time){
       const x = c.time;
       if(isQ(x)){ Tf.push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)], tail:{p:"wa",trig:"a"}}); B.push("when?"); }
+      else if(c.trel==="from"||c.trel==="until"){
+        if(x.kind==="word" && DEICTIC[x.lu]) Tf.push({pieces:[P(x.lu,"root",null)]}); else addNP(r, x, null);
+        Tf.push(c.trel==="from" ? FW("toma",N.timeToma) : FW("rowo",N.timeRowo)); B.push((c.trel==="from"?"from ":"until ")+npEn(x));
+      }
       else if(x.kind==="word" && DEICTIC[x.lu]){ Tf.push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}); B.push(x.en); }
       else addNP(r, x, "wa", "at "+npEn(x));
     }
@@ -589,7 +668,7 @@ function buildVerb(c,o,r){
       if(isQ(x) && x.fixed==="wa"){ Tf.push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)], tail:{p:"wa",trig:"a"}}); B.push("where?"); }
       else if(isQ(x) && x.fixed==="toma"){ Tf.push({pieces:[P("emose","root",N.emose)]}); Tf.push(FW("toma",N.emoseToma)); B.push("from where?"); }
       else if(c.rel==="from"){ addNP(r, x, null); Tf.push(FW("toma",N.toma)); B.push("from "+npEn(x)); }
-      else if(c.rel==="to") placeTo = x;
+      else if(c.rel==="to"){ addNP(r, x, "di", "to "+npEn(x)); markLast(Tf, N.di+" A di of place or direction stands in the place slot (§5.2)."); }
       else if(x.kind==="word" && DEICTIC[x.lu]){ Tf.push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}); B.push(x.en); }
       else addNP(r, x, "wa", "at "+npEn(x));
     }
@@ -611,6 +690,7 @@ function buildVerb(c,o,r){
   else if(!hasFront){ lead = [...mightToks, ...frameToks]; r.topicLen = 0; }
   else if(frameFirst){ lead = [...frameToks, ...topicToks, ...mightToks]; r.topicLen = 0; r.notes.push("When / where stands before the topic as the frame (§5.2)."); }
   else { lead = [...topicToks, ...mightToks, ...frameToks]; r.topicLen = topicToks.length; }
+  if(quoteToks.length){ lead = [...quoteToks, ...lead]; r.topicLen = r.topicLen ? r.topicLen + quoteToks.length : 0; }
   if(c.might && r.hasTopic && !o.hasSub) r.notes.push("oyã stands right after the topic: the topic is outside what is doubted (§5.3).");
   if(subj && role==="doer"){
     const before = T.length;
@@ -618,18 +698,30 @@ function buildVerb(c,o,r){
     if(isQ(subj)){ const tk = T[T.length-1]; tk.pieces[tk.pieces.length-1].note = N.ba+" "+N.qForceBa; }
     void before;
   }
-  if(placeTo) addNP(r, placeTo, "di", "to "+npEn(placeTo));
+  if(c.dip){ addNP(r, c.dip, "di", (c.vu?"by ":"with / about ")+npEn(c.dip)); markLast(T, c.vu ? N.dipVu : N.dip); }
+  if(c.why){ T.push({pieces:[P("emose","root",N.emose), P("di","part",N.emosedi)], tail:{p:"di",trig:"i"}}); B.push("how / why?"); }
   if(c.aux && cp==="di"){ addNP(r, c.causee, "di", npEn(c.causee)+" (made/let to act)"); markLast(T, N.causeeDi); }
-  if(c.obj) addNP(r, c.obj, "ni", npEn(c.obj)+" (object)");
+  if(c.obj && !quote) addNP(r, c.obj, "ni", npEn(c.obj)+" (object)");
   if(c.aux && cp==="ni"){ addNP(r, c.causee, "ni", npEn(c.causee)+" (made/let to act)"); markLast(T, N.causeeNi); }
 
+  if(c.ato){
+    if(LEX && !inLex("ãto")) T.push({pieces:[P("[ãto]","gap",N.missingFW("ãto"))], gap:true, missing:"ãto"});
+    else T.push({pieces:[P("ãto","root", c.ato==="never" ? N.atoNever : N.ato)]});
+    B.push(c.ato);
+  }
   if(c.aspect){ T.push(FW(c.aspect, N[c.aspect], ANY)); B.push(c.aspect==="ila"?"has (done)":"habitually"); }
   if(c.manner){ T.push(descToken(c.manner, N.manner)); B.push(c.manner.en+" (how)"); }
 
   const vpast = cmd ? false : c.past;
-  const vt = verbToken(c.verb, {bi:c.can, du:c.want, ri:c.ongoing, neg:c.neg, past: c.aux ? false : vpast});
+  const vt = verbToken(c.verb, {vu:c.vu, bi:c.can, du:c.want, ri:c.ongoing, neg, past: (c.aux || c.verb2) ? false : vpast});
   T.push(vt); r.verbTok = vt;
-  B.push((c.neg?(cmd?"don't ":"not "):"")+(c.can?"can ":"")+(c.want?"want to ":"")+c.verb.en+(c.ongoing?" (ongoing)":"")+(vpast&&!c.aux?" (past)":""));
+  B.push((neg&&c.ato!=="never"?(cmd?"don't ":"not "):"")+(c.can?"can ":"")+(c.want?"want to ":"")+c.verb.en+(c.vu?" (state, -vu)":"")+(c.ongoing?" (ongoing)":"")+(vpast&&!c.aux&&!c.verb2?" (past)":""));
+  if(c.verb2){
+    T.push(c.vjoin==="or" ? FW("puso", N.verbPuso, "o") : FW("fa", N.verbFa, "a"));
+    const v2 = verbToken(c.verb2, {neg:c.neg2, past:vpast}); T.push(v2); r.verbTok = v2;
+    B.push((c.vjoin==="or"?"or ":"and ")+(c.neg2?"not ":"")+c.verb2.en+(vpast?" (past)":""));
+    if(vpast) r.notes.push("Two verbs joined by fa or puso share the last verb's past ending; -ena goes on each verb it negates (§6.0). Different tenses need two clauses with mishi.");
+  }
 
   if(c.aux){
     const ak = c.aux;
@@ -652,6 +744,7 @@ function buildVerb(c,o,r){
   if(cmd) r.notes.push(c.neg ? "A command is the bare verb; with -ena it means don't (§4.5)." : "A command is the bare verb, with no subject (§4.5).");
   if(!cmd && !lets && !c.past && c.verb.kind!=="gap") r.notes.push("No -ze, so the verb is non-past: it covers now and later (§4.1).");
   if(c.verb.kind==="word" && ["hi","yozu","ĩku"].includes(c.verb.lu)) r.notes.push("Being there: hi for something that moves or makes sound on its own, yu for what doesn't, ĩku when something acted and you can't tell what (§4.7). X-ba hi: there's an X. X-na hi: the X is here (§4.7a). Owner-pe X-ba hi / yu: the owner has an X (§3.3b).");
+  if(quote) r.notes.push(N.quote);
   if(c.aux) r.notes.push("With make or let, the past goes on the last verb, and -ena goes on whichever verb it negates (§4.10, §4.3).");
   if(lets && (c.obj||c.time||c.place)) r.notes.push("Let's: luswazo, bare, opens the clause, and the rest follows the neutral order (§4.10).");
   r.tokens = lead.concat(r.tokens);
@@ -704,30 +797,49 @@ function buildCompare(c,o,r){
   r.notes.push(c.cmp==="as" ? "As … as: A-ba, then B, then uã, then the describing verb (§5.4)." : "Comparing: A-ba, then kügi and B, then the describing verb (§5.4). There's no word for \"most\" (§5.4).");
 }
 
+function buildWord(c,o,r){
+  const type = o.main ? o.type : "statement";
+  if(type!=="statement") r.nc.push("A one-word sentence is a plain statement (§2.4a); a question, command or let's with it isn't written in Grammar.md.");
+  if(o.sub || !o.main) r.nc.push("A one-word sentence can't be joined to another clause.");
+  if(isQ(c.word)) r.nc.push("A question word on its own isn't written in Grammar.md.");
+  if(r.nc.length) return;
+  const x = np(c.word, null); r.tokens.push(...x.tokens); r.nc.push(...x.nc); r.notes.push(...x.notes);
+  const last = r.tokens[r.tokens.length-1];
+  if(c.word.kind==="word" && ["dã","hena"].includes(c.word.lu)) last.pieces[0].note = c.word.lu==="dã" ? "dã — yes: agreement, acknowledgement, compliance (§6.3)." : "hena on its own is a standalone no (§6.3).";
+  else r.notes.push(N.bare);
+  r.built.push(npEn(c.word));
+}
+
 function clauseReady(c){
   if(!c) return false;
+  if(c.kind==="word") return !!c.word;
   if(c.kind==="is") return !!c.pred;
   if(c.kind==="compare") return !!(c.subj && c.std && c.verb);
   return !!c.verb;
 }
 
 /* ---------- compose the sentence ---------- */
+const SUBS = ["if","when","because","since","until"];
 function compose(){
   const out = {tokens:[], notes:[], nc:[], warns:[], built:[], gaps:[], question:false, ready:false, answers:null};
   const t = S.type, c1 = S.c1, link = S.link, c2 = link ? S.c2 : null;
-  const sub = !!c2 && ["if","when","because"].includes(link);
+  const sub = !!c2 && SUBS.includes(link);
+  const chain = (!sub && c2 && Array.isArray(S.more)) ? S.more.filter(m=>m && m.c) : [];
   if(!clauseReady(c1)){ out.wait = c1.kind==="is" ? "Pick what it is." : c1.kind==="compare" ? "Pick who, compared with whom, and the describing word." : "Pick a verb to start."; return out; }
   if(c2 && !clauseReady(c2)){ out.wait = "Finish the second clause, or remove it."; return out; }
+  if(chain.some(m=>!clauseReady(m.c))){ out.wait = "Finish every added clause, or remove it."; return out; }
 
   const A = buildClause(c1, {type:t, main:true, matrix: !c2 || sub, hasSub: sub ? link : ""});
   const Bc = c2 ? buildClause(c2, {type:"statement", main:false, matrix:false, sub: sub ? link : null}) : null;
   out.nc.push(...A.nc); if(Bc) out.nc.push(...Bc.nc);
   out.warns.push(...A.warns); if(Bc) out.warns.push(...Bc.warns);
+  const More = chain.map(m=>buildClause(m.c, {type:"statement", main:false, matrix:false}));
+  More.forEach(x=>{ out.nc.push(...x.nc); out.warns.push(...x.warns); });
 
   if(c2){
     if(t==="lets") out.nc.push("Let's with a second clause isn't written in Grammar.md.");
     if(!sub && t==="command") out.nc.push("A command joined with mishi or norõ isn't written in Grammar.md.");
-    if(!sub && (t==="question" || A.qCount || (Bc&&Bc.qCount) || c1.evid || c2.evid)) out.nc.push("A question, or la / po / ke, in two clauses joined by mishi or norõ isn't written in Grammar.md.");
+    if(!sub && (t==="question" || A.qCount || (Bc&&Bc.qCount) || c1.evid || c2.evid || More.some(x=>x.qCount) || chain.some(m=>m.c.evid))) out.nc.push("A question, or la / po / ke, in two clauses joined by mishi or norõ isn't written in Grammar.md.");
     if(sub && c2.kind!=="verb") out.nc.push("The if / when / because part needs a verb; other kinds aren't covered yet.");
     if(sub && Bc && Bc.qCount) out.nc.push("A question word in an if / when / because clause isn't covered.");
   }
@@ -741,19 +853,21 @@ function compose(){
       if(!vt.gap && isNasal(fin)){ last.t = w.slice(0,-1)+oral(fin); vt.pieces.push(P("na","part",N.ifLink(w))); }
       else { vt.pieces.push(P("na","part",N.ifNa)); vt.tail = {p:"na", trig:"a"}; }
     } else if(link==="when"){ vt.pieces.push(P("wa","part",N.whenWa)); vt.tail = {p:"wa", trig:"a"}; }
-    else { vt.pieces.push(P("di","part",N.becauseDi)); vt.tail = {p:"di", trig:"i"}; }
+    else if(link==="because"){ vt.pieces.push(P("di","part",N.becauseDi)); vt.tail = {p:"di", trig:"i"}; }
+    else Bc.tokens.push(link==="since" ? FW("toma", N.sinceToma) : FW("rowo", N.untilRowo));
     const tl = A.topicLen || 0;
     T = [...A.tokens.slice(0,tl), ...Bc.tokens, ...A.tokens.slice(tl)];
     if(tl) out.notes.push("A noun topic may stand before the "+link+" part (§6.1a). The part first is legal too; there's no topic inside it.");
     out.built = [link+": "+Bc.built.join(" · "), ...A.built];
-    out.notes.push("The "+link+" part comes first, with its particle straight on its verb and no comma (§6.1, §6.1a). Each clause has its own negation and tense (§6.2).");
+    out.notes.push((link==="since"||link==="until") ? "The "+link+" part comes first, with "+(link==="since"?"toma":"rowo")+" after its verb and no comma (§6.1). Each clause has its own negation and tense (§6.2)." : "The "+link+" part comes first, with its particle straight on its verb and no comma (§6.1, §6.1a). Each clause has its own negation and tense (§6.2).");
   } else if(c2){
-    const lk = link==="mishi" ? FW("mishi", N.mishi, "i") : FW("norõ", N.noro);
-    T = [...A.tokens, lk, ...Bc.tokens];
+    const lkTok = l => l==="mishi" ? FW("mishi", N.mishi, "i") : FW("norõ", N.noro);
+    T = [...A.tokens, lkTok(link), ...Bc.tokens];
     out.built = [...A.built, link==="mishi"?"and":"but", ...Bc.built];
+    chain.forEach((m,i)=>{ T.push(lkTok(m.link), ...More[i].tokens); out.built.push(m.link==="mishi"?"and":"but", ...More[i].built); });
   } else { T = A.tokens; out.built = A.built; }
   out.question = A.question;
-  out.notes.push(...A.notes); if(Bc) out.notes.push(...Bc.notes);
+  out.notes.push(...A.notes); if(Bc) out.notes.push(...Bc.notes); More.forEach(x=>out.notes.push(...x.notes));
   if(c1.kind==="verb" && T.length>2) out.notes.push("Neutral order: topic → time → place → subject (ba) → di → object (ni) → how → verb. Only the verb's place is fixed: any other order of the noun phrases is legal, and when or where may stand before the topic as the frame (§5.2).");
 
   // elision (§1b.4, §6, §6.0)
@@ -774,16 +888,18 @@ function compose(){
   out.ready = true;
 
   // gaps
-  const walk = x => { if(!x) return; if(x.kind==="gap") out.gaps.push(x.en); const m = x.mods||{}; walk(m.pos); walk(m.desc); (m.join&&m.join.items||[]).forEach(walk); };
-  for(const c of [c1, c2]) if(c) ["verb","subj","obj","time","place","manner","causee","pred","std"].forEach(k=>walk(c[k]));
+  const KEYS = ["verb","verb2","subj","obj","time","place","manner","causee","pred","std","dip","word"];
+  const walkC = c => { if(c) KEYS.forEach(k=>walk(c[k])); };
+  const walk = x => { if(!x) return; if(x.kind==="gap") out.gaps.push(x.en); if(x.verb) walk(x.verb); if(x.clause) walkC(x.clause); const m = x.mods||{}; walk(m.pos); walk(m.desc); if(m.relc) walkC(m.relc); (m.join&&m.join.items||[]).forEach(walk); };
+  [c1, c2, ...chain.map(m=>m.c)].forEach(walkC);
   for(const tk of T) if(tk.missing) out.gaps.push(tk.missing);
 
   // answers (§6.3)
-  if(out.question && !c2 && c1.kind==="verb" && !c1.aux && c1.verb.kind==="word"){
+  if(out.question && !c2 && c1.kind==="verb" && !c1.aux && !c1.verb2 && !c1.ato && c1.verb.kind==="word"){
     if(A.qCount) out.answers = {text:"Answer a question-word question with just the noun (§6.3)."};
     else if(!c1.neg){
       const asp = c1.aspect ? c1.aspect+" " : "";
-      const mk = neg => asp + verbToken(c1.verb, {bi:c1.can, du:c1.want, ri:c1.ongoing, neg, past:c1.past}).pieces.map(p=>p.t).join("");
+      const mk = neg => asp + verbToken(c1.verb, {vu:c1.vu, bi:c1.can, du:c1.want, ri:c1.ongoing, neg, past:c1.past}).pieces.map(p=>p.t).join("");
       const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
       out.answers = {yes:cap(mk(false))+".", no:cap(mk(true))+"."};
     }
@@ -807,13 +923,14 @@ function render(){
     sEl.innerHTML = `<span class="placeholder">${esc(!LEX ? "Load the lexicon to start." : c.nc.length ? "—" : (c.wait||""))}</span>`;
     $("#built").textContent = "";
   } else {
-    let html = "", first = true;
+    let html = "", first = true, quoteOpen = false;
     c.tokens.forEach((tok,ti)=>{
       html += `<span class="w">`;
       tok.pieces.forEach(p=>{
         let t = p.t;
-        if(first && p.cls!=="gap"){ t = t.charAt(0).toUpperCase()+t.slice(1); }
-        first = false;
+        if(p.cls==="punct"){ html += esc(t); if(p.t==="“") { quoteOpen = true; } return; }
+        if((first || quoteOpen) && p.cls!=="gap"){ t = t.charAt(0).toUpperCase()+t.slice(1); }
+        first = false; quoteOpen = false;
         if(p.cls==="comma"){ html += ","; return; }
         const idx = pieceIndex.length; pieceIndex.push(p);
         const cls = p.cls.split(" ")[0];
@@ -833,6 +950,8 @@ function render(){
   const rows = [];
   if(c.ready){
     const seen = new Set();
+    const quoteNote = c.tokens.some(tk=>tk.pieces.some(p=>p.cls==="punct"&&p.note)) ? N.quote : null;
+    if(quoteNote) rows.push(`<div class="row"><div class="k lu">“ ”</div><div>${esc(quoteNote)}</div></div>`);
     for(const p of pieceIndex){ if(!p.note) continue; const key = p.t+"|"+p.note; if(seen.has(key)) continue; seen.add(key);
       rows.push(`<div class="row"><div class="k lu"><span class="pc ${p.cls.split(" ")[0]}">${esc(p.t)}</span></div><div>${esc(p.note)}</div></div>`); }
     for(const n of [...new Set(c.notes)]) rows.push(`<div class="row gen"><div class="k">•</div><div>${esc(n)}</div></div>`);
@@ -859,6 +978,8 @@ $("#sentence").addEventListener("click", e=>{
 function valHtml(x, ph){
   if(!x) return `<span class="en">${ph}</span>`;
   if(x.kind==="name") return `<span class="en">${esc(x.en)}</span><span class="luv">name</span>`;
+  if(x.kind==="clause") return `<span class="en">that… — a whole clause</span><span class="luv lu">yeti</span>`;
+  if(x.kind==="quote") return `<span class="en">“…” — a quotation</span><span class="luv">quote</span>`;
   if(x.kind==="gap") return `<span class="en">${esc(x.en)}</span><span class="luv" style="color:var(--gap)">no word yet</span>`;
   return `<span class="en">${esc(x.en)}</span><span class="luv lu">${esc(x.show||x.lu)}</span>`;
 }
@@ -868,24 +989,54 @@ const setb = (path, val, label, unset) => `<button data-set="${path}" data-v="${
 
 function nounDetails(path){
   const x = getP(path);
-  if(!x || !["word","name","gap"].includes(x.kind)) return "";
+  if(x && x.kind==="clause") return miniClause(path+".clause", {subject:true, label:"The clause (it takes yeti)"});
+  if(x && x.kind==="quote") return miniClause(path+".clause", {subject:true, types:true, label:"The quoted sentence"});
+  if(!x || !["word","name","gap","ga"].includes(x.kind)) return "";
   const m = x.mods || {}, mp = path+".mods";
-  let h = `<div class="opts small"><span class="ol">Add:</span>`;
-  h += m.pos ? `<span class="chip">whose: ${esc(m.pos.en)}<button data-clear="${mp}.pos">×</button></span>` : `<button data-open="${mp}.pos|owner">whose</button>`;
+  const depth = path.split(".").length;
+  let h = "";
+  if(x.kind==="ga") h += `<div class="opts small"><span class="ol">One who…</span>${tog(path+".ga.vu","-vu (state)")}${tog(path+".ga.bi","can")}${tog(path+".ga.du","wants to")}${tog(path+".ga.neg","doesn't")}</div>`;
+  h += `<div class="opts small"><span class="ol">Add:</span>`;
+  const posLabel = x.kind==="ga" ? "what it's done to (pe)" : "whose";
+  h += m.pos ? `<span class="chip">${x.kind==="ga"?"done to":"whose"}: ${esc(m.pos.en)}<button data-clear="${mp}.pos">×</button></span>` : `<button data-open="${mp}.pos|owner">${posLabel}</button>`;
   h += tog(mp+".dem","that (na)");
   h += m.num ? "" : `<button data-numon="${mp}.num">number</button>`;
-  h += m.desc ? `<span class="chip">describe: ${esc(m.desc.en)}<button data-clear="${mp}.desc">×</button></span>` : `<button data-open="${mp}.desc|desc">describe</button>`;
+  if(!m.relc && depth < 9) h += `<button data-relon="${mp}.relc">the one that… (clause)</button>`;
+  h += m.desc ? `<span class="chip">describe: ${esc(m.desc.en)}${m.desc.kind==="word"?`<button data-tog="${mp}.desc.vu" style="font-size:12px;${m.desc.vu?"font-weight:700":""}">-vu</button>`:""}<button data-clear="${mp}.desc">×</button></span>` : `<button data-open="${mp}.desc|desc">describe</button>`;
   h += tog(mp+".ta","more than one (-ta)");
   h += tog(mp+".jo","little / dear (-jo)");
   h += `<button data-open="${mp}.join|join">+ and / or</button></div>`;
-  if(m.num) h += `<div class="numrow">Number <input type="number" inputmode="numeric" min="0" max="99" value="${esc(m.num.n)}" data-num="${mp}.num"> counter
-     <span class="opts small" style="margin:0">${setb(mp+".num.ctr","re","acts (-re)")}${setb(mp+".num.ctr","ko","thing (-ko)")}</span><button class="x" data-clear="${mp}.num">×</button></div>`;
+  if(m.num) h += `<div class="numrow">${m.num.q ? "how many?" : `Number <input type="number" inputmode="numeric" min="0" max="99" value="${esc(m.num.n)}" data-num="${mp}.num">`} counter
+     <span class="opts small" style="margin:0">${setb(mp+".num.ctr","re","acts (-re)")}${setb(mp+".num.ctr","ko","thing (-ko)")}${tog(mp+".num.q","how many?")}</span><button class="x" data-clear="${mp}.num">×</button></div>`;
+  if(m.relc) h += miniClause(mp+".relc", {subject:true, label:"The one that… — a clause before the noun", rm:mp+".relc",
+     hint:"The noun fills whatever the clause leaves out — the one doing it, or what it's done to: Mimiba gezemuze yãki, the cup Mimi dropped (§6.1). Leave that slot empty here."});
   if(m.join && m.join.items && m.join.items.length){
     h += `<div class="opts small"><span class="ol">Join with:</span>${setb(mp+".join.type","and","and (fa)")}${setb(mp+".join.type","or","or (puso)")}`;
     m.join.items.forEach((it,i)=>{ h += `<span class="chip">${esc(it.en)}<button data-joinrm="${mp}.join" data-i="${i}">×</button></span>`; });
     h += `</div>`;
   }
   return h;
+}
+
+function miniClause(path, cfg){
+  const c = getP(path); if(!c) return "";
+  const r = [];
+  r.push(`<div class="slot" style="margin:8px 0 0;border-style:dashed"><div class="lab"><span>${cfg.label||"Clause"}</span>${cfg.rm?`<button class="x" data-clear="${cfg.rm}" aria-label="Remove" style="width:32px;height:32px">×</button>`:""}</div>`);
+  if(cfg.types) r.push(`<div class="opts small">${setb(path+".qtype","statement","statement")}${setb(path+".qtype","question","question")}${setb(path+".qtype","command","command")}</div>`);
+  r.push(picker(path+".verb","verb","Pick its verb"));
+  const cmd = cfg.types && c.qtype==="command";
+  r.push(`<div class="opts small">${cmd?"":tog(path+".past","past")}${tog(path+".neg",cmd?"don't":"not")}${cmd?"":tog(path+".can","can")+tog(path+".want","want to")+tog(path+".ongoing","ongoing")+tog(path+".vu","-vu")+setb(path+".aspect","ila","has done",1)+setb(path+".aspect","zoka","habitually",1)}</div>`);
+  if(cfg.subject && !cmd){
+    r.push(`<div class="hint" style="margin-top:8px">Who or what does it</div>`+picker(path+".subj","noun","Optional"));
+    if(c.subj && cfg.types) r.push(`<div class="opts small">${setb(path+".role","topic","as for… (topic)")}${setb(path+".role","doer","doer (ba)")}${c.subj.kind==="pron"?setb(path+".role","drop","leave out"):""}</div>`);
+    else if(c.subj) r.push(`<div class="hint">No topic in here, so it takes ba (§6.2).</div>`);
+  }
+  r.push(`<div class="hint" style="margin-top:8px">Object</div>`+picker(path+".obj","noun","Optional")+nounDetails(path+".obj"));
+  r.push(`<div class="hint" style="margin-top:8px">When / where</div>`+picker(path+".time","time","When — optional")+picker(path+".place","place","Where — optional"));
+  if(c.place && !isQ(c.place)) r.push(`<div class="opts small">${setb(path+".rel","at","at / in")}${setb(path+".rel","to","to")}${setb(path+".rel","from","from")}</div>`);
+  if(cfg.hint) r.push(`<div class="hint">${cfg.hint}</div>`);
+  r.push(`</div>`);
+  return r.join("");
 }
 
 function slot(label, inner, extra, opt){
@@ -897,7 +1048,7 @@ function renderClause(px, c, ctx){
   const h = [];
   const type = ctx.main ? S.type : "statement";
   if(ctx.main || !ctx.sub){
-    h.push(`<div class="seg">${["verb","is","compare"].map(k=>`<button data-set="${px}.kind" data-v="${k}" class="${c.kind===k?"on":""}">${{verb:"Does something",is:"X is Y",compare:"Compare"}[k]}</button>`).join("")}</div>`);
+    h.push(`<div class="seg">${(ctx.main && !S.link ? ["verb","is","compare","word"] : ["verb","is","compare"]).map(k=>`<button data-set="${px}.kind" data-v="${k}" class="${c.kind===k?"on":""}">${{verb:"Does",is:"X is Y",compare:"Compare",word:"One word"}[k]}</button>`).join("")}</div>`);
   }
   const subjRoles = (path, allowDrop, allowDoer, allowTopic) => {
     const x = getP(path); if(!x) return "";
@@ -914,16 +1065,19 @@ function renderClause(px, c, ctx){
     const more = UI.more[px];
     let vo = "";
     if(type!=="lets"){
-      vo += `<div class="opts">${type==="command"?"":tog(px+".past","Past")}${tog(px+".neg", type==="command"?"Don't":"Not")}${type==="command"?"":tog(px+".can","Can (-bi)")+tog(px+".want","Want to (-du)")+tog(px+".ongoing","Ongoing (-ri)")}</div>`;
+      vo += `<div class="opts">${type==="command"?"":tog(px+".past","Past")}${tog(px+".neg", type==="command"?"Don't":"Not")}${type==="command"?"":tog(px+".can","Can (-bi)")+tog(px+".want","Want to (-du)")+tog(px+".ongoing","Ongoing (-ri)")+tog(px+".vu","State (-vu)")}</div>`;
       if(type!=="command"){
-        vo += `<button class="more" data-more="${px}">${more?"Fewer options ▴":"More: has done, habitually, how, might, make / let, source ▾"}</button>`;
+        vo += `<button class="more" data-more="${px}">${more?"Fewer options ▴":"More: has done, habitually, always / never, how, might, make / let, source, a second verb ▾"}</button>`;
         if(more){
           vo += `<div class="opts small"><span class="ol">Aspect:</span>${setb(px+".aspect","ila","has done (ila)",1)}${setb(px+".aspect","zoka","habitually (zoka)",1)}</div>`;
+          vo += `<div class="opts small"><span class="ol">ãto:</span>${setb(px+".ato","always","always",1)}${setb(px+".ato","never","never",1)}</div>`;
+          vo += `<div class="opts small"><span class="ol">Ask:</span>${tog(px+".why","how / why? (emosedi)")}</div>`;
+          vo += `<div class="opts small"><span class="ol">Second verb:</span>${c.verb2?`${setb(px+".vjoin","and","and (fa)")}${setb(px+".vjoin","or","or (puso)")}<span class="chip">${esc(c.verb2.en)}<button data-clear="${px}.verb2">×</button></span>${tog(px+".neg2","not "+esc(c.verb2.en))}`:`<button data-open="${px}.verb2|verb">+ and / or another verb</button>`}</div>`;
           vo += `<div class="opts small"><span class="ol">How:</span>${c.manner?`<span class="chip">${esc(c.manner.en)}<button data-clear="${px}.manner">×</button></span>`:`<button data-open="${px}.manner|desc">pick a describing word</button>`}</div>`;
-          if(!ctx.sub) vo += `<div class="opts small"><span class="ol">Certainty:</span>${setb(px+".might","oya","might (oyã)",1)}${setb(px+".might","cant","can't be (oyã hena)",1)}${c.might && ctx.main && ["if","when","because"].includes(S.link) ? tog(px+".mightWide","before the "+S.link+" part") : ""}</div>`;
+          if(!ctx.sub) vo += `<div class="opts small"><span class="ol">Certainty:</span>${setb(px+".might","oya","might (oyã)",1)}${setb(px+".might","cant","can't be (oyã hena)",1)}${c.might && ctx.main && SUBS.includes(S.link) ? tog(px+".mightWide","before the "+S.link+" part") : ""}</div>`;
           vo += `<div class="opts small"><span class="ol">Make / let:</span>${setb(px+".aux","tsobã","make (tsobã)",1)}${setb(px+".aux","idovu","let (idovu)",1)}</div>`;
           if(c.aux) vo += `<div class="opts small"><span class="ol">On ${c.aux}:</span>${tog(px+".auxNeg","Not")}${tog(px+".auxCan","Can")}${tog(px+".auxWant","Want to")}</div>`;
-          if(ctx.main && !S.link || ctx.main && ["if","when","because"].includes(S.link))
+          if(ctx.main && !S.link || ctx.main && SUBS.includes(S.link))
             vo += `<div class="opts small"><span class="ol">Source:</span>${setb(px+".evid","la","heard / felt (la)",1)}${setb(px+".evid","po","it seems (po)",1)}${setb(px+".evid","ke","I assume (ke)",1)}</div>`;
         }
       }
@@ -933,16 +1087,22 @@ function renderClause(px, c, ctx){
 
     if(type==="command") h.push(slot("Who or what does it", `<div class="hint">A command has no subject (§4.5).</div>`, "", {off:true}));
     else if(type==="lets" && ctx.main) h.push(slot("Who or what does it", `<div class="pick"><div class="val"><span class="en">we (you and me)</span><span class="luv lu">luswazo</span></div></div>`, "", {off:true, hint:"Fixed for let's (§4.10)."}));
-    else h.push(slot(c.aux?"Who makes or lets":"Who or what does it", picker(px+".subj","noun","Optional"), subjRoles(px+".subj", true, true, !ctx.sub)+nounDetails(px+".subj"), {hint: ctx.sub ? "No topic in this part, so the subject takes ba (§6.2)." : isQ(c.subj) ? "A question word as subject takes ba (§3.6)." : ""}));
+    else h.push(slot(c.aux?"Who makes or lets":"Who or what does it", picker(px+".subj", px.split(".").length<=3 ? "nounc" : "noun","Optional"), subjRoles(px+".subj", true, true, !ctx.sub)+nounDetails(px+".subj"), {hint: ctx.sub ? "No topic in this part, so the subject takes ba (§6.2)." : isQ(c.subj) ? "A question word as subject takes ba (§3.6)." : ""}));
+    if(c.vu || c.dip) h.push(slot(c.vu ? "By whom (di) — who did it" : "With / by / about (di)", picker(px+".dip","noun","Optional"), nounDetails(px+".dip"), {hint: c.vu ? "With -vu the one who did it takes di (§4.11)." : "di is the catch-all: with, by, about (§2.2)."}));
+    else h.push(`<div class="addc" style="margin:-4px 0 10px"><button data-open="${px}.dip|noun">+ with / by / about (di)</button></div>`);
     const trv = getTrans(c.verb), ven = c.verb ? esc(c.verb.en) : "";
     const objHint = trv==="intr" ? `“${ven}” takes no object.` : trv==="tr" ? `“${ven}” takes an object.` : trv==="both" ? `“${ven}” works with or without an object.` : "";
-    h.push(slot("Object — what it's done to", picker(px+".obj","noun","Optional"), nounDetails(px+".obj"), {hint:objHint, off:trv==="intr"&&!c.obj}));
-    const canFrame = !(ctx.main && ["if","when","because"].includes(S.link)) && (c.time||c.place) && ((type==="lets" && ctx.main) || (c.subj && c.role==="topic" && !isQ(c.subj) && type!=="command" && !ctx.sub));
+    h.push(slot("Object — what it's done to", picker(px+".obj", px.split(".").length<=3 ? "nounc" : "noun","Optional"), nounDetails(px+".obj"), {hint:objHint, off:trv==="intr"&&!c.obj}));
+    const canFrame = !(ctx.main && SUBS.includes(S.link)) && (c.time||c.place) && ((type==="lets" && ctx.main) || (c.subj && c.role==="topic" && !isQ(c.subj) && type!=="command" && !ctx.sub));
     const frameBtn = canFrame ? `<div class="opts small">${tog(px+".frame", type==="lets"&&ctx.main ? "Say when / where before luswazo" : "Say when / where before the topic")}</div>` : "";
-    h.push(slot("When", picker(px+".time","time","Optional"), nounDetails(px+".time") + (c.time ? frameBtn : "")));
+    const topts = c.time && !isQ(c.time) ? `<div class="opts">${setb(px+".trel","at","at / on")}${setb(px+".trel","from","from (toma)")}${setb(px+".trel","until","until (rowo)")}</div>` : "";
+    h.push(slot("When", picker(px+".time","time","Optional"), topts + nounDetails(px+".time") + (c.time ? frameBtn : "")));
     const pl = c.place, deic = pl && pl.kind==="word" && DEICTIC[pl.lu];
     const popts = pl && !isQ(pl) ? `<div class="opts">${setb(px+".rel","at","at / in")}${setb(px+".rel","to","to")}${setb(px+".rel","from","from")}</div>` : "";
     h.push(slot("Where", picker(px+".place","place","Optional"), popts + (deic?"":nounDetails(px+".place")) + (!c.time ? frameBtn : "")));
+  }
+  if(c.kind==="word"){
+    h.push(slot("The word", picker(px+".word","noun","Tap to pick"), `<div class="opts small"><span class="ol">Or:</span><button data-setword="${px}|dã">yes (dã)</button><button data-setword="${px}|hena">no (hena)</button></div>`+nounDetails(px+".word"), {req:true, hint:"A bare noun is a whole sentence: a name to call someone, or the answer to a question-word question (§2.4a, §6.3)."}));
   }
   if(c.kind==="is"){
     h.push(slot("What you're talking about", picker(px+".subj","noun","Optional"), subjRoles(px+".subj", true, false, true)+nounDetails(px+".subj"), {hint: isQ(c.subj) ? "A question word here takes ba, and there's no jĩ (§3.6)." : ""}));
@@ -957,16 +1117,25 @@ function renderClause(px, c, ctx){
   return h.join("");
 }
 
-const LINKS = {mishi:"and (mishi)", noro:"but (norõ)", if:"if", when:"when", because:"because"};
+const LINKS = {mishi:"and (mishi)", noro:"but (norõ)", if:"if", when:"when", because:"because", since:"since (toma)", until:"until (rowo)"};
 function renderSlots(){
-  let h = `<div class="group"><div class="ghead"><span>${S.link && ["if","when","because"].includes(S.link) ? "Main clause" : "Sentence"}</span></div>${renderClause("c1", S.c1, {main:true})}</div>`;
+  if(S.c1.kind==="word" && S.link) S.c1.kind = "verb";
+  let h = `<div class="group"><div class="ghead"><span>${S.link && SUBS.includes(S.link) ? "Main clause" : "Sentence"}</span></div>${renderClause("c1", S.c1, {main:true})}</div>`;
   if(S.link){
-    const sub = ["if","when","because"].includes(S.link);
+    const sub = SUBS.includes(S.link);
     if(!S.c2) S.c2 = blankClause();
     h += `<div class="group c2"><div class="ghead"><span>${sub ? S.link+"… part (comes first)" : "Second clause"}</span><button data-rmlink="1">Remove</button></div>
       <div class="opts small" style="margin:0 0 8px"><span class="ol">Joined by:</span>${Object.entries(LINKS).map(([k,l])=>`<button data-link="${k}" class="${S.link===k?"on":""}">${l}</button>`).join("")}</div>
       ${renderClause("c2", S.c2, {main:false, sub})}</div>`;
-  } else {
+    if(!sub){
+      (S.more||[]).forEach((m,i)=>{
+        h += `<div class="group c2"><div class="ghead"><span>Clause ${i+3}</span><button data-rmmore="${i}">Remove</button></div>
+          <div class="opts small" style="margin:0 0 8px"><span class="ol">Joined by:</span>${setb("more."+i+".link","mishi","and (mishi)")}${setb("more."+i+".link","noro","but (norõ)")}</div>
+          ${renderClause("more."+i+".c", m.c, {main:false, sub:false})}</div>`;
+      });
+      h += `<div class="addc"><span>Add another clause:</span><button data-addmore="mishi">and (mishi)</button><button data-addmore="noro">but (norõ)</button></div>`;
+    }
+  } else if(S.c1.kind!=="word") {
     h += `<div class="addc"><span>Add a second clause:</span>${Object.entries(LINKS).map(([k,l])=>`<button data-link="${k}">${l}</button>`).join("")}</div>`;
   }
   $("#slots").innerHTML = h;
@@ -981,14 +1150,18 @@ $("#slots").addEventListener("click", e=>{
   if(d.set){
     const cur = getP(d.set);
     setP(d.set, (d.unset && cur===d.v) ? "" : d.v);
-    if(/\.kind$/.test(d.set)){ const px = d.set.split(".")[0]; if(d.v==="compare" && S[px].role==="drop") S[px].role = "doer"; if(d.v==="is" && S[px].role==="doer") S[px].role = "topic"; }
+    if(/\.kind$/.test(d.set)){ const cl = getP(d.set.replace(/\.kind$/,"")); if(d.v==="compare" && cl.role==="drop") cl.role = "doer"; if(d.v==="is" && cl.role==="doer") cl.role = "topic"; }
     render(); return;
   }
   if(d.numon){ setP(d.numon, {n:2, ctr:"re"}); render(); return; }
   if(d.joinrm){ const j = getP(d.joinrm); j.items.splice(+d.i,1); if(!j.items.length) setP(d.joinrm, null); render(); return; }
   if(d.more){ UI.more[d.more] = !UI.more[d.more]; render(); return; }
-  if(d.link){ S.link = d.link; if(!S.c2) S.c2 = blankClause(); if(["if","when","because"].includes(d.link)) S.c2.kind = "verb"; render(); return; }
-  if(d.rmlink){ S.link = ""; S.c2 = null; render(); return; }
+  if(d.link){ S.link = d.link; if(!S.c2) S.c2 = blankClause(); if(SUBS.includes(d.link)){ S.c2.kind = "verb"; S.more = []; } render(); return; }
+  if(d.rmlink){ S.link = ""; S.c2 = null; S.more = []; render(); return; }
+  if(d.addmore){ (S.more = S.more||[]).push({link:d.addmore, c:blankClause()}); render(); return; }
+  if(d.rmmore){ S.more.splice(+d.rmmore,1); render(); return; }
+  if(d.relon){ setP(d.relon, blankClause()); render(); return; }
+  if(d.setword){ const [px, w] = d.setword.split("|"); setP(px+".word", {kind:"word", lu:w, en: w==="dã"?"yes":"no"}); render(); return; }
 });
 $("#slots").addEventListener("change", e=>{
   const el = e.target.closest("[data-num]"); if(!el) return;
@@ -999,7 +1172,7 @@ $("#types").addEventListener("click", e=>{ const b = e.target.closest("button");
 
 /* ---------- picker sheet ---------- */
 let sheet = null;
-const TITLES = {verb:"Pick a verb", desc:"Pick a describing word", noun:"Pick a word", owner:"Whose?", join:"Add another (and / or)", time:"When", place:"Where"};
+const TITLES = {nounc:"Pick a word or a clause", verb:"Pick a verb", desc:"Pick a describing word", noun:"Pick a word", owner:"Whose?", join:"Add another (and / or)", time:"When", place:"Where"};
 function openSheet(path, mode){
   if(!LEX){ alert("Load the lexicon first."); return; }
   sheet = {path, mode};
@@ -1039,12 +1212,17 @@ function drawList(){
   const verbs = (filter) => VERBS.filter(filter||(()=>true)).map(v=>({kind:"word", lu:v.k, en:shortGloss(v.g), show:verbBare(v.k), full:v.g}));
   if(mode==="verb") secs.push(["Verbs", verbs()]);
   if(mode==="desc"){ secs.push(["Describing words", verbs(v=>v.adj)]); secs.push(["Other verbs", verbs(v=>!v.adj)]); }
-  if(mode==="noun"||mode==="owner"||mode==="join"){
+  if(mode==="nounc"){
+    const isObj = /\.obj$/.test(sheet.path);
+    secs.push(["A whole clause", [{kind:"clause", lu:"yeti", en:"that… — a whole clause (yeti)"}, ...(isObj ? [{kind:"quote", lu:"“…”", en:"“…” — a quotation (with onu)"}] : [])]]);
+  }
+  if(mode==="noun"||mode==="nounc"||mode==="owner"||mode==="join"){
     secs.push(["People words", prons()]);
     if(names().length) secs.push(["Names", names()]);
-    if(mode==="noun") secs.push(["Ask", [{kind:"q", lu:"mõzo", en:"who? (something that acts)"},{kind:"q", lu:"emose", en:"what? (a thing)"}]]);
+    if(mode==="noun"||mode==="nounc") secs.push(["Ask", [{kind:"q", lu:"mõzo", en:"who? (something that acts)"},{kind:"q", lu:"emose", en:"what? (a thing)"}]]);
     if(mode==="owner") secs.push(["Ask", [{kind:"q", lu:"mõzo", show:"mõzope", en:"whose?"}]]);
     secs.push(["Nouns", nouns()]);
+    if(q) secs.push(["One who… (-ga)", VERBS.map(v=>({kind:"ga", lu:v.k, en:"one who "+shortGloss(v.g).replace(/^be /,"is "), show:verbBare(v.k)+"ga", full:v.g}))]);
   }
   if(mode==="time"){
     secs.push(["Pointing from now — no wa", TIME_DEICTIC.map(fromLex).filter(Boolean)]);
@@ -1069,7 +1247,7 @@ function drawList(){
     total += list.length;
   }
   const nmSpell = /y$/i.test(raw) ? raw.slice(0,-1)+"i" : raw;
-  if(q && (mode==="noun"||mode==="owner"||mode==="join")) html += `<button class="gapbtn namebtn" data-name="1">Use “${esc(nmSpell.charAt(0).toUpperCase()+nmSpell.slice(1))}” as a name${nmSpell!==raw?" — a final y sound is spelled i (§2)":""}</button>`;
+  if(q && (mode==="noun"||mode==="nounc"||mode==="owner"||mode==="join")) html += `<button class="gapbtn namebtn" data-name="1">Use “${esc(nmSpell.charAt(0).toUpperCase()+nmSpell.slice(1))}” as a name${nmSpell!==raw?" — a final y sound is spelled i (§2)":""}</button>`;
   if(q) html += `<button class="gapbtn" data-gap="1">${total?"Not here? ":"No Lunaji word found. "}Use “${esc(raw)}” as a gap</button>`;
   if(!html) html = `<div class="more2">Nothing to show.</div>`;
   const el = $("#sheetList"); el.innerHTML = html; el.scrollTop = 0;
@@ -1078,7 +1256,11 @@ function drawList(){
     let item = null;
     if(b.dataset.gap) item = {kind:"gap", en:raw};
     else if(b.dataset.name){ const n = nmSpell.charAt(0).toUpperCase()+nmSpell.slice(1); addName(n); item = {kind:"name", lu:n, en:n}; }
-    else { const it = store[+b.dataset.pick]; if(it) item = {kind:it.kind, lu:it.lu, en:it.en, show:it.show, fixed:it.fixed}; }
+    else { const it = store[+b.dataset.pick]; if(it){
+      item = {kind:it.kind, lu:it.lu, en:it.en, show:it.show, fixed:it.fixed};
+      if(it.kind==="ga") item = {kind:"ga", en:it.en, show:it.show, verb:{kind:"word", lu:it.lu, en:shortGloss(it.full)}, ga:{}};
+      if(it.kind==="clause" || it.kind==="quote") item.clause = blankClause();
+    } }
     if(item) pickItem(item);
   };
 }
@@ -1089,8 +1271,7 @@ function pickItem(item){
     j.items.push(item); setP(path, j);
   } else {
     setP(path, item);
-    const px = path.split(".")[0];
-    if(/\.subj$/.test(path) && item.kind!=="pron" && S[px].role==="drop") S[px].role = S[px].kind==="compare" ? "doer" : "topic";
+    if(/\.subj$/.test(path)){ const cl = getP(path.replace(/\.subj$/,"")); if(cl && item.kind!=="pron" && cl.role==="drop") cl.role = cl.kind==="compare" ? "doer" : "topic"; if(cl && item.kind==="clause") cl.role = "doer"; }
   }
   closeSheet(); render();
 }
