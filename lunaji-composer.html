@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-30-0101">
+<meta name="lunaji-build" content="2026-10-30-0222">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -130,6 +130,12 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 .sheet .namebtn{border:1px solid var(--accent);color:var(--accent);background:var(--accent-soft)}
 .sheet .more2{font-size:13px;color:var(--muted);padding:8px}
 
+.gloss{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.gc{display:flex;flex-direction:column;line-height:1.25}
+.gc .gl{font-size:15px}
+.gc .gg{font-size:12px;color:var(--muted)}
+.eng{font-size:15px;margin-top:8px}
+.eng.none{font-size:13px;color:var(--muted)}
 .seg.mini{margin:0 0 4px;max-width:220px}
 .seg.mini button{padding:6px 2px;font-size:13px}
 .acts{display:flex;gap:8px;align-items:center;margin-top:10px}
@@ -180,7 +186,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
   <div class="result">
     <div class="rcard">
       <div class="sentence lu" id="sentence"></div>
-      <div class="built" id="built"></div>
+      <div class="gloss" id="gloss"></div><div class="eng" id="eng"></div>
       <div id="ncbox"></div>
       <div id="answers"></div>
       <div class="tip" id="tip"></div>
@@ -229,7 +235,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-30-0101";
+const BUILD = "2026-10-30-0222";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -419,28 +425,41 @@ const N = {
 };
 
 /* ---------- tokens ---------- */
-function P(t, cls, note){ return {t, cls, note}; }
-function FW(word, note, trig){
-  if(LEX && !inLex(word)) return {pieces:[P("["+word+"]","gap",N.missingFW(word))], gap:true, missing:word};
-  return {pieces:[P(word,"part",note)], tail: trig ? {p:word, trig} : null};
+function P(t, cls, note, g){ const o = {t, cls, note}; if(g!==undefined) o.g = g; return o; }
+const FWG = {na:"that", ila:"has", zoka:"habitually", "oyã":"might", hena:"not", toma:"from", rowo:"until", fa:"and", puso:"or", mishi:"and", "norõ":"but", "kügi":"than", "uã":"as", "jĩ":"(question)", la:"(heard)", po:"(it seems)", ke:"(I assume)", yeti:"that.(clause)", zero:"zero"};
+function FW(word, note, trig, g){
+  if(LEX && !inLex(word)) return {pieces:[P("["+word+"]","gap",N.missingFW(word),word)], gap:true, missing:word};
+  return {pieces:[P(word,"part",note, g!==undefined ? g : FWG[word])], tail: trig ? {p:word, trig} : null};
 }
-function gapPiece(item){ return P("["+item.en+"]","gap",N.gap(item.en)); }
+function gapPiece(item){ return P("["+item.en+"]","gap",N.gap(item.en),"["+item.en+"]"); }
+/* glosses for the word-by-word line */
+const PG = {na:"(topic)", a:"(topic)", ba:"(subject)", ni:"(object)", wa:"at", di:"to/with", pe:"'s", ta:"(plural)", jo:"(dear)", re:"(count)", ko:"(count)", ga:"one.who",
+  ze:"past", ena:"not", bi:"can", du:"want", ri:"(ongoing)", vu:"(state)", "·na/a":"(topic)", "+ze":"past", "+ena":"not", "+bi":"can", "+du":"want", "+ri":"(ongoing)", "+vu":"(state)"};
+const PRON_G = {nuswa:"I", lwaji:"you", nwoli:"he/she", luswazo:"we", nuswata:"we", lwajita:"you.all", nwolita:"they"};
+function lexWords(k){
+  const v = LEX && LEX[k]; if(!v) return "";
+  let g = cleanGloss(v.g).replace(/\([^)]*\)/g,"").split(/[;,/—]| - /)[0].trim();
+  g = g.replace(/^to /i,"").replace(/^(a|an|the) /i,"");
+  if(v.c==="verb") g = g.replace(/^be /i,"");
+  return g.trim();
+}
+const lexG = k => lexWords(k).replace(/\s+/g,".");
 
 function basePieces(item){
   if(item.kind==="gap") return [gapPiece(item)];
   if(item.kind==="pron"){
     const p = PRONOUNS.find(x=>x.lu===item.lu) || {lu:item.lu, base:item.lu};
-    if(p.ta && !inLex(p.lu)) return [P(p.base,"root", p.animate?N.nwoli:null), P("ta","part",N.ta)];
-    return [P(p.lu,"root", p.animate?N.nwoli:null)];
+    if(p.ta && !inLex(p.lu)) return [P(p.base,"root", p.animate?N.nwoli:null, PRON_G[p.base]), P("ta","part",N.ta)];
+    return [P(p.lu,"root", p.animate?N.nwoli:null, PRON_G[p.lu]||lexG(p.lu))];
   }
-  if(item.kind==="q") return [P(item.lu,"root", item.lu==="mõzo"?N.mozo:N.emose)];
-  if(item.kind==="name") return [P(item.lu,"root",N.name)];
+  if(item.kind==="q") return [P(item.lu,"root", item.lu==="mõzo"?N.mozo:N.emose, item.lu==="mõzo"?"who":"what")];
+  if(item.kind==="name") return [P(item.lu,"root",N.name,item.lu)];
   if(item.kind==="ga"){
     const g = item.ga || {};
     const vt = item.verb ? verbToken(item.verb, {vu:g.vu, bi:g.bi, du:g.du, neg:g.neg}) : {pieces:[]};
     return [...vt.pieces, P("ga","part",N.ga)];
   }
-  return [P(item.lu,"root",null)];
+  return [P(item.lu,"root",null, DEICTIC[item.lu] || lexG(item.lu))];
 }
 
 // head word with suffixes and a particle ("topic"|"ba"|"ni"|"wa"|"di"|"pe"|null)
@@ -481,19 +500,19 @@ function numberWord(n){
 function numberToken(num){
   if(num.q){
     const ctr = num.ctr==="ko" ? "ko" : "re", w = ctr==="ko" ? "emose" : "mõzo";
-    return {pieces:[P(w,"root",N.howMany), P(ctr,"part",N[ctr])]};
+    return {pieces:[P(w,"root",N.howMany,"how.many"), P(ctr,"part",N[ctr])]};
   }
   const n = Math.max(0, Math.min(99, parseInt(num.n,10)||0));
   const w = numberWord(n);
   const miss = w.parts.filter(p=>LEX && !inLex(p));
   if(miss.length) return {pieces:[P("["+w.word+"]","gap",N.missingFW(miss.join(", ")))], gap:true};
-  if(n===0) return {pieces:[P("zero","root",N.zero)]};
+  if(n===0) return {pieces:[P("zero","root",N.zero,"0")]};
   const ctr = num.ctr==="ko" ? "ko" : "re";
-  return {pieces:[P(w.word,"root",N.num(n)), P(ctr,"part",N[ctr])]};
+  return {pieces:[P(w.word,"root",N.num(n),String(n)), P(ctr,"part",N[ctr])]};
 }
 function descToken(item, note){
   if(item.kind==="gap") return {pieces:[gapPiece(item)], gap:true};
-  return {pieces:[P(verbBare(item.lu),"root",note)]};
+  return {pieces:[P(verbBare(item.lu),"root",note,lexG(item.lu))]};
 }
 
 // a noun phrase: modifiers, head, and/or list, particle on the last word
@@ -590,17 +609,17 @@ function verbToken(item, o){
       const why = slot==="bare"
         ? `Irregular (§4.12): the bare form of ${k} is ${irr.bare}. Learned, not worked out.`
         : `Irregular (§4.12): ${irr[slot]}, not ${reg.s}. Learned, not worked out.`;
-      return {pieces:[P(irr[slot],"end irr",why)], irr:true};
+      return {pieces:[P(irr[slot],"end irr",why, lexG(k)+(o.neg?".not":"")+(o.past?".past":""))], irr:true};
     }
     const pcs = [];
-    if(o.neg && reg.link) pcs.push(P(linkN(k),"root",N.linkVerb(k))); else pcs.push(P(k,"root",null));
+    if(o.neg && reg.link) pcs.push(P(linkN(k),"root",N.linkVerb(k),lexG(k))); else pcs.push(P(k,"root",null,lexG(k)));
     if(o.neg) pcs.push(P("ena","end",N.ena));
     if(o.past) pcs.push(P("ze","end",N.ze));
     return {pieces:pcs};
   }
   const rootNote = k==="yozu" ? "yozu: the full stem of yu, kept before -ri, -bi and -du (§4.12)."
     : irr ? `${k} is irregular, but these endings go on its base form and stay regular (§4.12).` : null;
-  const pcs = [P(k,"root",rootNote)];
+  const pcs = [P(k,"root",rootNote,lexG(k))];
   if(o.vu) pcs.push(P("vu","end", N.vu + (/vu$/.test(k) ? N.vuVu : "")));
   if(o.bi) pcs.push(P("bi","end",N.bi));
   if(o.du) pcs.push(P("du","end", /du$/.test(k)&&!o.bi ? N.du+" On a verb that ends in -du the syllable doubles; legal, and a watch item (§4.10, §8)." : N.du));
@@ -688,7 +707,7 @@ function buildVerb(c,o,r){
   }
   const mightToks = cap(()=>{ if(!c.might) return; r.tokens.push(FW("oyã", c.might==="cant"?N.oyaHena:N.oya)); if(c.might==="cant") r.tokens.push(FW("hena", N.oyaHena)); B.push(c.might==="cant"?"can't be":"might"); });
   const topicToks = cap(()=>{
-    if(lets){ r.tokens.push({pieces:[P("luswazo","root",N.luswazo)]}); B.push("let's (we)"); }
+    if(lets){ r.tokens.push({pieces:[P("luswazo","root",N.luswazo,"we")]}); B.push("let's (we)"); }
     if(subj && role==="topic"){ addNP(r, subj, "topic", npEn(subj)+" (topic)"); r.hasTopic = true; }
   });
   let placeTo = null;
@@ -696,7 +715,7 @@ function buildVerb(c,o,r){
     const Tf = r.tokens;
     if(c.time){
       const x = c.time;
-      if(isQ(x)){ Tf.push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)], tail:{p:"wa",trig:"a"}}); B.push("when?"); }
+      if(isQ(x)){ Tf.push({pieces:[P("emose","root",N.emose,"what"), P("wa","part",N.emosewa,"(when)")], tail:{p:"wa",trig:"a"}}); B.push("when?"); }
       else if(c.trel==="from"||c.trel==="until"){
         if(x.kind==="word" && DEICTIC[x.lu]) Tf.push({pieces:[P(x.lu,"root",null)]}); else addNP(r, x, null);
         Tf.push(c.trel==="from" ? FW("toma",N.timeToma) : FW("rowo",N.timeRowo)); B.push((c.trel==="from"?"from ":"until ")+npEn(x));
@@ -706,7 +725,7 @@ function buildVerb(c,o,r){
     }
     if(c.place){
       const x = c.place;
-      if(isQ(x) && x.fixed==="wa"){ Tf.push({pieces:[P("emose","root",N.emose), P("wa","part",N.emosewa)], tail:{p:"wa",trig:"a"}}); B.push("where?"); }
+      if(isQ(x) && x.fixed==="wa"){ Tf.push({pieces:[P("emose","root",N.emose,"what"), P("wa","part",N.emosewa,"(where)")], tail:{p:"wa",trig:"a"}}); B.push("where?"); }
       else if(isQ(x) && x.fixed==="toma"){ Tf.push({pieces:[P("emose","root",N.emose)]}); Tf.push(FW("toma",N.emoseToma)); B.push("from where?"); }
       else if(c.rel==="from"){ addNP(r, x, null); Tf.push(FW("toma",N.toma)); B.push("from "+npEn(x)); }
       else if(c.rel==="to"){ addNP(r, x, "di", "to "+npEn(x)); markLast(Tf, N.di+" A di of place or direction stands in the place slot (§5.2)."); }
@@ -740,14 +759,14 @@ function buildVerb(c,o,r){
     void before;
   }
   if(c.dip){ addNP(r, c.dip, "di", (c.vu?"by ":"to / with ")+npEn(c.dip)); markLast(T, c.vu ? N.dipVu : N.dip); }
-  if(c.why){ T.push({pieces:[P("emose","root",N.emose), P("di","part",N.emosedi)], tail:{p:"di",trig:"i"}}); B.push("how / why?"); }
+  if(c.why){ T.push({pieces:[P("emose","root",N.emose,"what"), P("di","part",N.emosedi,"(how/why)")], tail:{p:"di",trig:"i"}}); B.push("how / why?"); }
   if(c.aux && cp==="di"){ addNP(r, c.causee, "di", npEn(c.causee)+" (made/let to act)"); markLast(T, N.causeeDi); }
   if(c.obj && !quote) addNP(r, c.obj, "ni", npEn(c.obj)+" (object)");
   if(c.aux && cp==="ni"){ addNP(r, c.causee, "ni", npEn(c.causee)+" (made/let to act)"); markLast(T, N.causeeNi); }
 
   if(c.ato){
-    if(LEX && !inLex("ãto")) T.push({pieces:[P("[ãto]","gap",N.missingFW("ãto"))], gap:true, missing:"ãto"});
-    else T.push({pieces:[P("ãto","root", c.ato==="never" ? N.atoNever : N.ato)]});
+    if(LEX && !inLex("ãto")) T.push({pieces:[P("[ãto]","gap",N.missingFW("ãto"),"always")], gap:true, missing:"ãto"});
+    else T.push({pieces:[P("ãto","root", c.ato==="never" ? N.atoNever : N.ato, "always")]});
     B.push(c.ato);
   }
   if(c.aspect){ T.push(FW(c.aspect, N[c.aspect], ANY)); B.push(c.aspect==="ila"?"has (done)":"habitually"); }
@@ -766,7 +785,7 @@ function buildVerb(c,o,r){
 
   if(c.aux){
     const ak = c.aux;
-    if(LEX && !inLex(ak)) T.push({pieces:[P("["+ak+"]","gap",N.missingFW(ak))], gap:true});
+    if(LEX && !inLex(ak)) T.push({pieces:[P("["+ak+"]","gap",N.missingFW(ak),ak)], gap:true});
     else {
       const at = verbToken({kind:"word", lu:ak, en:ak}, {bi:c.auxCan, du:c.auxWant, neg:c.auxNeg, past:vpast});
       at.pieces[0].note = (at.pieces[0].note ? at.pieces[0].note+" " : "") + (ak==="tsobã"?N.tsoba:N.idovu);
@@ -814,7 +833,7 @@ function buildIs(c,o,r){
   else addNP(r, c.pred, null, "is "+npEn(c.pred));
   if(c.past){
     if(LEX && !inLex("gu")) T.push({pieces:[P("[gu]","gap",N.missingFW("gu"))], gap:true});
-    else { const pcs = [P("gu","root",N.gu)]; if(c.neg) pcs.push(P("ena","end",N.guNeg)); pcs.push(P("ze","end",N.ze)); const gt = {pieces:pcs}; T.push(gt); r.verbTok = gt; }
+    else { const pcs = [P("gu","root",N.gu,"be")]; if(c.neg) pcs.push(P("ena","end",N.guNeg)); pcs.push(P("ze","end",N.ze)); const gt = {pieces:pcs}; T.push(gt); r.verbTok = gt; }
     B.push(c.neg?"wasn't":"was");
   } else if(c.neg){ const ht = FW("hena", o.sub ? "hena — not, standing free: there's no verb in a present \"X is Y\" clause (§4.3)." : N.henaFree); T.push(ht); r.verbTok = ht; B.push("not"); }
   if(o.matrix && (qPred || qSubj)) r.question = true;
@@ -851,6 +870,7 @@ function buildWord(c,o,r){
   if(r.nc.length) return;
   const x = np(c.word, null); r.tokens.push(...x.tokens); r.nc.push(...x.nc); r.notes.push(...x.notes);
   const last = r.tokens[r.tokens.length-1];
+  if(c.word.kind==="word" && ["dã","hena"].includes(c.word.lu)) last.pieces[0].g = c.word.lu==="dã" ? "yes" : "no";
   if(c.word.kind==="word" && ["dã","hena"].includes(c.word.lu)) last.pieces[0].note = c.word.lu==="dã" ? "dã — yes: agreement, acknowledgement, compliance (§6.3)." : "hena on its own is a standalone no (§6.3).";
   else r.notes.push(N.bare);
   r.built.push(npEn(c.word));
@@ -896,11 +916,11 @@ function compose(){
     const vt = Bc.verbTok, last = vt.pieces[vt.pieces.length-1];
     if(link==="if"){
       const w = last.t, fin = w.slice(-1);
-      if(!vt.gap && isNasal(fin)){ last.t = w.slice(0,-1)+oral(fin); vt.pieces.push(P("na","part",N.ifLink(w))); }
-      else { vt.pieces.push(P("na","part",N.ifNa)); vt.tail = {p:"na", trig:"a"}; }
-    } else if(link==="when"){ vt.pieces.push(P("wa","part",N.whenWa)); vt.tail = {p:"wa", trig:"a"}; }
-    else if(link==="because"){ vt.pieces.push(P("di","part",N.becauseDi)); vt.tail = {p:"di", trig:"i"}; }
-    else Bc.tokens.push(link==="since" ? FW("toma", N.sinceToma) : FW("rowo", N.untilRowo));
+      if(!vt.gap && isNasal(fin)){ last.t = w.slice(0,-1)+oral(fin); vt.pieces.push(P("na","part",N.ifLink(w),"if")); }
+      else { vt.pieces.push(P("na","part",N.ifNa,"if")); vt.tail = {p:"na", trig:"a"}; }
+    } else if(link==="when"){ vt.pieces.push(P("wa","part",N.whenWa,"when")); vt.tail = {p:"wa", trig:"a"}; }
+    else if(link==="because"){ vt.pieces.push(P("di","part",N.becauseDi,"because")); vt.tail = {p:"di", trig:"i"}; }
+    else Bc.tokens.push(link==="since" ? FW("toma", N.sinceToma, null, "since") : FW("rowo", N.untilRowo));
     const tl = A.topicLen || 0;
     T = [...A.tokens.slice(0,tl), ...Bc.tokens, ...A.tokens.slice(tl)];
     if(tl) out.notes.push("A noun topic may stand before the "+link+" part (§6.1a). The part first is legal too; there's no topic inside it.");
@@ -924,7 +944,7 @@ function compose(){
     if(a.tail.trig.includes(oral(first.toLowerCase()))){
       const pc = a.pieces[a.pieces.length-1];
       const p = a.tail.p;
-      pc.t = pc.t.slice(0, pc.t.length - 1) + "'";
+      pc.o = pc.t; pc.t = pc.t.slice(0, pc.t.length - 1) + "'";
       pc.cls = "elide";
       pc.note = `${p} drops its last vowel before the ${first} of the next word and is written joined to it (§1b.4). `+(pc.note||"");
       a.join = true;
@@ -953,6 +973,273 @@ function compose(){
   return out;
 }
 
+/* ---------- word-by-word line and English line ---------- */
+function glossOfPiece(p){
+  if(p.g !== undefined && p.g !== null && p.g !== "") return p.g;
+  const t = p.o || p.t;
+  if(DEICTIC[t]) return DEICTIC[t];
+  if(PG[t]) return PG[t];
+  if(p.cls==="root" && LEX && LEX[t]) return lexG(t);
+  return "";
+}
+function glossColumns(tokens){
+  const cols = []; let cur = null;
+  tokens.forEach(tok=>{
+    if(!cur) cur = {lu:"", gl:[]};
+    tok.pieces.forEach(p=>{
+      if(p.cls==="punct" || p.cls==="comma"){ cur.lu += p.t==="“"||p.t==="”"||p.t==="?”" ? p.t : ","; return; }
+      cur.lu += p.t;
+      const g = glossOfPiece(p);
+      if(g){ if(g.startsWith("'") && cur.gl.length) cur.gl[cur.gl.length-1] += g; else cur.gl.push(g); }
+    });
+    if(!tok.join){ cols.push(cur); cur = null; }
+  });
+  if(cur) cols.push(cur);
+  return cols;
+}
+
+const IRR_PAST = {be:"was", eat:"ate", see:"saw", go:"went", come:"came", say:"said", do:"did", know:"knew", give:"gave", take:"took", make:"made", sleep:"slept", drink:"drank", sit:"sat", stand:"stood", run:"ran", get:"got", find:"found", feel:"felt", hear:"heard", hold:"held", keep:"kept", leave:"left", lose:"lost", meet:"met", put:"put", read:"read", sing:"sang", speak:"spoke", swim:"swam", tell:"told", think:"thought", throw:"threw", understand:"understood", wake:"woke", wear:"wore", win:"won", write:"wrote", break:"broke", bring:"brought", buy:"bought", catch:"caught", choose:"chose", cut:"cut", draw:"drew", drive:"drove", fall:"fell", fight:"fought", fly:"flew", forget:"forgot", grow:"grew", hide:"hid", hit:"hit", hurt:"hurt", lay:"laid", lead:"led", lie:"lay", ride:"rode", ring:"rang", rise:"rose", sell:"sold", send:"sent", shake:"shook", shine:"shone", shoot:"shot", shut:"shut", sink:"sank", spend:"spent", steal:"stole", sting:"stung", strike:"struck", sweep:"swept", swing:"swung", teach:"taught", tear:"tore", become:"became", begin:"began", bite:"bit", blow:"blew", build:"built", dig:"dug", feed:"fed", freeze:"froze", hang:"hung", have:"had", let:"let", mean:"meant", pay:"paid", set:"set", shrink:"shrank", spin:"spun", spread:"spread", weep:"wept", wind:"wound", bleed:"bled", breed:"bred", forgive:"forgave", hold:"held", kneel:"knelt", lend:"lent", slide:"slid", sting:"stung", stink:"stank", swell:"swelled", awake:"awoke"};
+const COMPAR = {fast:"faster", slow:"slower", big:"bigger", small:"smaller", tall:"taller", old:"older", young:"younger", dark:"darker", bright:"brighter", cold:"colder", hot:"hotter", warm:"warmer", good:"better", bad:"worse", long:"longer", short:"shorter", strong:"stronger", quiet:"quieter", loud:"louder", high:"higher", low:"lower", near:"nearer", far:"farther", heavy:"heavier", light:"lighter", happy:"happier", easy:"easier", early:"earlier", late:"later", soft:"softer", hard:"harder", clean:"cleaner", kind:"kinder", tired:"more tired", full:"fuller", deep:"deeper", wide:"wider", thin:"thinner", thick:"thicker", sweet:"sweeter", tasty:"tastier", pretty:"prettier", cute:"cuter", wet:"wetter", dry:"drier", sad:"sadder", safe:"safer", sleepy:"sleepier", hungry:"hungrier", busy:"busier", calm:"calmer", rich:"richer", poor:"poorer", new:"newer", nice:"nicer", red:"redder"};
+function pastOf(v){
+  if(IRR_PAST[v]) return IRR_PAST[v];
+  if(/e$/.test(v)) return v+"d";
+  if(/[^aeiou]y$/.test(v)) return v.slice(0,-1)+"ied";
+  if(v.length<=4 && /[^aeiou][aeiou][bdgklmnprt]$/.test(v)) return v+v.slice(-1)+"ed";
+  return v+"ed";
+}
+function thirdS(v){
+  if(v==="have") return "has"; if(v==="be") return "is";
+  if(/(s|sh|ch|x|z|o)$/.test(v)) return v+"es";
+  if(/[^aeiou]y$/.test(v)) return v.slice(0,-1)+"ies";
+  return v+"s";
+}
+const IRR_PL = {person:"people", child:"children", man:"men", woman:"women", foot:"feet", tooth:"teeth", mouse:"mice", fish:"fish", sheep:"sheep", deer:"deer", leaf:"leaves", knife:"knives", wife:"wives", life:"lives", wolf:"wolves", goose:"geese", ox:"oxen"};
+const NUM_EN = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+const TENS_EN = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+const numEn = n => n<20 ? NUM_EN[n] : TENS_EN[Math.floor(n/10)] + (n%10 ? "-"+NUM_EN[n%10] : "");
+const POSS_PRON = {nuswa:"mine", lwaji:"yours", nwoli:"his/hers", luswazo:"ours", nuswata:"ours", lwajita:"yours", nwolita:"theirs"};
+function plural(w){
+  const parts = w.split(" "), last = parts.pop();
+  let p;
+  if(IRR_PL[last]) p = IRR_PL[last];
+  else if(/(s|sh|ch|x|z)$/.test(last)) p = last+"es"; else if(/[^aeiou]y$/.test(last)) p = last.slice(0,-1)+"ies"; else p = last+"s";
+  return [...parts, p].join(" ");
+}
+function enVerbBase(k){
+  const v = LEX && LEX[k]; if(!v) return null;
+  const raw = cleanGloss(v.g);
+  let g = raw.replace(/\([^)]*\)/g,"").split(/[;,/—]| - /)[0].trim().replace(/^to /i,"");
+  let adj = /adjectival/i.test(raw) || v.k==="adjv";
+  if(/^be /i.test(g)){ adj = true; g = g.replace(/^be /i,""); }
+  if(!g || /\s/.test(g)) return null;
+  return {word:g, adj};
+}
+const PRON_EN = {nuswa:["I","me","my",1], lwaji:["you","you","your",2], nwoli:["he/she","him/her","his/her",3], luswazo:["we","us","our",2], nuswata:["we","us","our",2], lwajita:["you all","you all","your",2], nwolita:["they","them","their",2]};
+const TIME_EN = {"lõji":"at night", zemi:"in the morning", "wasnĩ":"in the evening"};
+const an = w => /^[aeiou]/i.test(w) ? "an" : "a";
+
+// English for a noun phrase; returns {s, pers} or null when it can't be done safely
+function npE(x, kase, indef){
+  if(!x) return null;
+  if(x.kind==="pron"){ const p = PRON_EN[x.lu]; return p ? {s: kase==="obj"?p[1]:p[0], pers:p[3]} : null; }
+  if(x.kind==="q") return {s: x.lu==="mõzo"?"who":"what", pers:3, q:true};
+  if(x.kind==="clause" || x.kind==="quote") return null;
+  const m = x.mods || {};
+  if(m.relc || (m.num && m.num.q) || isQ(m.pos)) return null;
+  let head, det = "the", pl = false;
+  if(x.kind==="gap"){ head = "["+x.en+"]"; }
+  else if(x.kind==="name"){ head = x.en; det = ""; }
+  else if(x.kind==="ga"){
+    if(!x.verb || x.verb.kind!=="word" || (x.ga && (x.ga.vu||x.ga.bi||x.ga.du||x.ga.neg)) || m.ta) return null;
+    const vb = enVerbBase(x.verb.lu); if(!vb) return null;
+    head = "one who " + (vb.adj ? "is "+vb.word : thirdS(vb.word));
+  }
+  else { head = lexWords(x.lu); if(!head) return null; if(DEICTIC[x.lu]) return {s:DEICTIC[x.lu], pers:3}; }
+  if(m.desc){ if(m.desc.kind!=="word" || m.desc.vu) return null; const d = enVerbBase(m.desc.lu); if(!d || !d.adj) return null; head = d.word+" "+head; }
+  if(m.jo) head = "dear "+head;
+  if(m.ta){ head = plural(head); pl = true; }
+  let numW = "";
+  if(m.num){ const n = +m.num.n||0; if(n!==1 && !m.ta){ head = plural(head); } pl = n!==1; numW = numEn(n); det = numW; }
+  let ofTail = "";
+  if(m.dem) det = (pl ? "those" : "that") + (numW ? " "+numW : "");
+  if(m.pos){
+    if(m.dem){
+      // that … of mine (§5.1: nuswape na kire konu helã)
+      if(m.pos.kind==="pron"){ const pp = POSS_PRON[m.pos.lu]; if(!pp) return null; ofTail = " of "+pp; }
+      else { const e = npE(m.pos, "subj"); if(!e) return null; ofTail = " of "+e.s+"'s"; }
+    } else {
+      let o;
+      if(m.pos.kind==="pron"){ const pp = PRON_EN[m.pos.lu]; if(!pp) return null; o = pp[2]; }
+      else { const e = npE(m.pos, "subj"); if(!e) return null; o = e.s+"'s"; }
+      det = o + (numW ? " "+numW : "");
+    }
+  }
+  if(indef && det==="the" && !pl) det = an(head);
+  let s = (det ? det+" " : "") + head + ofTail;
+  if(m.join && m.join.items && m.join.items.length){
+    const others = m.join.items.map(i=>npE(i, kase, indef));
+    if(others.some(o=>!o)) return null;
+    const all = [s, ...others.map(o=>o.s)];
+    s = m.join.type==="or" ? all.join(" or ") : (all.length>2 ? all.slice(0,-1).join(", ")+" and "+all[all.length-1] : all.join(" and "));
+    if(m.join.type!=="or") pl = true;
+  }
+  return {s, pers: pl ? 2 : 3};
+}
+function timeE(c){
+  const x = c.time; if(!x) return "";
+  if(isQ(x)) return null;
+  const base = (x.kind==="word" && DEICTIC[x.lu]) ? DEICTIC[x.lu] : (x.kind==="word" && TIME_EN[x.lu] && !x.mods) ? null : (npE(x,"obj")||{}).s;
+  if(c.trel==="from") return base ? "from "+base : (x.kind==="word" ? "from "+lexWords(x.lu) : null);
+  if(c.trel==="until") return base ? "until "+base : (x.kind==="word" ? "until "+lexWords(x.lu) : null);
+  if(x.kind==="word" && DEICTIC[x.lu]) return DEICTIC[x.lu];
+  if(x.kind==="word" && TIME_EN[x.lu] && !(x.mods && Object.values(x.mods).some(Boolean))) return TIME_EN[x.lu];
+  return base ? "at "+base : null;
+}
+function placeE(c){
+  const x = c.place; if(!x) return "";
+  if(isQ(x)) return x.fixed==="wa" ? "" : null;
+  const deic = x.kind==="word" && DEICTIC[x.lu];
+  const e = deic ? {s:DEICTIC[x.lu]} : npE(x,"obj"); if(!e) return null;
+  if(c.rel==="to") return deic ? e.s : "to "+e.s;
+  if(c.rel==="from") return "from "+e.s;
+  return deic ? e.s : "at "+e.s;
+}
+const BE = (pers, past) => past ? (pers===2 ? "were" : "was") : (pers===1 ? "am" : pers===2 ? "are" : "is");
+const NEG = {is:"isn't", are:"aren't", was:"wasn't", were:"weren't", am:"am not", can:"can't", could:"couldn't", do:"don't", does:"doesn't", did:"didn't"};
+
+function englishExist(c, type){
+  if(c.verb.lu==="ĩku") return null;
+  if(c.can||c.want||c.ato||c.aspect||c.evid&&false) {}
+  if(c.can||c.want||c.ato||c.aspect) return null;
+  const pl = placeE(c); if(pl===null) return null;
+  const tm = timeE(c); if(tm===null) return null;
+  if((c.place && isQ(c.place)) || (c.time && isQ(c.time)) || c.obj) return null;
+  const where = [pl, tm].filter(Boolean).join(" ");
+  const ev = c.evid ? ({la:", I heard", po:", it seems", ke:", I assume"})[c.evid] : "";
+  const q = type==="question";
+  const s = c.subj;
+  if(!s) return null;
+  const m = s.mods || {};
+  if(c.role==="doer" && m.pos && !m.dem && !m.num){
+    // possession: X-pe Y-ba hi — X has a Y (§3.3b)
+    const ownerE = m.pos.kind==="pron" ? (PRON_EN[m.pos.lu]||[])[0] : (npE(m.pos,"subj")||{}).s;
+    if(!ownerE) return null;
+    const bare = Object.assign({}, s, {mods: Object.assign({}, m, {pos:null})});
+    const y = npE(bare, "obj", true); if(!y) return null;
+    const pers3 = m.pos.kind==="pron" ? (PRON_EN[m.pos.lu]||[])[3] : 3;
+    const have = c.past ? "had" : (pers3===3 ? "has" : "have");
+    const doF = c.past ? "did" : (pers3===3 ? "does" : "do");
+    if(q) return [c.neg ? NEG[doF] : doF, ownerE, "have", y.s, where].filter(Boolean).join(" ")+ev+"?";
+    return [ownerE, c.neg ? NEG[doF]+" have" : have, y.s, where].filter(Boolean).join(" ")+ev+".";
+  }
+  if(c.role==="doer"){
+    // presentative: X-ba hi — there's an X (§4.7a)
+    const y = npE(s, "obj", true); if(!y || y.q) return null;
+    const be = BE(y.pers===2 ? 2 : 3, c.past), b = c.neg ? NEG[be] : be;
+    if(q) return [b, "there", y.s, where].filter(Boolean).join(" ")+ev+"?";
+    return ["there", b, y.s, where].filter(Boolean).join(" ")+ev+".";
+  }
+  // locating: X-na hi — the X is here (§4.7a)
+  const e = npE(s, "subj"); if(!e) return null;
+  const subj = (c.role==="drop" && s.kind==="pron") ? "("+e.s+")" : e.s;
+  const be = BE(e.pers, c.past), b = c.neg ? NEG[be] : be;
+  if(q) return [b, subj, where || "there"].join(" ")+ev+"?";
+  return [subj, b, where || "there"].join(" ")+ev+".";
+}
+function englishVerb(c, type){
+  if(c.verb && c.verb.kind==="word" && ["hi","yozu","ĩku"].includes(c.verb.lu) && !c.ongoing && !c.vu && !c.aux && !c.might && !c.verb2 && !c.manner && !c.why && !c.dip && type!=="command" && type!=="lets") return englishExist(c, type);
+  if(c.ongoing||c.vu||c.aux||c.might||c.verb2||c.manner||c.why||c.dip||c.aspect==="ila"||c.causee) return null;
+  if(c.verb.kind!=="word" && c.verb.kind!=="gap") return null;
+  const vb = c.verb.kind==="gap" ? {word:"["+c.verb.en+"]", adj:false} : enVerbBase(c.verb.lu);
+  if(!vb) return null;
+  const cmd = type==="command", lets = type==="lets";
+  const past = c.past && !cmd && !lets;
+  const never = c.ato==="never", neg = c.neg && !never;
+  const adv = c.ato==="always" ? "always" : never ? "never" : c.aspect==="zoka" ? "usually" : "";
+  // pieces after the verb
+  let obj = "", wh = "";
+  if(c.obj){ const e = npE(c.obj,"obj"); if(!e) return null; if(e.q) wh = e.s; else obj = e.s; }
+  const pl = placeE(c); if(pl===null) return null;
+  const tm = timeE(c); if(tm===null) return null;
+  if(c.place && isQ(c.place)){ if(wh) return null; wh = "where"; }
+  if(c.time && isQ(c.time)){ if(wh) return null; wh = "when"; }
+  const rest = [obj, pl, tm].filter(Boolean).join(" ");
+  const ev = c.evid ? ({la:", I heard", po:", it seems", ke:", I assume"})[c.evid] : "";
+  // main verb chain: finite + complement
+  let kind, finite, comp;
+  if(c.want){ kind = "lex"; finite = "want"; comp = "to " + (c.can ? "be able to " : "") + (vb.adj ? "be "+vb.word : vb.word); }
+  else if(c.can){ kind = "modal"; finite = past ? "could" : "can"; comp = vb.adj ? "be "+vb.word : vb.word; }
+  else if(vb.adj){ kind = "be"; finite = null; comp = vb.word; }
+  else { kind = "lex"; finite = vb.word; comp = ""; }
+  const tail = (...xs) => xs.filter(Boolean).join(" ");
+  if(cmd){
+    const v = kind==="be" ? "be "+comp : kind==="modal" ? null : tail(finite, comp);
+    if(!v) return null;
+    return tail(neg ? "don't" : "", adv, v, rest) + ".";
+  }
+  if(lets) return tail("let's", neg ? "not" : "", adv, kind==="be" ? "be "+comp : kind==="modal" ? null : tail(finite, comp), rest) + ".";
+  // subject
+  let subj, pers, qSubj = false, added = false;
+  const s = c.subj;
+  if(s){
+    const e = npE(s,"subj"); if(!e) return null;
+    if(e.q){ qSubj = true; subj = e.s; pers = 3; }
+    else { subj = (c.role==="drop" && s.kind==="pron") ? "("+e.s+")" : e.s; pers = e.pers; }
+  } else { const isQn = type==="question" || wh; subj = isQn ? "(you)" : "(I)"; pers = isQn ? 2 : 1; added = true; }
+  const question = type==="question" || wh || qSubj;
+  const be = BE(pers, past);
+  const doF = past ? "did" : (pers===3 ? "does" : "do");
+  const inflect = v => past ? pastOf(v) : (pers===3 ? thirdS(v) : v);
+  let out;
+  if(question && !qSubj){
+    // auxiliary first
+    let aux, after;
+    if(kind==="be"){ aux = neg ? NEG[be] : be; after = tail(subj, adv, comp); }
+    else if(kind==="modal"){ aux = neg ? NEG[finite] : finite; after = tail(subj, adv, comp); }
+    else { aux = neg ? NEG[doF] : doF; after = tail(subj, adv, finite, comp); }
+    out = tail(wh, aux, after, rest);
+  } else {
+    let vp;
+    if(kind==="be") vp = tail(neg ? NEG[be] : be, adv, comp);
+    else if(kind==="modal") vp = tail(neg ? NEG[finite] : finite, adv, comp);
+    else vp = neg ? tail(NEG[doF], adv, finite, comp) : tail(adv, inflect(finite), comp);
+    out = tail(subj, vp, rest);
+  }
+  return out + ev + (question ? "?" : ".");
+}
+function englishIs(c, type){
+  if(type==="command"||type==="lets") return null;
+  const qS = isQ(c.subj), qP = isQ(c.pred);
+  let subj, pers;
+  if(c.subj){ const e = npE(c.subj,"subj"); if(!e) return null; subj = (c.role==="drop" && c.subj.kind==="pron" && !qS) ? "("+e.s+")" : e.s; pers = qS ? 3 : e.pers; }
+  else { subj = "(it)"; pers = 3; }
+  const pe = npE(c.pred,"obj", !!c.subj); if(!pe) return null;
+  const be = BE(qP ? (c.subj ? pers : 3) : pers, c.past);
+  const b = c.neg ? NEG[be] : be;
+  if(qP) return [pe.s, b, subj].join(" ")+"?";
+  if(qS) return [subj, b, pe.s].join(" ")+"?";
+  if(type==="question") return [b, subj, pe.s].join(" ")+"?";
+  return [subj, b, pe.s].join(" ")+".";
+}
+function englishCompare(c, type){
+  if(type==="command"||type==="lets") return null;
+  const a = npE(c.subj,"subj"), b = npE(c.std,"obj"); if(!a || !b || a.q || b.q) return null;
+  const vb = enVerbBase(c.verb.lu); if(!vb || !vb.adj) return null;
+  const be = BE(a.pers, c.past), bn = c.neg ? NEG[be] : be;
+  const adjP = c.cmp==="as" ? "as "+vb.word+" as" : (COMPAR[vb.word] || "more "+vb.word)+" than";
+  if(type==="question") return [bn, a.s, adjP, b.s].join(" ")+"?";
+  return [a.s, bn, adjP, b.s].join(" ")+".";
+}
+function englishLine(){
+  if(S.link) return null;
+  const c = S.c1, t = S.type;
+  if(c.kind==="word"){ if(!c.word) return null; if(c.word.kind==="word" && c.word.lu==="dã") return "Yes."; if(c.word.kind==="word" && c.word.lu==="hena") return "No."; const e = npE(c.word,"subj"); return e ? e.s+"." : null; }
+  if(c.kind==="is") return c.pred ? englishIs(c, t) : null;
+  if(c.kind==="compare") return (c.subj && c.std && c.verb) ? englishCompare(c, t) : null;
+  return c.verb ? englishVerb(c, t) : null;
+}
+function capFirst(s){ return s.replace(/[A-Za-z]/, ch=>ch.toUpperCase()); }
+
 /* ---------- render ---------- */
 let pieceIndex = [];
 function render(){
@@ -967,7 +1254,7 @@ function render(){
   $("#answers").innerHTML = "";
   if(!c.ready){
     sEl.innerHTML = `<span class="placeholder">${esc(!LEX ? "Load the lexicon to start." : c.nc.length ? "—" : (c.wait||""))}</span>`;
-    $("#built").textContent = "";
+    $("#gloss").innerHTML = ""; $("#eng").innerHTML = ""; $("#eng").className = "eng";
   } else {
     let html = "", first = true, quoteOpen = false;
     c.tokens.forEach((tok,ti)=>{
@@ -987,7 +1274,10 @@ function render(){
     });
     html += c.question ? "?" : ".";
     sEl.innerHTML = html;
-    $("#built").textContent = "Built from: " + c.built.join(" · ");
+    $("#gloss").innerHTML = glossColumns(c.tokens).map(col=>`<span class="gc"><span class="gl lu">${esc(col.lu)}</span><span class="gg">${esc(col.gl.join("-"))}</span></span>`).join("");
+    const en = englishLine();
+    if(en){ $("#eng").className = "eng"; $("#eng").textContent = capFirst(en); }
+    else { $("#eng").className = "eng none"; $("#eng").textContent = "No English line for this kind of sentence yet — read it from the words above."; }
     if(c.answers){
       $("#answers").innerHTML = c.answers.text ? `<div class="answers">${esc(c.answers.text)}</div>`
         : `<div class="answers">Answer by echoing the verb (§6.3): yes <span class="lu">${esc(c.answers.yes)}</span> · no <span class="lu">${esc(c.answers.no)}</span><br><span style="color:var(--muted);font-size:13px">Also <span class="lu">dã</span>, yes; <span class="lu">hena</span> on its own, no (§6.3).</span></div>`;
@@ -1332,7 +1622,7 @@ function flash(msg){ const f = $("#flash"); f.textContent = msg; f.classList.add
 $("#saveBtn").onclick = () => {
   const c = compose(); if(!c.ready || c.nc.length){ flash("Build a sentence first."); return; }
   const o = getSaved();
-  o.lists[o.current].push({lu: $("#sentence").innerText.trim(), en: c.built.join(" · "), state: JSON.parse(JSON.stringify(S)), at: Date.now()});
+  o.lists[o.current].push({lu: $("#sentence").innerText.trim(), en: (englishLine() ? capFirst(englishLine()) : c.built.join(" · ")), state: JSON.parse(JSON.stringify(S)), at: Date.now()});
   putSaved(o); updateSavedCount(); flash("Saved to “"+o.current+"”");
 };
 $("#savedBtn").onclick = () => { drawSaved(); $("#scrim").classList.add("on"); $("#saved").classList.add("on"); };
