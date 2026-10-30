@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-30-0800">
+<meta name="lunaji-build" content="2026-10-30-1109">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -127,6 +127,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 .sheet .it:active,.sheet .it:hover{background:var(--accent-soft)}
 .sheet .it .l{font-size:17px;color:var(--muted);white-space:nowrap}
 .sheet .gapbtn{margin:10px 8px 0;border:1px dashed var(--gap);color:var(--gap);background:var(--gap-soft);border-radius:10px;padding:10px;width:calc(100% - 16px);cursor:pointer;font-size:14px}
+.sheet .it .fg{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 .sheet .namebtn{border:1px solid var(--accent);color:var(--accent);background:var(--accent-soft)}
 .sheet .more2{font-size:13px;color:var(--muted);padding:8px}
 
@@ -190,7 +191,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
       <div id="ncbox"></div>
       <div id="answers"></div>
       <div class="tip" id="tip"></div>
-      <div class="acts"><button id="saveBtn">Save</button><button id="savedBtn">Saved (0)</button><span id="flash"></span></div>
+      <div class="acts"><button id="saveBtn">Save</button><button id="savedBtn">Saved (0)</button><button id="exBtn">Examples</button><span id="flash"></span></div>
     </div>
   </div>
 
@@ -220,7 +221,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="saved" role="dialog" aria-modal="true">
-  <div class="top"><div class="t"><span>Saved sentences</span><button id="savedClose">Done</button></div></div>
+  <div class="top"><div class="t"><span>Examples &amp; saved sentences</span><button id="savedClose">Done</button></div></div>
   <div class="list" id="savedList"></div>
 </div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true">
@@ -235,7 +236,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-30-0800";
+const BUILD = "2026-10-30-1109";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -263,8 +264,8 @@ function addName(n){ const a = getNames().filter(x=>x!==n); a.unshift(n); ls.set
 let LEX = null, LEXSRC = "", NOUNS = [], VERBS = [];
 const NOT_NOUNS = new Set(["hena","dã","mõzo","emose"]);
 const NOT_VERBS = new Set(["gu"]);
-const DEICTIC = {gono:"today", sunõ:"tomorrow", moke:"yesterday", ãko:"now", toye:"later", ümi:"here", sedo:"there"};
-const TIME_DEICTIC = ["gono","sunõ","moke","ãko","toye"];
+const DEICTIC = {gono:"today", sunõ:"tomorrow", moke:"yesterday", ãko:"now", toye:"later", noske:"earlier", ryukema:"then", tsüki:"already", ümi:"here", sedo:"there"};
+const TIME_DEICTIC = ["gono","sunõ","moke","ãko","toye","noske","ryukema","tsüki"];
 const PLACE_DEICTIC = ["ümi","sedo"];
 const TIME_NAMES = ["lõji","zemi","wasnĩ"];
 
@@ -348,7 +349,14 @@ const N = {
   di: "To. di is the catch-all: to, with, by, about (§2.2).",
   toma: "From. toma is two syllables and is written as its own word (§2.2, §1b.4).",
   pe: "Possessive: whose it is. pe joins the owner and drops its vowel before any vowel (§2.2, §1b.4).",
-  deictic: w => `${w} points from right now, so it stands bare and never takes wa (§2.2).`,
+  deictic: w => `${w} points from now, or from the time in question, so it stands bare and never takes wa (§2.2).`,
+  deicticTo: w => `${w} already says where, so it stands bare even with a verb of motion: ümi kazõ, come here (§2.2, §2.4a).`,
+  beforeNoske: "noske after a clause: before. Written apart; the clause's verb stays bare, and the main clause carries the tense (§6.1a).",
+  call: "A name opening a sentence is a bare noun, and the comma after it is its pause (§2.4a).",
+  thisPe: "ümipe — this: \"of here\". na alone is neutral (the / that); this and that are built with ümi and sedo + pe (§2.4).",
+  thatPe: "sedope — that: \"of there\" (§2.4).",
+  emosewaIs: "emosewa in the second place asks when (§3.6).",
+  emosediIs: "emosedi in the second place asks how something is; it's answered with a describing word: Weru. (§3.6)",
   dem: "na — that, the. It stands before the noun and drops its vowel before any vowel (§2.4, §1b.4).",
   ta: "Plural -ta, only for something that moves or makes sound on its own (§2.1, §3.3).",
   jo: "-jo: little, dear — affectionate. It lives on names and kin terms (§2.1a).",
@@ -407,7 +415,7 @@ const N = {
   gaPe: "With a -ga word, what the action is done to comes first, joined with pe (§2.6).",
   vu: "-vu: the state the action leaves on whatever it happened to. It makes a new verb, so the other endings follow it (§4.11).",
   vuVu: " On a verb that ends in -vu the syllable doubles; legal, and a watch item (§4.11, §8).",
-  dip: "di — to, with, by, about: a person, tool or cause takes the di slot, after the subject (§2.2, §5.2).",
+  dip: "di — to, for, with, by, about: a person, tool or cause takes the di slot, after the subject (§2.2, §5.2).",
   dipVu: "With -vu, the one who did it is named with di (§4.11).",
   emosedi: "How or why: one form, because di covers instrument and cause (§3.6).",
   howMany: "How many: the question word takes the counter in place of a number — mõzore for what acts, emoseko for things (§3.6, §7).",
@@ -426,7 +434,7 @@ const N = {
 
 /* ---------- tokens ---------- */
 function P(t, cls, note, g){ const o = {t, cls, note}; if(g!==undefined) o.g = g; return o; }
-const FWG = {na:"that", ila:"has", zoka:"habitually", "oyã":"might", hena:"not", toma:"from", rowo:"until", fa:"and", puso:"or", mishi:"and", "norõ":"but", "kügi":"than", "uã":"as", "jĩ":"(question)", la:"(heard)", po:"(it seems)", ke:"(I assume)", yeti:"that.(clause)", zero:"zero"};
+const FWG = {noske:"before", na:"the/that", ila:"has", zoka:"habitually", "oyã":"might", hena:"not", toma:"from", rowo:"until", fa:"and", puso:"or", mishi:"and", "norõ":"but", "kügi":"than", "uã":"as", "jĩ":"(question)", la:"(heard)", po:"(it seems)", ke:"(I assume)", yeti:"that.(clause)", zero:"zero"};
 function FW(word, note, trig, g){
   if(LEX && !inLex(word)) return {pieces:[P("["+word+"]","gap",N.missingFW(word),word)], gap:true, missing:word};
   return {pieces:[P(word,"part",note, g!==undefined ? g : FWG[word])], tail: trig ? {p:word, trig} : null};
@@ -539,7 +547,8 @@ function np(item, particle){
   const canMod = ["word","name","gap","ga"].includes(item.kind);
   if(canMod){
     if(m.num && m.ta) res.nc.push("A counted noun never takes -ta: counter and -ta don't go together (§7).");
-    if(m.pos){ checkName(m.pos); const pt = headToken(m.pos, null, "pe"); if(item.kind==="ga"){ const pp = pt.pieces[pt.pieces.length-1]; if(pp.cls==="part") pp.note = N.gaPe; } T.push(pt); }
+    if(m.pos){ checkName(m.pos); const pt = headToken(m.pos, null, "pe");
+      if(m.pos.kind==="word" && (m.pos.lu==="ümi"||m.pos.lu==="sedo")){ const pp = pt.pieces[pt.pieces.length-1]; pp.note = m.pos.lu==="ümi" ? N.thisPe : N.thatPe; pt.pieces[0].g = m.pos.lu==="ümi" ? "this" : "that"; pp.g = ""; } if(item.kind==="ga"){ const pp = pt.pieces[pt.pieces.length-1]; if(pp.cls==="part") pp.note = N.gaPe; } T.push(pt); }
     if(m.dem) T.push(FW("na", N.dem, ANY));
     if(m.num) T.push(numberToken(m.num));
     if(m.relc){
@@ -728,7 +737,8 @@ function buildVerb(c,o,r){
       if(isQ(x) && x.fixed==="wa"){ Tf.push({pieces:[P("emose","root",N.emose,"what"), P("wa","part",N.emosewa,"(where)")], tail:{p:"wa",trig:"a"}}); B.push("where?"); }
       else if(isQ(x) && x.fixed==="toma"){ Tf.push({pieces:[P("emose","root",N.emose)]}); Tf.push(FW("toma",N.emoseToma)); B.push("from where?"); }
       else if(c.rel==="from"){ addNP(r, x, null); Tf.push(FW("toma",N.toma)); B.push("from "+npEn(x)); }
-      else if(c.rel==="to"){ addNP(r, x, "di", "to "+npEn(x)); markLast(Tf, N.di+" A di of place or direction stands in the place slot (§5.2)."); }
+      else if(c.rel==="to" && !(x.kind==="word" && DEICTIC[x.lu])){ addNP(r, x, "di", "to "+npEn(x)); const lp = Tf[Tf.length-1].pieces; const pp = lp[lp.length-1]; if(pp.cls==="part"){ pp.note = N.di+" A di of place or direction stands in the place slot (§5.2)."; pp.g = "to"; } }
+      else if(c.rel==="to"){ Tf.push({pieces:[P(x.lu,"root",N.deicticTo(x.lu))]}); B.push(x.en); }
       else if(x.kind==="word" && DEICTIC[x.lu]){ Tf.push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}); B.push(x.en); }
       else addNP(r, x, "wa", "at "+npEn(x));
     }
@@ -826,10 +836,18 @@ function buildIs(c,o,r){
   if((c.pred && c.pred.mods && isQ(c.pred.mods.pos)) || (c.subj && c.subj.mods && isQ(c.subj.mods.pos))) r.nc.push("\"Whose\" in an \"X is Y\" sentence isn't written in Grammar.md.");
   if(qPred && qSubj) r.nc.push("Two question words in one sentence isn't covered by Grammar.md.");
   if(c.subj && c.role==="doer" && !qSubj) r.nc.push("§4.6 shows \"X is Y\" with X as the topic or left out, not with ba.");
+  if(c.time && isQ(c.time)) r.nc.push("To ask when in an \"X is Y\" sentence, pick when? in the …is slot: Sukejurona emosewa? (§3.6).");
+  if(c.place && isQ(c.place)) r.nc.push("\"Where is X?\" uses hi or yu, not \"X is Y\": Lusana emosewa hi? (§3.6). Switch to Does and pick the verb to exist.");
+  if(c.place && !isQ(c.place) && c.rel!=="at") r.nc.push("Only \"at / in\" is written for a place in an \"X is Y\" sentence (§5.2).");
+  if(o.sub && (c.time || c.place)) r.nc.push("When / where inside an if-part built on \"is\" isn't written in Grammar.md.");
   if(r.nc.length) return;
+  if(c.time){ const x = c.time; if(x.kind==="word" && DEICTIC[x.lu]) T.push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}); else addNP(r, x, "wa", "at "+npEn(x)); }
+  if(c.place){ const x = c.place; if(x.kind==="word" && DEICTIC[x.lu]) T.push({pieces:[P(x.lu,"root",N.deictic(x.lu))]}); else addNP(r, x, "wa", "at "+npEn(x)); }
+  if(c.time || c.place) r.notes.push("A time or place frame may open an \"X is Y\" sentence (§5.2).");
   if(qSubj){ addNP(r, c.subj, "ba", c.subj.en); markLast(T, "In an \"X is Y\" question, a question word in the first place takes ba (§3.6)."); }
   else if(c.subj && (c.role!=="drop" || c.subj.kind!=="pron")){ addNP(r, c.subj, "topic", npEn(c.subj)+" (topic)"); r.hasTopic = true; r.topicLen = r.tokens.length; }
-  if(qPred){ r.tokens.push({pieces:[P(c.pred.lu,"root",(c.pred.lu==="mõzo"?N.mozo:N.emose).replace(/It stays.*$/,"")+" In an \"X is Y\" question it stands bare in the second place, with no jĩ (§3.6).")]}); B.push(c.pred.en); }
+  if(qPred && c.pred.fixed){ const fx = c.pred.fixed; T.push({pieces:[P("emose","root",N.emose,"what"), P(fx,"part", fx==="wa"?N.emosewaIs:N.emosediIs, fx==="wa"?"(when)":"(how)")], tail:{p:fx, trig:fx.slice(-1)}}); B.push(c.pred.en); }
+  else if(qPred){ r.tokens.push({pieces:[P(c.pred.lu,"root",(c.pred.lu==="mõzo"?N.mozo:N.emose).replace(/It stays.*$/,"")+" In an \"X is Y\" question it stands bare in the second place, with no jĩ (§3.6).")]}); B.push(c.pred.en); }
   else addNP(r, c.pred, null, "is "+npEn(c.pred));
   if(c.past){
     if(LEX && !inLex("gu")) T.push({pieces:[P("[gu]","gap",N.missingFW("gu"))], gap:true});
@@ -885,7 +903,7 @@ function clauseReady(c){
 }
 
 /* ---------- compose the sentence ---------- */
-const SUBS = ["if","when","because","since","until"];
+const SUBS = ["if","when","because","since","until","before"];
 function compose(){
   const out = {tokens:[], notes:[], nc:[], warns:[], built:[], gaps:[], question:false, ready:false, answers:null};
   const t = S.type, c1 = S.c1, link = S.link, c2 = link ? S.c2 : null;
@@ -905,10 +923,13 @@ function compose(){
   if(c2){
     if(t==="lets") out.nc.push("Let's with a second clause isn't written in Grammar.md.");
     if(!sub && t==="command") out.nc.push("A command joined with mishi or norõ isn't written in Grammar.md.");
-    if(!sub && (t==="question" || A.qCount || (Bc&&Bc.qCount) || c1.evid || c2.evid || More.some(x=>x.qCount) || chain.some(m=>m.c.evid))) out.nc.push("A question, or la / po / ke, in two clauses joined by mishi or norõ isn't written in Grammar.md.");
+    if(!sub && (A.qCount || (Bc&&Bc.qCount) || c1.evid || c2.evid || More.some(x=>x.qCount) || chain.some(m=>m.c.evid))) out.nc.push("A question word, or la / po / ke, in clauses joined by mishi or norõ isn't written in Grammar.md. A yes / no question is fine: one jĩ at the very end (§6.2).");
     if(sub && c2.kind!=="verb" && !(c2.kind==="is" && link==="if")) out.nc.push("This part needs a verb. An \"X is Y\" part is written only with if (§6.1a).");
     if(sub && Bc && Bc.qCount) out.nc.push("A question word in an if / when / because clause isn't covered.");
+    if(link==="before" && c2.kind==="verb" && (c2.past||c2.neg||c2.can||c2.want||c2.ongoing||c2.vu||c2.aspect||c2.ato)) out.nc.push("In a before-clause the verb stays bare: no past, not, can, want or other endings (§6.1a). The main clause carries the tense.");
   }
+  if(S.call && (c2 || c1.kind==="word")) { /* allowed with joined clauses too */ }
+  if(S.call && S.call.kind==="q") out.nc.push("A question word can't open a sentence as a name.");
   if(out.nc.length) return out;
 
   let T = [];
@@ -920,20 +941,27 @@ function compose(){
       else { vt.pieces.push(P("na","part",N.ifNa,"if")); vt.tail = {p:"na", trig:"a"}; }
     } else if(link==="when"){ vt.pieces.push(P("wa","part",N.whenWa,"when")); vt.tail = {p:"wa", trig:"a"}; }
     else if(link==="because"){ vt.pieces.push(P("di","part",N.becauseDi,"because")); vt.tail = {p:"di", trig:"i"}; }
+    else if(link==="before") Bc.tokens.push(FW("noske", N.beforeNoske, null, "before"));
     else Bc.tokens.push(link==="since" ? FW("toma", N.sinceToma, null, "since") : FW("rowo", N.untilRowo));
     const tl = A.topicLen || 0;
     T = [...A.tokens.slice(0,tl), ...Bc.tokens, ...A.tokens.slice(tl)];
     if(tl) out.notes.push("A noun topic may stand before the "+link+" part (§6.1a). The part first is legal too; there's no topic inside it.");
     out.built = [link+": "+Bc.built.join(" · "), ...A.built];
-    out.notes.push((link==="since"||link==="until") ? "The "+link+" part comes first, with "+(link==="since"?"toma":"rowo")+" after its verb and no comma (§6.1). Each clause has its own negation and tense (§6.2)." : "The "+link+" part comes first, with its particle straight on its verb and no comma (§6.1, §6.1a). Each clause has its own negation and tense (§6.2).");
+    out.notes.push((link==="since"||link==="until"||link==="before") ? "The "+link+" part comes first, with "+({since:"toma",until:"rowo",before:"noske"})[link]+" after its verb and no comma (§6.1, §6.1a). "+(link==="before"?"Its verb stays bare; the main clause carries the tense.":"Each clause has its own negation and tense (§6.2).") : "The "+link+" part comes first, with its particle straight on its verb and no comma (§6.1, §6.1a). Each clause has its own negation and tense (§6.2).");
   } else if(c2){
     const lkTok = l => l==="mishi" ? FW("mishi", N.mishi, "i") : FW("norõ", N.noro);
     T = [...A.tokens, lkTok(link), ...Bc.tokens];
     out.built = [...A.built, link==="mishi"?"and":"but", ...Bc.built];
     chain.forEach((m,i)=>{ T.push(lkTok(m.link), ...More[i].tokens); out.built.push(m.link==="mishi"?"and":"but", ...More[i].built); });
+    if(t==="question"){ T.push(FW("jĩ", "One jĩ at the very end of joined clauses: it asks about the whole sentence (§6.2).")); }
   } else { T = A.tokens; out.built = A.built; }
-  out.question = A.question;
+  out.question = A.question || (!!c2 && !sub && t==="question");
   out.notes.push(...A.notes); if(Bc) out.notes.push(...Bc.notes); More.forEach(x=>out.notes.push(...x.notes));
+  if(S.call && c1.kind!=="word"){
+    const cx = np(S.call, null);
+    out.nc.push(...cx.nc);
+    if(cx.tokens.length){ const lt = cx.tokens[cx.tokens.length-1]; lt.after = ","; lt.pieces.push(P(",","comma",N.call)); T = [...cx.tokens, ...T]; out.notes.push(N.call); }
+  }
   if(c1.kind==="verb" && T.length>2) out.notes.push("Neutral order: topic → time → place → subject (ba) → di → object (ni) → how → verb. Only the verb's place is fixed: any other order of the noun phrases is legal, and when or where may stand before the topic as the frame (§5.2).");
 
   // elision (§1b.4, §6, §6.0)
@@ -1031,9 +1059,33 @@ function enVerbBase(k){
   let g = raw.replace(/\([^)]*\)/g,"").split(/[;,/—]| - /)[0].trim().replace(/^to /i,"");
   let adj = /adjectival/i.test(raw) || v.k==="adjv";
   if(/^be /i.test(g)){ adj = true; g = g.replace(/^be /i,""); }
+  let prt = "";
+  const two = g.match(/^(\S+) (up|out|in|off|on|down|at|for|back|after|away|over|around)$/i);
+  if(two && !adj){ g = two[1]; prt = two[2]; }
   if(!g || /\s/.test(g)) return null;
-  return {word:g, adj};
+  return {word:g, adj, prt};
 }
+function ingOf(v){
+  if(v==="be") return "being"; if(/ie$/.test(v)) return v.slice(0,-2)+"ying";
+  if(/[^e]e$/.test(v) && v!=="be") return v.slice(0,-1)+"ing";
+  if(v.length<=4 && /[^aeiou][aeiou][bdgklmnprt]$/.test(v)) return v+v.slice(-1)+"ing";
+  return v+"ing";
+}
+function advOf(a){
+  const IRR = {good:"well", fast:"fast", hard:"hard", late:"late", early:"early", loud:"loudly", well:"well"};
+  if(IRR[a]) return IRR[a];
+  if(/[^aeiou]y$/.test(a)) return a.slice(0,-1)+"ily";
+  if(/le$/.test(a)) return a.slice(0,-1)+"y";
+  if(/ic$/.test(a)) return a+"ally";
+  return a+"ly";
+}
+const KIN_EN = {mother:"Mom", father:"Dad", grandmother:"Grandma", grandfather:"Grandpa"};
+const MASS_EN = new Set(["water","milk","juice","rain","work","tea","coffee","bread","rice","soup","snow","sand","money","music","homework","food"]);
+const PAIRS_EN = new Set(["tooth","hand","shoe","foot","eye","ear","toy","key","sock","glove","boot","finger","toe"]);
+const PLACE_EN = {"tsuruã":{at:"outside", to:"outside", from:"from outside"}, "saĩko":{at:"at home", to:"home", from:"from home"}};
+const FUTURE_W = new Set(["toye","sunõ"]);
+const MOTION_V = new Set(["shĩyu","kazõ","oskayu","kegu","abuyã"]);
+const DI_EN = {"hõkinu":"dat", onu:"dat", kotõru:"of", susoru:"about", mĩsu:"for", logu:"for"};
 const PRON_EN = {nuswa:["I","me","my",1], lwaji:["you","you","your",2], nwoli:["he/she","him/her","his/her",3], luswazo:["we","us","our",2], nuswata:["we","us","our",2], lwajita:["you all","you all","your",2], nwolita:["they","them","their",2]};
 const TIME_EN = {"lõji":"at night", zemi:"in the morning", "wasnĩ":"in the evening"};
 const an = w => /^[aeiou]/i.test(w) ? "an" : "a";
@@ -1054,7 +1106,9 @@ function npE(x, kase, indef){
     const vb = enVerbBase(x.verb.lu); if(!vb) return null;
     head = "one who " + (vb.adj ? "is "+vb.word : thirdS(vb.word));
   }
-  else { head = lexWords(x.lu); if(!head) return null; if(DEICTIC[x.lu]) return {s:DEICTIC[x.lu], pers:3}; }
+  else { head = lexWords(x.lu); if(!head) return null; if(DEICTIC[x.lu]) return {s:DEICTIC[x.lu], pers:3};
+    if(KIN_EN[head] && !Object.values(m).some(Boolean)) return {s:KIN_EN[head], pers:3};
+    if(MASS_EN.has(head) && kase==="obj") det = ""; }
   if(m.desc){ if(m.desc.kind!=="word" || m.desc.vu) return null; const d = enVerbBase(m.desc.lu); if(!d || !d.adj) return null; head = d.word+" "+head; }
   if(m.jo) head = "dear "+head;
   if(m.ta){ head = plural(head); pl = true; }
@@ -1069,12 +1123,14 @@ function npE(x, kase, indef){
       else { const e = npE(m.pos, "subj"); if(!e) return null; ofTail = " of "+e.s+"'s"; }
     } else {
       let o;
-      if(m.pos.kind==="pron"){ const pp = PRON_EN[m.pos.lu]; if(!pp) return null; o = pp[2]; }
+      if(m.pos.kind==="word" && (m.pos.lu==="ümi"||m.pos.lu==="sedo")) o = m.pos.lu==="ümi" ? (pl?"these":"this") : (pl?"those":"that");
+      else if(m.pos.kind==="pron"){ const pp = PRON_EN[m.pos.lu]; if(!pp) return null; o = pp[2];
+        if(!m.num && !m.ta && PAIRS_EN.has(head)){ head = plural(head); pl = true; } }
       else { const e = npE(m.pos, "subj"); if(!e) return null; o = e.s+"'s"; }
       det = o + (numW ? " "+numW : "");
     }
   }
-  if(indef && det==="the" && !pl) det = an(head);
+  if(indef && det==="the" && !pl) det = MASS_EN.has(head) ? "" : an(head);
   let s = (det ? det+" " : "") + head + ofTail;
   if(m.join && m.join.items && m.join.items.length){
     const others = m.join.items.map(i=>npE(i, kase, indef));
@@ -1099,13 +1155,14 @@ function placeE(c){
   const x = c.place; if(!x) return "";
   if(isQ(x)) return x.fixed==="wa" ? "" : null;
   const deic = x.kind==="word" && DEICTIC[x.lu];
+  if(x.kind==="word" && PLACE_EN[x.lu] && !(x.mods && Object.values(x.mods).some(Boolean))) return PLACE_EN[x.lu][c.rel||"at"];
   const e = deic ? {s:DEICTIC[x.lu]} : npE(x,"obj"); if(!e) return null;
   if(c.rel==="to") return deic ? e.s : "to "+e.s;
   if(c.rel==="from") return "from "+e.s;
   return deic ? e.s : "at "+e.s;
 }
 const BE = (pers, past) => past ? (pers===2 ? "were" : "was") : (pers===1 ? "am" : pers===2 ? "are" : "is");
-const NEG = {is:"isn't", are:"aren't", was:"wasn't", were:"weren't", am:"am not", can:"can't", could:"couldn't", do:"don't", does:"doesn't", did:"didn't"};
+const NEG = {is:"isn't", are:"aren't", was:"wasn't", were:"weren't", am:"am not", can:"can't", could:"couldn't", do:"don't", does:"doesn't", did:"didn't", will:"won't", "will be able to":"won't be able to"};
 
 function englishExist(c, type){
   if(c.verb.lu==="ĩku") return null;
@@ -1113,7 +1170,8 @@ function englishExist(c, type){
   if(c.can||c.want||c.ato||c.aspect) return null;
   const pl = placeE(c); if(pl===null) return null;
   const tm = timeE(c); if(tm===null) return null;
-  if((c.place && isQ(c.place)) || (c.time && isQ(c.time)) || c.obj) return null;
+  if((c.time && isQ(c.time)) || c.obj) return null;
+  const whereQ = c.place && isQ(c.place);
   const where = [pl, tm].filter(Boolean).join(" ");
   const ev = c.evid ? ({la:", I heard", po:", it seems", ke:", I assume"})[c.evid] : "";
   const q = type==="question";
@@ -1132,6 +1190,16 @@ function englishExist(c, type){
     if(q) return [c.neg ? NEG[doF] : doF, ownerE, "have", y.s, where].filter(Boolean).join(" ")+ev+"?";
     return [ownerE, c.neg ? NEG[doF]+" have" : have, y.s, where].filter(Boolean).join(" ")+ev+".";
   }
+  if(whereQ){
+    if(isQ(s)) return null;
+    const e = npE(s, "subj"); if(!e) return null;
+    const be = BE(e.pers, c.past), b = c.neg ? NEG[be] : be;
+    return ["where", b, e.s, tm].filter(Boolean).join(" ")+ev+"?";
+  }
+  if(isQ(s)){
+    const be = BE(3, c.past), b = c.neg ? NEG[be] : be;
+    return [s.lu==="mõzo"?"who":"what", b, where || "there"].join(" ")+ev+"?";
+  }
   if(c.role==="doer"){
     // presentative: X-ba hi — there's an X (§4.7a)
     const y = npE(s, "obj", true); if(!y || y.q) return null;
@@ -1148,7 +1216,8 @@ function englishExist(c, type){
 }
 function englishVerb(c, type){
   if(c.verb && c.verb.kind==="word" && ["hi","yozu","ĩku"].includes(c.verb.lu) && !c.ongoing && !c.vu && !c.aux && !c.might && !c.verb2 && !c.manner && !c.why && !c.dip && type!=="command" && type!=="lets") return englishExist(c, type);
-  if(c.ongoing||c.vu||c.aux||c.might||c.verb2||c.manner||c.why||c.dip||c.aspect==="ila"||c.causee) return null;
+  if(c.vu||c.aux||c.might||c.verb2||c.aspect==="ila"||c.causee) return null;
+  if(c.ongoing && (c.can||c.want)) return null;
   if(c.verb.kind!=="word" && c.verb.kind!=="gap") return null;
   const vb = c.verb.kind==="gap" ? {word:"["+c.verb.en+"]", adj:false} : enVerbBase(c.verb.lu);
   if(!vb) return null;
@@ -1157,20 +1226,34 @@ function englishVerb(c, type){
   const never = c.ato==="never", neg = c.neg && !never;
   const adv = c.ato==="always" ? "always" : never ? "never" : c.aspect==="zoka" ? "usually" : "";
   // pieces after the verb
-  let obj = "", wh = "";
+  let obj = "", wh = "", dat = "", diP = "";
   if(c.obj){ const e = npE(c.obj,"obj"); if(!e) return null; if(e.q) wh = e.s; else obj = e.s; }
+  if(c.dip){
+    const how = c.verb.kind==="word" ? DI_EN[c.verb.lu] : null; if(!how) return null;
+    const e = npE(c.dip,"obj"); if(!e || e.q) return null;
+    if(how==="dat") dat = e.s; else diP = how+" "+e.s;
+  }
+  let manner = "";
+  if(c.manner){ if(c.manner.kind!=="word") return null; const d = enVerbBase(c.manner.lu); if(!d || !d.adj) return null; manner = advOf(d.word); }
   const pl = placeE(c); if(pl===null) return null;
   const tm = timeE(c); if(tm===null) return null;
   if(c.place && isQ(c.place)){ if(wh) return null; wh = "where"; }
   if(c.time && isQ(c.time)){ if(wh) return null; wh = "when"; }
-  const rest = [obj, pl, tm].filter(Boolean).join(" ");
+  if(c.why){ if(wh) return null; wh = "why"; }
+  const rest = [dat, obj, diP, manner, pl, tm].filter(Boolean).join(" ");
+  const future = !c.past && c.time && c.time.kind==="word" && FUTURE_W.has(c.time.lu);
   const ev = c.evid ? ({la:", I heard", po:", it seems", ke:", I assume"})[c.evid] : "";
   // main verb chain: finite + complement
   let kind, finite, comp;
-  if(c.want){ kind = "lex"; finite = "want"; comp = "to " + (c.can ? "be able to " : "") + (vb.adj ? "be "+vb.word : vb.word); }
-  else if(c.can){ kind = "modal"; finite = past ? "could" : "can"; comp = vb.adj ? "be "+vb.word : vb.word; }
+  const prt = vb.prt ? " "+vb.prt : "";
+  const motionNow = !past && !future && !c.can && !c.want && !c.ato && !c.aspect && c.verb.kind==="word" && MOTION_V.has(c.verb.lu) && !cmd && !lets;
+  if(c.want){ kind = "lex"; finite = "want"; comp = "to " + (c.can ? "be able to " : "") + (vb.adj ? "be "+vb.word : vb.word+prt); }
+  else if(c.can){ kind = "modal"; finite = past ? "could" : future ? "will be able to" : "can"; comp = vb.adj ? "be "+vb.word : vb.word+prt; }
+  else if(c.ongoing && vb.adj){ kind = "be"; finite = null; comp = vb.word+" (for now)"; }
+  else if(c.ongoing || motionNow){ kind = "be"; finite = null; comp = ingOf(vb.word)+prt; }
+  else if(future){ kind = "modal"; finite = "will"; comp = vb.adj ? "be "+vb.word : vb.word+prt; }
   else if(vb.adj){ kind = "be"; finite = null; comp = vb.word; }
-  else { kind = "lex"; finite = vb.word; comp = ""; }
+  else { kind = "lex"; finite = vb.word; comp = vb.prt||""; }
   const tail = (...xs) => xs.filter(Boolean).join(" ");
   if(cmd){
     const v = kind==="be" ? "be "+comp : kind==="modal" ? null : tail(finite, comp);
@@ -1185,7 +1268,8 @@ function englishVerb(c, type){
     const e = npE(s,"subj"); if(!e) return null;
     if(e.q){ qSubj = true; subj = e.s; pers = 3; }
     else { subj = (c.role==="drop" && s.kind==="pron") ? "("+e.s+")" : e.s; pers = e.pers; }
-  } else { const isQn = type==="question" || wh; subj = isQn ? "(you)" : "(I)"; pers = isQn ? 2 : 1; added = true; }
+  } else if(vb.adj && (c.place || c.time) && !c.ongoing){ subj = "(it)"; pers = 3; added = true; }
+  else { const isQn = type==="question" || wh; subj = isQn ? "(you)" : "(I)"; pers = isQn ? 2 : 1; added = true; }
   const question = type==="question" || wh || qSubj;
   const be = BE(pers, past);
   const doF = past ? "did" : (pers===3 ? "does" : "do");
@@ -1213,13 +1297,16 @@ function englishIs(c, type){
   let subj, pers;
   if(c.subj){ const e = npE(c.subj,"subj"); if(!e) return null; subj = (c.role==="drop" && c.subj.kind==="pron" && !qS) ? "("+e.s+")" : e.s; pers = qS ? 3 : e.pers; }
   else { subj = "(it)"; pers = 3; }
-  const pe = npE(c.pred,"obj", !!c.subj); if(!pe) return null;
+  const pe = (qP && c.pred.fixed) ? {s: c.pred.fixed==="wa" ? "when" : "how", q:true} : npE(c.pred,"obj", !!c.subj); if(!pe) return null;
   const be = BE(qP ? (c.subj ? pers : 3) : pers, c.past);
   const b = c.neg ? NEG[be] : be;
-  if(qP) return [pe.s, b, subj].join(" ")+"?";
-  if(qS) return [subj, b, pe.s].join(" ")+"?";
-  if(type==="question") return [b, subj, pe.s].join(" ")+"?";
-  return [subj, b, pe.s].join(" ")+".";
+  const fr = [placeE(Object.assign({}, c, {rel:"at"})), timeE(Object.assign({}, c, {trel:"at"}))];
+  if(fr.some(x=>x===null)) return null;
+  const frame = fr.filter(Boolean).join(" "), fx = frame ? " "+frame : "";
+  if(qP) return [pe.s, b, subj].join(" ")+fx+"?";
+  if(qS) return [subj, b, pe.s].join(" ")+fx+"?";
+  if(type==="question") return [b, subj, pe.s].join(" ")+fx+"?";
+  return [subj, b, pe.s].join(" ")+fx+".";
 }
 function englishCompare(c, type){
   if(type==="command"||type==="lets") return null;
@@ -1233,10 +1320,15 @@ function englishCompare(c, type){
 function englishLine(){
   if(S.link) return null;
   const c = S.c1, t = S.type;
-  if(c.kind==="word"){ if(!c.word) return null; if(c.word.kind==="word" && c.word.lu==="dã") return "Yes."; if(c.word.kind==="word" && c.word.lu==="hena") return "No."; const e = npE(c.word,"subj"); return e ? e.s+"." : null; }
-  if(c.kind==="is") return c.pred ? englishIs(c, t) : null;
-  if(c.kind==="compare") return (c.subj && c.std && c.verb) ? englishCompare(c, t) : null;
-  return c.verb ? englishVerb(c, t) : null;
+  if(c.kind==="word"){ if(!c.word) return null; if(c.word.kind==="word" && c.word.lu==="dã") return "Yes."; if(c.word.kind==="word" && c.word.lu==="hena") return "No.";
+    if(c.word.kind==="word" && !(c.word.mods && Object.values(c.word.mods).some(Boolean))) return capFirst(lexWords(c.word.lu)||c.word.en)+".";
+    const e = npE(c.word,"subj"); return e ? e.s+"." : null; }
+  let out;
+  if(c.kind==="is") out = c.pred ? englishIs(c, t) : null;
+  else if(c.kind==="compare") out = (c.subj && c.std && c.verb) ? englishCompare(c, t) : null;
+  else out = c.verb ? englishVerb(c, t) : null;
+  if(out && S.call){ const e = npE(S.call,"subj"); if(!e) return null; out = e.s+", "+out.replace(/^\(?[a-z]/, ch=>ch); }
+  return out;
 }
 function capFirst(s){ return s.replace(/[A-Za-z]/, ch=>ch.toUpperCase()); }
 
@@ -1392,8 +1484,8 @@ function detailsBlock(path){
   let h = "";
   if(x.kind==="ga") h += opts("One who…", tog(path+".ga.vu","-vu (state)")+tog(path+".ga.bi","can")+tog(path+".ga.du","wants to")+tog(path+".ga.neg","doesn't"));
   const chips = [];
-  if(m.pos) chips.push(`<span class="chip">${x.kind==="ga"?"done to":"whose"}: ${esc(m.pos.en)}<button data-clear="${mp}.pos">×</button></span>`);
-  if(m.dem) chips.push(`<span class="chip">that (na)<button data-clear="${mp}.dem">×</button></span>`);
+  if(m.pos) chips.push(`<span class="chip">${x.kind==="ga"?"done to":(m.pos.kind==="word"&&["ümi","sedo"].includes(m.pos.lu))?"":"whose: "}${esc(m.pos.en)}<button data-clear="${mp}.pos">×</button></span>`);
+  if(m.dem) chips.push(`<span class="chip">the / that (na)<button data-clear="${mp}.dem">×</button></span>`);
   if(m.desc) chips.push(`<span class="chip">describe: ${esc(m.desc.en)}${m.desc.kind==="word"?`<button data-tog="${mp}.desc.vu" style="font-size:12px;${m.desc.vu?"font-weight:700":""}">-vu</button>`:""}<button data-clear="${mp}.desc">×</button></span>`);
   if(m.ta) chips.push(`<span class="chip">more than one (-ta)<button data-clear="${mp}.ta">×</button></span>`);
   if(m.jo) chips.push(`<span class="chip">little / dear (-jo)<button data-clear="${mp}.jo">×</button></span>`);
@@ -1405,9 +1497,13 @@ function detailsBlock(path){
     h += opts("Join with:", setb(mp+".join.type","and","and (fa)")+setb(mp+".join.type","or","or (puso)")+m.join.items.map((it,i)=>`<span class="chip">${esc(it.en)}<button data-joinrm="${mp}.join" data-i="${i}">×</button></span>`).join(""));
   }
   const open = UI.det[path];
+  if(!m.pos && x.kind!=="ga"){
+    const qp = (lu,en,lab) => `<button data-setpos="${mp}.pos|${lu}|${en}">${lab}</button>`;
+    h += opts("", qp("nuswa","I","my")+qp("lwaji","you","your")+qp("nwoli","he / she","his / her")+qp("luswazo","we (you and me)","our")+qp("ümi","this","this")+qp("sedo","that","that"));
+  }
   const add = [];
-  if(!m.pos) add.push(`<button data-open="${mp}.pos|owner">${x.kind==="ga"?"what it's done to (pe)":"whose"}</button>`);
-  if(!m.dem) add.push(`<button data-tog="${mp}.dem">that (na)</button>`);
+  if(!m.pos) add.push(`<button data-open="${mp}.pos|owner">${x.kind==="ga"?"what it's done to (pe)":"whose / for what (pe)"}</button>`);
+  if(!m.dem) add.push(`<button data-tog="${mp}.dem">the / that (na)</button>`);
   if(!m.num) add.push(`<button data-numon="${mp}.num">number</button>`);
   if(!m.desc) add.push(`<button data-open="${mp}.desc|desc">describe</button>`);
   if(!m.ta) add.push(`<button data-tog="${mp}.ta">more than one (-ta)</button>`);
@@ -1459,16 +1555,17 @@ function clauseScreen(px, c, ctx){
       {req:true, hint:"A bare noun is a whole sentence: a name to call someone, or the answer to a question-word question (§2.4a, §6.3)."}));
   }
 
+  if(ctx.main && c.kind!=="word") h.push(row(K("call"), "Calling someone", S.call ? nounSum(S.call)+' <span class="tags">then a comma</span>' : "", picker("call","noun","Optional — e.g. Mimi"),
+      {ph:"Optional", hint:"A name first, then a comma: Mimi, ümi kazõ (§2.4a)."}));
   if(c.kind==="verb"){
     // verb row
     let vb = picker(px+".verb","verb","Tap to pick a verb");
     if(!lets){
-      vb += opts("", (cmd?"":tog(px+".past","Past")) + tog(px+".neg", cmd?"Don't":"Not") + (!cmd ? tog(px+".can","Can (-bi)")+tog(px+".want","Want to (-du)") : "") + (full && !cmd ? tog(px+".ongoing","Ongoing (-ri)")+tog(px+".vu","State (-vu)") : ""), false);
+      vb += opts("", (cmd?"":tog(px+".past","Past")) + tog(px+".neg", cmd?"Don't":"Not") + (!cmd ? tog(px+".can","Can (-bi)")+tog(px+".want","Want to (-du)")+tog(px+".ongoing","-ing (-ri)") : "") + (full && !cmd ? tog(px+".vu","State (-vu)") : ""), false);
       if(UIS.hints && !cmd) vb += `<div class="hint">No future form: without Past the verb means now or later — “will” and “going to” included (§4.1).</div>`;
       if(full && !cmd){
         vb += opts("Aspect:", setb(px+".aspect","ila","has done (ila)",1)+setb(px+".aspect","zoka","habitually (zoka)",1));
         vb += opts("ãto:", setb(px+".ato","always","always",1)+setb(px+".ato","never","never",1));
-        vb += opts("How:", c.manner ? `<span class="chip">${esc(c.manner.en)}<button data-clear="${px}.manner">×</button></span>` : `<button data-open="${px}.manner|desc">pick a describing word</button>`);
         if(!nested) vb += opts("Certainty:", setb(px+".might","oya","might (oyã)",1)+setb(px+".might","cant","can't be (oyã hena)",1)+(c.might && ctx.main && SUBS.includes(S.link) ? tog(px+".mightWide","before the "+S.link+" part") : ""));
         if(!ctx.rel && !ctx.yeti){
           vb += opts("Make / let:", setb(px+".aux","tsobã","make (tsobã)",1)+setb(px+".aux","idovu","let (idovu)",1));
@@ -1476,14 +1573,16 @@ function clauseScreen(px, c, ctx){
         }
         if((ctx.main && (!S.link || SUBS.includes(S.link))) || ctx.quote)
           vb += opts("Source:", setb(px+".evid","la","heard / felt (la)",1)+setb(px+".evid","po","it seems (po)",1)+setb(px+".evid","ke","I assume (ke)",1));
-        if(!nested) vb += opts("Ask:", tog(px+".why","how / why? (emosedi)"));
         vb += opts("Second verb:", c.verb2 ? setb(px+".vjoin","and","and (fa)")+setb(px+".vjoin","or","or (puso)")+`<span class="chip">${esc(c.verb2.en)}<button data-clear="${px}.verb2">×</button></span>`+tog(px+".neg2","not "+esc(c.verb2.en)) : `<button data-open="${px}.verb2|verb">+ and / or another verb</button>`);
-      } else if(!full && !cmd && (c.ongoing||c.vu||c.aspect||c.ato||c.manner||c.might||c.aux||c.evid||c.why||c.verb2)){
+      } else if(!full && !cmd && (c.vu||c.aspect||c.ato||c.manner||c.might||c.aux||c.evid||c.why||c.verb2)){
         vb += `<div class="hint">This verb uses Full options. Switch to Full to see them.</div>`;
       }
     }
     h.push(row(K("verb"), "Verb", verbSum(c), vb, {req:true, ph:"Pick a verb"}));
 
+    if(!lets) h.push(row(K("how"), "How / why", c.why ? `how / why? <span class="lu">emosedi</span>` : c.manner ? nounSum(c.manner) : "",
+      picker(px+".manner", nested ? "desc" : "how", "Optional — e.g. well, quickly, why?") + (c.why ? `<div class="opts small"><span class="chip">how / why? (emosedi)<button data-clear="${px}.why">×</button></span></div>` : ""),
+      {hint:"A describing word before the verb says how it's done: weru wiõku, sleep well (§5.2)."+(nested?"":" To ask how or why, pick how / why? at the top (§3.6).")}));
     if(c.aux) h.push(row(K("causee"), `Who is ${c.aux==="tsobã"?"made":"let"} to do it`, nounSum(c.causee), picker(px+".causee","noun","Tap to pick")+detailsBlock(px+".causee"), {hint:"Takes di if the verb can take an object, said or not; ni only if it never takes one (§4.10)."}));
 
     // subject
@@ -1502,8 +1601,8 @@ function clauseScreen(px, c, ctx){
     h.push(row(K("obj"), "Object — what it's done to", nounSum(c.obj), picker(px+".obj", nounMode("obj"), "Optional")+detailsBlock(px+".obj"), {hint:objHint, off:trv==="intr"&&!c.obj}));
 
     // di slot
-    h.push(row(K("dip"), c.vu ? "By whom (di)" : "To / with / by / about (di)", nounSum(c.dip), picker(px+".dip","noun","Optional")+detailsBlock(px+".dip"),
-      {hint: c.vu ? "With -vu the one who did it takes di (§4.11)." : "A person, a tool or a cause: to someone, with something, about something. A place you go to belongs in Where (§2.2, §5.2)."}));
+    h.push(row(K("dip"), c.vu ? "By whom (di)" : "To / for / with / about (di)", nounSum(c.dip), picker(px+".dip","noun","Optional")+detailsBlock(px+".dip"),
+      {hint: c.vu ? "With -vu the one who did it takes di (§4.11)." : "A person, a tool or a cause: to someone, for someone, with something, about something. A place you go to belongs in Where (§2.2, §5.2)."}));
 
     // when / where
     const canFrame = full && !(ctx.main && SUBS.includes(S.link)) && (c.time||c.place) && ((lets) || (c.subj && c.role==="topic" && !isQ(c.subj) && !cmd && !nested));
@@ -1523,7 +1622,9 @@ function clauseScreen(px, c, ctx){
     } else {
       h.push(row(K("subj"), "What you're talking about", nounSum(c.subj), picker(px+".subj","noun","Optional")+roles(true,false,true)+detailsBlock(px+".subj"),
         {hint: isQ(c.subj) ? "A question word here takes ba, and there's no jĩ (§3.6)." : ""}));
-      h.push(row(K("pred"), "…is (Y)", nounSum(c.pred), picker(px+".pred","noun","Tap to pick")+detailsBlock(px+".pred"), {req:true, hint: UIS.hints ? "Asking “what is X?” or “who is X?” — pick what? or who? here, at the top of the list (§3.6)." : ""}));
+      h.push(row(K("pred"), "…is (Y)", c.pred && c.pred.fixed ? esc(c.pred.en) : nounSum(c.pred), picker(px+".pred","pred","Tap to pick")+detailsBlock(px+".pred"), {req:true, hint: UIS.hints ? "To ask what / who / when / how X is, pick it here, at the top of the list (§3.6)." : ""}));
+      h.push(row(K("time"), "When", c.time ? nounSum(c.time) : "", picker(px+".time","time","Optional")+detailsBlock(px+".time"), {hint:"A time or place may open the sentence as its frame: Gono sukejurona emose? (§5.2)."}));
+      h.push(row(K("place"), "Where", c.place ? nounSum(c.place) : "", picker(px+".place","place","Optional")+detailsBlock(px+".place"), {hint:"“Where is X?” is asked with the verb to exist (hi / yu): Lusana emosewa hi? (§3.6)."}));
     }
     h.push(row(K("isopts"), "Past / not", [c.past?"was":"", c.neg?"not":""].filter(Boolean).join(" · ") || `<span class="ph">is</span>`,
       opts("", tog(px+".past","Past (was)")+tog(px+".neg","Not"), false),
@@ -1538,7 +1639,7 @@ function clauseScreen(px, c, ctx){
   return h.join("");
 }
 
-const LINKS = {mishi:"and (mishi)", noro:"but (norõ)", if:"if", when:"when", because:"because", since:"since (toma)", until:"until (rowo)"};
+const LINKS = {mishi:"and (mishi)", noro:"but (norõ)", if:"if", when:"when", because:"because", before:"before (noske)", since:"since (toma)", until:"until (rowo)"};
 function clausesSection(){
   if(S.c1.kind==="word") return "";
   let h = `<div class="ghead2">More clauses</div>`;
@@ -1561,7 +1662,7 @@ function clausesSection(){
 
 function usesFull(){
   const c = S.c1;
-  return !!(S.link || c.kind==="compare" || c.kind==="word" || c.ongoing || c.vu || c.aspect || c.ato || c.manner || c.might || c.evid || c.aux || c.verb2 || c.why || c.frame || (c.trel && c.trel!=="at"));
+  return !!(S.link || c.kind==="compare" || c.kind==="word" || c.vu || c.aspect || c.ato || c.might || c.evid || c.aux || c.verb2 || c.frame || (c.trel && c.trel!=="at"));
 }
 
 function renderEditor(){
@@ -1604,6 +1705,7 @@ $("#slots").addEventListener("click", e=>{
   if(d.addmore){ (S.more = S.more||[]).push({link:d.addmore, c:blankClause()}); UI.stack.push("more."+(S.more.length-1)+".c"); UI.open = null; render(); return; }
   if(d.rmmore){ S.more.splice(+d.rmmore,1); render(); return; }
   if(d.relon){ setP(d.relon, blankClause()); UI.stack.push(d.relon); UI.open = null; render(); window.scrollTo({top:0}); return; }
+  if(d.setpos){ const [pp, lu, en] = d.setpos.split("|"); const isPr = !["ümi","sedo"].includes(lu); setP(pp, isPr ? {kind:"pron", lu, en} : {kind:"word", lu, en}); render(); return; }
   if(d.setword){ const [px, w] = d.setword.split("|"); setP(px+".word", {kind:"word", lu:w, en: w==="dã"?"yes":"no"}); render(); return; }
 });
 $("#slots").addEventListener("change", e=>{
@@ -1616,26 +1718,75 @@ $("#modeSeg").addEventListener("click", e=>{ const b = e.target.closest("button"
 
 /* ---------- saved sentences ---------- */
 const SAVEKEY = "lunaji-composer-saved";
-function getSaved(){ try{ const o = JSON.parse(ls.get(SAVEKEY)||"null"); if(o && o.lists && typeof o.lists==="object") { if(!o.lists[o.current]) o.current = Object.keys(o.lists)[0] || "My sentences"; if(!o.lists[o.current]) o.lists[o.current] = []; return o; } }catch(e){} return {current:"My sentences", lists:{"My sentences":[]}}; }
+function getSaved(){ try{ const o = JSON.parse(ls.get(SAVEKEY)||"null"); if(o && o.lists && typeof o.lists==="object") { if(o.current==="★ Everyday examples") return o; if(!o.lists[o.current]) o.current = Object.keys(o.lists)[0] || "My sentences"; if(!o.lists[o.current]) o.lists[o.current] = []; return o; } }catch(e){} return {current:"My sentences", lists:{"My sentences":[]}}; }
 function putSaved(o){ ls.set(SAVEKEY, JSON.stringify(o)); }
-function updateSavedCount(){ const o = getSaved(); $("#savedBtn").textContent = `Saved (${(o.lists[o.current]||[]).length})`; }
+function updateSavedCount(){ const o = getSaved(); $("#savedBtn").textContent = o.current===EX_NAME ? "Examples & saved" : `Saved (${(o.lists[o.current]||[]).length})`; }
 function flash(msg){ const f = $("#flash"); f.textContent = msg; f.classList.add("on"); clearTimeout(flash.t); flash.t = setTimeout(()=>f.classList.remove("on"), 1600); }
 $("#saveBtn").onclick = () => {
   const c = compose(); if(!c.ready || c.nc.length){ flash("Build a sentence first."); return; }
   const o = getSaved();
+  if(o.current===EX_NAME){ o.current = Object.keys(o.lists)[0] || "My sentences"; if(!o.lists[o.current]) o.lists[o.current] = []; }
   o.lists[o.current].push({lu: $("#sentence").innerText.trim(), en: (englishLine() ? capFirst(englishLine()) : c.built.join(" · ")), state: JSON.parse(JSON.stringify(S)), at: Date.now()});
   putSaved(o); updateSavedCount(); flash("Saved to “"+o.current+"”");
 };
 $("#savedBtn").onclick = () => { drawSaved(); $("#scrim").classList.add("on"); $("#saved").classList.add("on"); };
+$("#exBtn").onclick = () => { const o = getSaved(); o.current = EX_NAME; putSaved(o); drawSaved(); updateSavedCount(); $("#scrim").classList.add("on"); $("#saved").classList.add("on"); };
 $("#savedClose").onclick = () => { $("#saved").classList.remove("on"); $("#scrim").classList.remove("on"); };
+const EX_NAME = "★ Everyday examples";
+const EX = (() => {
+  const W=(lu,en)=>({kind:"word",lu,en}), NM=n=>({kind:"name",lu:n,en:n}), PR=(lu,en)=>({kind:"pron",lu,en}), Q=(lu,en)=>({kind:"q",lu,en});
+  const you=PR("lwaji","you"), me=PR("nuswa","I"), we=PR("luswazo","we (you and me)");
+  const yours = x => ({...x, mods:{pos:you}});
+  const st = (type, c1, extra) => Object.assign({type, c1, link:"", c2:null, more:[]}, extra||{});
+  return [
+    ["What do you want to eat at night?", st("question",{verb:W("kõsu","eat"),want:true,obj:Q("emose","what? (a thing)"),time:W("lõji","night")})],
+    ["Did you sleep well?", st("question",{verb:W("wiõku","sleep"),past:true,manner:W("weru","good")})],
+    ["Are you hungry?", st("question",{verb:W("wõvu","be hungry")})],
+    ["Eat your food.", st("command",{verb:W("kõsu","eat"),obj:yours(W("noga","food"))})],
+    ["Drink your water.", st("command",{verb:W("bõbu","drink"),obj:yours(W("nofi","water"))})],
+    ["Don't touch that.", st("command",{verb:W("fomĩ","touch"),neg:true,obj:{...W("nonye","thing"),mods:{pos:W("sedo","that")}}})],
+    ["Brush your teeth.", st("command",{verb:W("rokkaru","brush"),obj:yours(W("tageha","tooth"))})],
+    ["Did you wash your hands?", st("question",{verb:W("myonu","wash"),past:true,obj:yours(W("õto","hand"))})],
+    ["Clean up your toys.", st("command",{verb:W("jionu","clean up"),obj:yours(W("tsumo","toy"))})],
+    ["Mimi, come here.", st("command",{verb:W("kazõ","come"),place:W("ümi","here"),rel:"to"},{call:NM("Mimi")})],
+    ["Wait here.", st("command",{verb:W("waru","wait"),place:W("ümi","here")})],
+    ["Today I'll bathe Mimi.", st("statement",{verb:W("suswalu","bathe"),obj:NM("Mimi"),time:W("gono","today")})],
+    ["Mimi is sleeping.", st("statement",{verb:W("wiõku","sleep"),ongoing:true,subj:NM("Mimi"),role:"topic"})],
+    ["Why are you crying?", st("statement",{verb:W("komu","cry"),ongoing:true,why:true})],
+    ["I'm tired.", st("statement",{verb:W("konu","be tired")})],
+    ["The food is good.", st("statement",{verb:W("weru","good"),subj:W("noga","food"),role:"topic"})],
+    ["I love you.", st("statement",{verb:W("tamu","love"),obj:you})],
+    ["Thank you.", st("statement",{verb:W("kumu","thank"),obj:you})],
+    ["I'm sorry.", st("statement",{verb:W("susoru","be sorry")})],
+    ["Can you help me?", st("question",{verb:W("logu","help"),can:true,obj:me})],
+    ["Who is at the door?", st("statement",{verb:W("hi","exist"),subj:Q("mõzo","who? (something that acts)"),role:"doer",place:W("ome","door")})],
+    ["Where is Mom?", st("statement",{verb:W("hi","exist"),subj:W("lusã","mother"),role:"topic",place:{kind:"q",lu:"emose",fixed:"wa",show:"emosewa",en:"where?"}})],
+    ["Where did you put my keys?", st("statement",{verb:W("zonu","put"),past:true,obj:{...W("kle","key"),mods:{pos:me}},place:{kind:"q",lu:"emose",fixed:"wa",show:"emosewa",en:"where?"}})],
+    ["It's cold outside.", st("statement",{verb:W("bonu","be cold"),place:W("tsuruã","the outside")})],
+    ["Mom will come later.", st("statement",{verb:W("kazõ","come"),subj:W("lusã","mother"),role:"doer",time:W("toye","later")})],
+    ["We're going to the park.", st("statement",{verb:W("shĩyu","go"),subj:we,role:"topic",place:W("hagõ","park"),rel:"to"})],
+    ["Are we going to the store?", st("question",{verb:W("shĩyu","go"),subj:we,role:"topic",place:W("mise","shop"),rel:"to"})],
+    ["What is today's schedule?", st("question",{kind:"is",subj:{...W("sukejuro","schedule"),mods:{pos:W("gono","today")}},role:"topic",pred:Q("emose","what?")})],
+    ["How was your day?", st("statement",{kind:"is",subj:yours(W("wokonya","day")),role:"topic",pred:{kind:"q",lu:"emose",fixed:"di",show:"emosedi",en:"how?"},past:true})],
+    ["Let's read a book.", st("lets",{verb:W("sãru","read"),obj:W("alla","book")})],
+    ["Do you want milk or juice?", st("question",{verb:W("mõdu","want"),obj:{...W("lejĩ","milk"),mods:{join:{type:"or",items:[W("jü","juice")]}}}})],
+    ["Dad is at work.", st("statement",{verb:W("hi","exist"),subj:W("gĩsã","father"),role:"topic",place:W("minoskã","work")})],
+    ["The dog wants to play.", st("statement",{verb:W("mwamĩ","play"),want:true,subj:W("õkyõ","dog"),role:"topic"})],
+    ["My name is Katsuki.", st("statement",{kind:"is",subj:{...W("akyo","name"),mods:{pos:me}},role:"topic",pred:NM("Katsuki")})],
+    ["Be quiet — the baby is sleeping.", st("command",{verb:W("ponu","be quiet")},{link:"because",c2:{verb:W("wiõku","sleep"),ongoing:true,subj:W("yõsa","baby"),role:"doer"}})],
+  ];
+})();
 function drawSaved(){
-  const o = getSaved(), list = o.lists[o.current] || [];
+  const o = getSaved();
+  const isEx = o.current===EX_NAME;
+  const list = isEx ? EX.map(([en,state])=>({lu:"", en, state})) : (o.lists[o.current] || []);
   const names = Object.keys(o.lists);
-  let h = `<div class="opts small" style="margin:0 0 6px">${names.map(n=>`<button data-list="${esc(n)}" class="${n===o.current?"on":""}">${esc(n)} (${o.lists[n].length})</button>`).join("")}<button data-newlist="1">+ new list</button></div>`;
-  h += `<div class="opts small" style="margin:0 0 10px"><button data-renlist="1">rename</button><button data-copylist="1">copy list as text</button>${names.length>1?`<button data-dellist="1">delete list</button>`:""}</div>`;
+  let h = `<div class="opts small" style="margin:0 0 6px"><button data-list="${EX_NAME}" class="${isEx?"on":""}">${EX_NAME} (${EX.length})</button>${names.map(n=>`<button data-list="${esc(n)}" class="${n===o.current?"on":""}">${esc(n)} (${o.lists[n].length})</button>`).join("")}<button data-newlist="1">+ new list</button></div>`;
+  if(isEx) h += `<div class="more2" style="margin-bottom:6px">Open one and change a word. These can't be deleted.</div>`;
+  else h += `<div class="opts small" style="margin:0 0 10px"><button data-renlist="1">rename</button><button data-copylist="1">copy list as text</button>${names.length>1?`<button data-dellist="1">delete list</button>`:""}</div>`;
   if(!list.length) h += `<div class="more2">Nothing saved in “${esc(o.current)}” yet. Build a sentence and tap Save.</div>`;
   list.forEach((it,i)=>{
-    h += `<div class="sv"><button class="svopen" data-load="${i}"><span class="lu">${esc(it.lu)}</span><span class="svb">${esc(it.en)}</span></button><button class="x" data-del="${i}" aria-label="Delete">×</button></div>`;
+    h += `<div class="sv"><button class="svopen" data-load="${i}">${it.lu?`<span class="lu">${esc(it.lu)}</span>`:""}<span class="${it.lu?"svb":""}">${esc(it.en)}</span></button>${isEx?"":`<button class="x" data-del="${i}" aria-label="Delete">×</button>`}</div>`;
   });
   h += `<div class="more2">Saved on this device only.</div>`;
   $("#savedList").innerHTML = h;
@@ -1643,7 +1794,7 @@ function drawSaved(){
 $("#savedList").addEventListener("click", e=>{
   const b = e.target.closest("button"); if(!b) return;
   const d = b.dataset, o = getSaved();
-  if(d.list){ o.current = d.list; putSaved(o); }
+  if(d.list){ o.current = d.list; if(d.list!==EX_NAME && !o.lists[d.list]) o.lists[d.list] = []; putSaved(o); }
   else if(d.newlist){ const n = (prompt("Name for the new list (e.g. Lesson 3):")||"").trim(); if(n){ if(!o.lists[n]) o.lists[n] = []; o.current = n; putSaved(o); } }
   else if(d.renlist){ const n = (prompt("New name for “"+o.current+"”:", o.current)||"").trim(); if(n && n!==o.current && !o.lists[n]){ o.lists[n] = o.lists[o.current]; delete o.lists[o.current]; o.current = n; putSaved(o); } }
   else if(d.dellist){ if(confirm("Delete the list “"+o.current+"” and its sentences?")){ delete o.lists[o.current]; o.current = Object.keys(o.lists)[0]; putSaved(o); } }
@@ -1653,8 +1804,9 @@ $("#savedList").addEventListener("click", e=>{
   }
   else if(d.del){ o.lists[o.current].splice(+d.del,1); putSaved(o); }
   else if(d.load){
-    const it = o.lists[o.current][+d.load]; if(!it) return;
+    const it = o.current===EX_NAME ? {state: EX[+d.load][1]} : o.lists[o.current][+d.load]; if(!it) return;
     loadState(JSON.parse(JSON.stringify(it.state)));
+    if(it.state && it.state.c2) S.c2 = Object.assign(blankClause(), it.state.c2);
     UI.stack = ["c1"]; UI.open = null;
     $("#saved").classList.remove("on"); $("#scrim").classList.remove("on");
     render(); window.scrollTo({top:0}); return;
@@ -1670,7 +1822,7 @@ function loadState(s){
 
 /* ---------- picker sheet ---------- */
 let sheet = null;
-const TITLES = {nounc:"Pick a word or a clause", verb:"Pick a verb", desc:"Pick a describing word", noun:"Pick a word", owner:"Whose?", join:"Add another (and / or)", time:"When", place:"Where"};
+const TITLES = {how:"How / why", pred:"…is what", nounc:"Pick a word or a clause", verb:"Pick a verb", desc:"Pick a describing word", noun:"Pick a word", owner:"Whose?", join:"Add another (and / or)", time:"When", place:"Where"};
 function openSheet(path, mode){
   if(!LEX){ alert("Load the lexicon first."); return; }
   sheet = {path, mode};
@@ -1684,6 +1836,15 @@ function closeSheet(){ $("#scrim").classList.remove("on"); $("#sheet").classList
 $("#scrim").onclick = () => { closeSheet(); $("#saved").classList.remove("on"); }; $("#sheetClose").onclick = closeSheet;
 $("#q").addEventListener("input", drawList);
 
+const SYN = {teeth:"tooth", feet:"foot", children:"child", kids:"child", kid:"child", people:"person", men:"man", women:"woman", mice:"mouse", mom:"mother", mommy:"mother", mama:"mother", mum:"mother", dad:"father", daddy:"father", papa:"father", well:"good", "put on":"wear", "get dressed":"dress", leave:"go out", hi:"hello", nap:"sleep", tummy:"stomach", bunny:"rabbit", doggy:"dog", kitty:"cat", potty:"toilet", yummy:"tasty", delicious:"tasty", angry:"angry", mad:"angry", scared:"fear", afraid:"fear", home:"home", supper:"evening", grab:"take"};
+function normQ(q){
+  q = q.trim().toLowerCase();
+  if(SYN[q]) return SYN[q];
+  if(q.length>4 && /ies$/.test(q)) return q.slice(0,-3)+"y";
+  if(q.length>4 && /(ches|shes|xes|sses)$/.test(q)) return q.slice(0,-2);
+  if(q.length>3 && /[^s]s$/.test(q)) return q.slice(0,-1);
+  return q;
+}
 function matchScore(q, g, k){
   if(!q) return 1;
   const gl = g.toLowerCase(), sg = shortGloss(g).toLowerCase();
@@ -1691,12 +1852,14 @@ function matchScore(q, g, k){
   if(sg===q || words.join(" ")===q) return 100;
   if(words.includes(q)) return 80;
   if(words.some(w=>w.startsWith(q))) return 60;
-  if(q.length>=4 && gl.includes(q)) return 40;
+  if(q.length>=4 && new RegExp("(^|[^a-z])"+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(gl)) return 40;
   if(k && stripMarks(k).startsWith(stripMarks(q))) return 30;
   return 0;
 }
 function filterItems(items, q){
-  return items.map(it=>({it, s:Math.max(matchScore(q, it.full||it.en, it.lu), matchScore(q, it.en, it.lu))})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).map(x=>x.it);
+  const q2 = normQ(q);
+  const sc = (it, qq) => Math.max(matchScore(qq, it.full||it.en, it.lu), matchScore(qq, it.en, it.lu));
+  return items.map(it=>({it, s:Math.max(sc(it, q), q2!==q ? sc(it, q2)-1 : 0)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).map(x=>x.it);
 }
 function drawList(){
   if(!sheet) return;
@@ -1709,12 +1872,16 @@ function drawList(){
   const nouns = (filter) => NOUNS.filter(filter||(()=>true)).map(n=>({kind:"word", lu:n.k, en:shortGloss(n.g), full:n.g}));
   const verbs = (filter) => VERBS.filter(filter||(()=>true)).map(v=>({kind:"word", lu:v.k, en:shortGloss(v.g), show:verbBare(v.k), full:v.g}));
   if(mode==="verb") secs.push(["Verbs", verbs()]);
-  if(mode==="desc"){ secs.push(["Describing words", verbs(v=>v.adj)]); secs.push(["Other verbs", verbs(v=>!v.adj)]); }
+  if(mode==="desc"||mode==="how"){
+    if(mode==="how") secs.push(["Ask", [{kind:"why", lu:"emosedi", en:"how? / why?"}]]);
+    secs.push(["Describing words", verbs(v=>v.adj)]); secs.push(["Other verbs", verbs(v=>!v.adj)]);
+  }
   if(mode==="nounc"){
     const isObj = /\.obj$/.test(sheet.path);
     secs.push(["A whole clause", [{kind:"clause", lu:"yeti", en:"that… — a whole clause (yeti)"}, ...(isObj ? [{kind:"quote", lu:"“…”", en:"“…” — a quotation (with onu)"}] : [])]]);
   }
-  if(mode==="noun"||mode==="nounc"||mode==="owner"||mode==="join"){
+  if(mode==="noun"||mode==="nounc"||mode==="owner"||mode==="join"||mode==="pred"){
+    if(mode==="pred") secs.push(["Ask", [{kind:"q", lu:"emose", en:"what?"},{kind:"q", lu:"mõzo", en:"who?"},{kind:"q", lu:"emose", fixed:"wa", show:"emosewa", en:"when?"},{kind:"q", lu:"emose", fixed:"di", show:"emosedi", en:"how?"}]]);
     if(mode==="noun"||mode==="nounc") secs.push(["Ask", [{kind:"q", lu:"mõzo", en:"who? (something that acts)"},{kind:"q", lu:"emose", en:"what? (a thing)"}]]);
     if(mode==="owner") secs.push(["Ask", [{kind:"q", lu:"mõzo", show:"mõzope", en:"whose?"}]]);
     secs.push(["People words", prons()]);
@@ -1740,12 +1907,14 @@ function drawList(){
     const cap = q ? 60 : 400;
     html += `<div class="sec">${esc(title)}</div>`;
     list.slice(0,cap).forEach(it=>{ const i = store.length; store.push(it);
-      html += `<button class="it" data-pick="${i}"><span>${esc(it.en)}</span><span class="l lu">${esc(it.show||it.lu)}</span></button>`; });
+      const fullG = it.full ? cleanGloss(it.full) : "";
+      const sub = fullG && fullG.toLowerCase().replace(/^to /,"") !== String(it.en).toLowerCase() ? `<span class="fg">${esc(fullG)}</span>` : "";
+      html += `<button class="it" data-pick="${i}"><span>${esc(it.en)}${sub}</span><span class="l lu">${esc(it.show||it.lu)}</span></button>`; });
     if(list.length>cap) html += `<div class="more2">${list.length-cap} more — type to narrow</div>`;
     total += list.length;
   }
   const nmSpell = /y$/i.test(raw) ? raw.slice(0,-1)+"i" : raw;
-  if(q && (mode==="noun"||mode==="nounc"||mode==="owner"||mode==="join")) html += `<button class="gapbtn namebtn" data-name="1">Use “${esc(nmSpell.charAt(0).toUpperCase()+nmSpell.slice(1))}” as a name${nmSpell!==raw?" — a final y sound is spelled i (§2)":""}</button>`;
+  if(q && (mode==="noun"||mode==="nounc"||mode==="owner"||mode==="join"||mode==="pred")) html += `<button class="gapbtn namebtn" data-name="1">Use “${esc(nmSpell.charAt(0).toUpperCase()+nmSpell.slice(1))}” as a name${nmSpell!==raw?" — a final y sound is spelled i (§2)":""}</button>`;
   if(q) html += `<button class="gapbtn" data-gap="1">${total?"Not here? ":"No Lunaji word found. "}Use “${esc(raw)}” as a gap</button>`;
   if(!html) html = `<div class="more2">Nothing to show.</div>`;
   const el = $("#sheetList"); el.innerHTML = html; el.scrollTop = 0;
@@ -1764,11 +1933,13 @@ function drawList(){
 }
 function pickItem(item){
   const {path, mode} = sheet;
+  if(item.kind==="why"){ const cl = getP(path.replace(/\.manner$/,"")); if(cl){ cl.why = true; cl.manner = null; } closeSheet(); render(); return; }
   if(mode==="join"){
     const j = getP(path) || {type:"and", items:[]};
     j.items.push(item); setP(path, j);
   } else {
     setP(path, item);
+    if(/\.manner$/.test(path)){ const cl = getP(path.replace(/\.manner$/,"")); if(cl) cl.why = false; }
     if(/\.subj$/.test(path)){ const cl = getP(path.replace(/\.subj$/,"")); if(cl && item.kind!=="pron" && cl.role==="drop") cl.role = cl.kind==="compare" ? "doer" : "topic"; if(cl && item.kind==="clause") cl.role = "doer"; }
     if(item.kind==="clause" || item.kind==="quote"){ UI.stack.push(path+".clause"); UI.open = null; }
   }
