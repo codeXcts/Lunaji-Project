@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1702 · made on build 2026-10-29-1318</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1919 · made on build 2026-10-29-1702</div>
 <p class="sub">Blind root draw and R1–R15 derivation; R16 conjugates the eight irregular verbs. Runs offline.</p>
 
 <nav role="tablist">
@@ -656,6 +656,19 @@ details.panel>summary{cursor:pointer}
     <p class="hint">2026-10-11: the endings <em>-vu</em> (state: <em>gosomuvu</em>, to be broken) and <em>-ga</em> (one who: <em>ineluga</em>) and the word <em>puso</em> go into the lexicon. Three elisions are written: <em>pe</em> before any vowel (<em>nuswap'akyoza</em>), a nasal vowel counting as the same vowel (<em>yãkin'ĩpõgu</em>), and <em>puso</em> before <em>o</em> or <em>õ</em> only (<em>pus'onyake</em>). The last button shows every stored sentence it would rewrite before changing it. Compounds are built in the Compound tab (Grammar §2.7).</p>
     <p class="hint">2026-10-24: <em>kügi</em>, "than", goes into the lexicon and leans forward (<em>küg'ilusã</em>, the <em>ü</em> kept); <em>toma</em> is "from" only. <em>fa</em> drops its vowel before <em>a</em> or <em>ã</em> (<em>mumã f'ani</em>) and <em>mishi</em> before <em>i</em> or <em>ĩ</em> (<em>mish'ilusãba</em>). The comma is a pause only and no longer "and", and two bare nouns side by side are not a construction: the button lists stored lines with a comma or two bare nouns together, to check by hand — it never rewrites those. <em>fa</em>, <em>mishi</em>, <em>mishiku</em> and <em>mishika</em> were added by hand. Since build 2026-10-24-1603 the button also files <em>kügi</em>, <em>fa</em> and <em>mishi</em> as function words if they are stored as anything else, and gives <em>mishiku</em> and <em>mishika</em> their proto forms, MISIKU and MISIKA, if they have none — a tick box each.</p>
     <div id="lxAuditOut"></div>
+  </div>
+  <div class="panel" id="trPanel">
+    <h2 style="margin:0 0 6px">Transitivity — does the verb take an object?</h2>
+    <p class="hint">2026-10-29. Each verb gets <i>tr</i>: <b>t</b> takes an object (<i>ni</i>), <b>i</b> takes none, <b>b</b> both (<i>open the door</i> / <i>the door opens</i>). The Composer reads it, and so does the causative: under <i>tsobã</i> or <i>idovu</i> the one caused to act takes <i>ni</i> with an intransitive verb and <i>di</i> with a transitive one (Grammar §4.10). <b>The suggestions are only suggestions</b> — from the English gloss and from your phrasebook — and nothing is stored until you save. Whether a Lunaji verb takes an object is your call.</p>
+    <div class="row">
+      <select id="tvShow"><option value="todo">not tagged yet</option><option value="all">all verbs</option><option value="t">tagged t</option><option value="i">tagged i</option><option value="b">tagged b</option><option value="none">no suggestion</option></select>
+      <input id="tvQ" placeholder="find a verb or gloss" spellcheck="false" autocapitalize="off">
+    </div>
+    <p id="tvSum" class="hint" style="margin:6px 0"></p>
+    <div id="tvList" style="max-height:60vh;overflow:auto"></div>
+    <button class="btn ghost" id="tvAccept" style="margin-top:8px">Fill the shown untagged verbs with their suggestion</button>
+    <button class="btn" id="tvSave" style="margin-top:8px">Save tags</button>
+    <div id="tvOut"></div>
   </div>
   <div class="panel">
     <label for="lxWord">Add a word the Forge missed</label>
@@ -6465,6 +6478,71 @@ const R15_LIST = {"polisa":"polis","alfire":"alfir","alwera":"alwer","amwala":"a
       $("r16ApplyOut").innerHTML = `<p class="hint">${n} verb entries marked; ${lines} stored line${lines === 1 ? "" : "s"} respelled. <b>Save the lexicon and the phrasebook</b> (Lexicon tab), then export.</p>`;
     };
   };
+})();
+
+/* ══════════ Transitivity — build 2026-10-29-1919 ══════════
+   Each verb entry may carry tr: "t" (takes an object), "i" (takes none) or "b"
+   (both). A field added to the lexicon save, nothing removed. Suggestions come
+   from the English gloss and the phrasebook; nothing is stored until Save. */
+(function(){
+  const T = ["fear","promise","know","say","tell","feed","see","welcome","greet","believe","marry","hear","want","dread","hug","miss","look after","gather","question","drink","lift","pour","cut","taste","spill","look for","search","show","touch","smell","catch","read","choose","count","follow","send","pay","build","fix","repair","explain","drop","wrap","cover","keep","protect","bite","allow","let","tickle","wipe","bend","cross","reach","fold","mix","dig","plant","borrow","sell","hit","sew","carve","deceive","invite","refuse","decide","notice","swallow","stroke","pet","bake","hunt","tie","fill","brush","wear","take","rock","share","cook","chew","lick","sweep","look at","receive","thank","kick","kiss","add","bring","buy","call","carry","change","do","forget","help","hold","like","lose","love","make","need","pick up","pull","push","put","remember","teach","try","turn off","turn on","understand","use","wash","find","give","meet","throw","ask","leave a trace","dress"];
+  const I = ["exist","stir","move slightly","be awake alongside","die","come","go","stand","fall","crawl","rest","live","dwell","be born","arrive","yawn","slip","slide","swim","fly","pass","flee","escape","hurry","rise","flow","glow","flicker","ring","sound","shiver","wake up","fall asleep","work","stay","apologize","snore","sweat","float","sink","cry","dance","jump","laugh","run","sit","smile","walk","lie down","sleep","agree","cough","breathe","shout","hurt","come back","return","reason","go in","enter","go out"];
+  const B = ["break","open","close","begin","start","stop","finish","end","burn","freeze","boil","grow","roll","turn","move","shake","hang","hide","heal","win","sing","eat","learn","write","draw","paint","answer","clean up","tidy","play","fight","listen","whisper","dream","bathe","worry","think","hope","speak","talk","clap","drive","ride","wait","climb","lie"];
+  const glossKey = g => String(g || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/^to\s+/, "").trim();
+  function suggest(w){
+    const e = LEX[w], g = glossKey(e.g);
+    if(e.k === "adjv" || /^be\s/.test(g) || /\(adjectival verb\)/.test(e.g || "")) return {tr: "i", why: "a quality (to be …)"};
+    const first = g.split(/[;,]/)[0].trim();
+    const hit = (list) => list.slice().sort((a, b) => b.length - a.length).find(k => first === k || first.startsWith(k + " "));
+    const b = hit(B), t = hit(T), i = hit(I);
+    const best = [b && ["b", b], t && ["t", t], i && ["i", i]].filter(Boolean).sort((x, y) => y[1].length - x[1].length)[0];
+    return best ? {tr: best[0], why: "gloss: " + best[1]} : {tr: "", why: "no suggestion"};
+  }
+  // phrasebook evidence: a noun with ni in the same clause before a form of the verb, and no causative after it
+  function evidence(){
+    const ev = {};
+    (PB || []).forEach(e => {
+      const toks = String(e.lu || "").replace(/["“”]/g, "").split(/\s+/).map(t => t.replace(/[.?!,]/g, "")).filter(Boolean);
+      if(toks.some(t => /^(tsob|idovu)/.test(toN(t.toLowerCase())))) return;
+      let obj = false;
+      toks.forEach(t => {
+        const low = t.toLowerCase();
+        if(/(ni|n')$/.test(low) || /n'/.test(low)) { if(!verbStem(low)) obj = true; }
+        const v = verbStem(low);
+        if(v && v.stem){ (ev[v.stem] = ev[v.stem] || {o: 0, n: 0}); obj ? ev[v.stem].o++ : ev[v.stem].n++; obj = false; }
+        if(/[,]$/.test(t)) obj = false;
+      });
+    });
+    return ev;
+  }
+  let draft = {};
+  function verbs(){ return Object.keys(LEX).filter(w => LEX[w].c === "verb" && LEX[w].real !== false).sort((a, b) => a.localeCompare(b)); }
+  function paint(){
+    const ev = evidence(), V = verbs(), show = $("tvShow").value, q = ($("tvQ").value || "").trim().toLowerCase();
+    const tagged = V.filter(w => LEX[w].tr).length;
+    $("tvSum").innerHTML = `${V.length} verbs · <b>${tagged}</b> tagged · ${V.length - tagged} not yet` + (Object.keys(draft).length ? ` · <b style="color:var(--lamp)">${Object.keys(draft).length} unsaved</b>` : "");
+    const rows = V.map(w => ({w, e: LEX[w], s: suggest(w), ev: ev[w], cur: draft[w] !== undefined ? draft[w] : (LEX[w].tr || "")}))
+      .filter(x => (!q || x.w.includes(q) || String(x.e.g || "").toLowerCase().includes(q)) &&
+        (show === "all" || (show === "todo" && !x.e.tr) || (show === "none" && !x.s.tr) || (["t","i","b"].includes(show) && x.e.tr === show)));
+    $("tvList").innerHTML = rows.length ? `<table>${rows.map(x => `<tr>
+      <td class="lun" style="white-space:nowrap">${esc(x.w)}</td>
+      <td><span class="hint" style="margin:0">${esc(x.e.g || "")}</span>
+        <div class="hint" style="margin:0;opacity:.8">suggested: <b>${x.s.tr || "—"}</b> (${esc(x.s.why)})${x.ev ? ` · phrasebook: ${x.ev.o} line${x.ev.o === 1 ? "" : "s"} with an object, ${x.ev.n} without` : ""}</div></td>
+      <td><select data-tv="${esc(x.w)}">${["", "t", "i", "b"].map(v => `<option value="${v}" ${x.cur === v ? "selected" : ""}>${v ? {t: "t — object", i: "i — none", b: "b — both"}[v] : "—"}</option>`).join("")}</select></td></tr>`).join("")}</table>`
+      : `<p class="hint">Nothing to show.</p>`;
+    document.querySelectorAll("[data-tv]").forEach(sel => sel.onchange = () => { const w = sel.dataset.tv; if(sel.value === (LEX[w].tr || "")) delete draft[w]; else draft[w] = sel.value; paint(); });
+  }
+  $("tvShow").onchange = paint; $("tvQ").oninput = paint;
+  $("tvAccept").onclick = () => { document.querySelectorAll("[data-tv]").forEach(sel => { const w = sel.dataset.tv; if(!LEX[w].tr && draft[w] === undefined){ const s = suggest(w).tr; if(s) draft[w] = s; } }); paint(); };
+  $("tvSave").onclick = () => {
+    const ks = Object.keys(draft); if(!ks.length){ $("tvOut").innerHTML = `<p class="hint">Nothing to save.</p>`; return; }
+    ks.forEach(w => { if(!LEX[w]) return; if(draft[w]) LEX[w].tr = draft[w]; else delete LEX[w].tr; });
+    saveLex(); logLine(`${stamp()}  transitivity tagged: ${ks.length} verb${ks.length === 1 ? "" : "s"}`);
+    draft = {}; paint();
+    $("tvOut").innerHTML = `<p class="hint">${ks.length} saved. <b>Save the lexicon</b> (above), then export.</p>`;
+  };
+  document.querySelector('nav button[data-tab="lexicon"]').addEventListener("click", paint);
+  window.trSuggest = suggest;
 })();
 </script>
 </body>
