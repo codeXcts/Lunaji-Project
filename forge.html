@@ -102,7 +102,7 @@ details.panel>summary{cursor:pointer}
 </head>
 <body>
 
-<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-29-1919 · made on build 2026-10-29-1702</div>
+<h1>Lunaji Forge</h1><div class="buildstamp" style="font-size:11px;opacity:.45;margin:-6px 0 10px">build 2026-10-30-1112 · made on build 2026-10-29-1919</div>
 <p class="sub">Blind root draw and R1–R15 derivation; R16 conjugates the eight irregular verbs. Runs offline.</p>
 
 <nav role="tablist">
@@ -3443,7 +3443,11 @@ $("lxImport").onclick = () => {
 $("lxReset").onclick = () => {
   const seed = seedObj(); let added = 0;
   for(const w in seed) if(!LEX[w] && !isRetired(w) && !SEED_SUPERSEDED.includes(toN(w)) && !(seed[w].worn && LEX[seed[w].worn.from])
-                          && !Object.values(LEX).some(e => e.was === w)){ LEX[w] = seed[w]; added++; }
+                          && !Object.values(LEX).some(e => e.was === w || (e.fin && e.fin.from === w) || (e.irr && e.irr.from === w))
+                          && !(w === "hi" && LEX["h\u0129"])){ LEX[w] = seed[w]; added++; }
+  /* build 2026-10-30-1112 — the built-in list predates R15 and R16, so after Apply R15 it
+     re-added hotori and zwashi beside hotor and zwash. An old form kept as fin.from or
+     irr.from is not missing; and before Apply R16, hi is not added beside h\u0129. */
   saveLex(); renderLex();
   logLine(`${stamp()}  merged in ${added} built-in word${added===1?"":"s"}`);
 };
