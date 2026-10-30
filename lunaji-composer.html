@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-30-0222">
+<meta name="lunaji-build" content="2026-10-30-0800">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -235,7 +235,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-30-0222";
+const BUILD = "2026-10-30-0800";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -1519,11 +1519,11 @@ function clauseScreen(px, c, ctx){
 
   if(c.kind==="is"){
     if(ctx.sub){
-      h.push(row(K("pred"), "…is what", nounSum(c.pred), picker(px+".pred","noun","Tap to pick")+detailsBlock(px+".pred"), {req:true}));
+      h.push(row(K("pred"), "…is (Y)", nounSum(c.pred), picker(px+".pred","noun","Tap to pick")+detailsBlock(px+".pred"), {req:true}));
     } else {
       h.push(row(K("subj"), "What you're talking about", nounSum(c.subj), picker(px+".subj","noun","Optional")+roles(true,false,true)+detailsBlock(px+".subj"),
         {hint: isQ(c.subj) ? "A question word here takes ba, and there's no jĩ (§3.6)." : ""}));
-      h.push(row(K("pred"), "…is what", nounSum(c.pred), picker(px+".pred","noun","Tap to pick")+detailsBlock(px+".pred"), {req:true}));
+      h.push(row(K("pred"), "…is (Y)", nounSum(c.pred), picker(px+".pred","noun","Tap to pick")+detailsBlock(px+".pred"), {req:true, hint: UIS.hints ? "Asking “what is X?” or “who is X?” — pick what? or who? here, at the top of the list (§3.6)." : ""}));
     }
     h.push(row(K("isopts"), "Past / not", [c.past?"was":"", c.neg?"not":""].filter(Boolean).join(" · ") || `<span class="ph">is</span>`,
       opts("", tog(px+".past","Past (was)")+tog(px+".neg","Not"), false),
@@ -1574,6 +1574,7 @@ function renderEditor(){
   let h = "";
   if(UI.stack.length>1) h += `<div class="crumbs"><button data-back="1">‹ Back</button><span>${UI.stack.map(titleOf).map(esc).join(" › ")}</span></div>`;
   else if(!isFull() && usesFull()) h += `<div class="hint" style="margin:0 0 8px">This sentence uses Full options. Switch to Full to see all of them.</div>`;
+  if(UI.stack.length===1 && S.type==="question" && UIS.hints) h += `<div class="hint" style="margin:-4px 0 10px">A yes / no question needs nothing more. To ask who, what, where or when, put the question word in the slot it asks about — it's at the top of that slot's list (§3.6).</div>`;
   h += clauseScreen(path, c, ctx);
   if(path==="c1") h += clausesSection();
   $("#slots").innerHTML = h;
@@ -1714,22 +1715,22 @@ function drawList(){
     secs.push(["A whole clause", [{kind:"clause", lu:"yeti", en:"that… — a whole clause (yeti)"}, ...(isObj ? [{kind:"quote", lu:"“…”", en:"“…” — a quotation (with onu)"}] : [])]]);
   }
   if(mode==="noun"||mode==="nounc"||mode==="owner"||mode==="join"){
-    secs.push(["People words", prons()]);
-    if(names().length) secs.push(["Names", names()]);
     if(mode==="noun"||mode==="nounc") secs.push(["Ask", [{kind:"q", lu:"mõzo", en:"who? (something that acts)"},{kind:"q", lu:"emose", en:"what? (a thing)"}]]);
     if(mode==="owner") secs.push(["Ask", [{kind:"q", lu:"mõzo", show:"mõzope", en:"whose?"}]]);
+    secs.push(["People words", prons()]);
+    if(names().length) secs.push(["Names", names()]);
     secs.push(["Nouns", nouns()]);
     if(q) secs.push(["One who… (-ga)", VERBS.map(v=>({kind:"ga", lu:v.k, en:"one who "+shortGloss(v.g).replace(/^be /,"is "), show:verbBare(v.k)+"ga", full:v.g}))]);
   }
   if(mode==="time"){
+    secs.push(["Ask", [{kind:"q", lu:"emose", fixed:"wa", show:"emosewa", en:"when?"}]]);
     secs.push(["Pointing from now — no wa", TIME_DEICTIC.map(fromLex).filter(Boolean)]);
     secs.push(["Times of day — take wa", TIME_NAMES.map(fromLex).filter(Boolean)]);
-    secs.push(["Ask", [{kind:"q", lu:"emose", fixed:"wa", show:"emosewa", en:"when?"}]]);
     secs.push(["Other nouns — take wa", nouns(n=>!DEICTIC[n.k]&&!TIME_NAMES.includes(n.k))]);
   }
   if(mode==="place"){
-    secs.push(["Pointing from here — no wa", PLACE_DEICTIC.map(fromLex).filter(Boolean)]);
     secs.push(["Ask", [{kind:"q", lu:"emose", fixed:"wa", show:"emosewa", en:"where?"},{kind:"q", lu:"emose", fixed:"toma", show:"emose toma", en:"from where?"}]]);
+    secs.push(["Pointing from here — no wa", PLACE_DEICTIC.map(fromLex).filter(Boolean)]);
     secs.push(["Places and things — take wa", nouns(n=>!DEICTIC[n.k])]);
   }
   let html = "", total = 0; const store = [];
