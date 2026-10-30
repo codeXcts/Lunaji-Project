@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-29-2151">
+<meta name="lunaji-build" content="2026-10-29-2241">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -192,7 +192,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-29-2151";
+const BUILD = "2026-10-29-2241";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -326,8 +326,8 @@ const N = {
   oyaHena: "oyã hena — can't be. oyã is not a verb, so it takes free hena (§5.3, §4.3).",
   tsoba: "tsobã — to make (someone do it). It follows the main verb and carries the past (§4.10, §4.1).",
   idovu: "idovu — to let. Built like tsobã: after the main verb, carrying the past (§4.10).",
-  causeeNi: "The one made or let to act takes ni when the verb has no object (§4.10).",
-  causeeDi: "The one made or let to act takes di when the verb has an object; ni stays with the object (§4.10).",
+  causeeNi: "The one made or let to act takes ni, because this verb never takes an object (§4.10).",
+  causeeDi: "The one made or let to act takes di, because this verb can take an object — whether one is said or not. ni stays for the object (§4.10).",
   la: "la — I heard or felt it; I didn't see it (§4.4).",
   po: "po — from what I can tell: inferred from evidence (§4.4).",
   ke: "ke — I assume so, from what I generally know (§4.4).",
@@ -556,13 +556,13 @@ function buildVerb(c,o,r){
   let cp = null;
   if(c.aux){
     if(!c.causee) r.nc.push("Add who is being made or let to do it (§4.10).");
-    else if(c.obj) cp = "di";
     else {
-      const tr = getTrans(c.verb);
-      if(tr==="intr") cp = "ni";
-      else if(tr==="tr") cp = "di";
-      else if(tr==="both") r.nc.push("This verb is tagged as going either way. With no object, Grammar.md doesn't say whether the one made or let to act takes ni or di (§4.10).");
-      else r.nc.push("With no object, the one made or let to act takes ni if the verb can't take an object and di if it can (§4.10). This verb has no tag in the lexicon, so the page can't tell.");
+      const tr0 = getTrans(c.verb);
+      if(tr0==="intr" && c.obj) r.nc.push("This verb is tagged as taking no object, so under make / let the one acting takes ni, and an object would take ni too. That isn't covered: remove the object or pick another verb (§4.10).");
+      else if(tr0==="intr") cp = "ni";
+      else if(tr0==="tr" || tr0==="both") cp = "di";
+      else if(c.verb.kind==="gap") r.nc.push("Under make / let, ni or di depends on whether the verb can take an object (§4.10). A missing verb has no tag yet.");
+      else r.nc.push("Under make / let, ni or di depends on whether the verb can take an object (§4.10). This verb has no tag in the lexicon.");
     }
     if(cp==="di" && c.place && c.rel==="to" && !isQ(c.place)) r.nc.push("Two di phrases (to a place, and the one made or let to act): their order isn't written in Grammar.md.");
   }
@@ -900,7 +900,7 @@ function renderClause(px, c, ctx){
       }
     }
     h.push(slot("Verb — what happens", picker(px+".verb","verb","Tap to pick a verb"), vo, {req:true}));
-    if(c.aux) h.push(slot(`Who is ${c.aux==="tsobã"?"made":"let"} to do it`, picker(px+".causee","noun","Tap to pick"), nounDetails(px+".causee"), {hint:"Takes ni with no object, di when there is one (§4.10)."}));
+    if(c.aux) h.push(slot(`Who is ${c.aux==="tsobã"?"made":"let"} to do it`, picker(px+".causee","noun","Tap to pick"), nounDetails(px+".causee"), {hint:"Takes di if the verb can take an object, said or not; ni only if it never takes one (§4.10)."}));
 
     if(type==="command") h.push(slot("Who or what does it", `<div class="hint">A command has no subject (§4.5).</div>`, "", {off:true}));
     else if(type==="lets" && ctx.main) h.push(slot("Who or what does it", `<div class="pick"><div class="val"><span class="en">we (you and me)</span><span class="luv lu">luswazo</span></div></div>`, "", {off:true, hint:"Fixed for let's (§4.10)."}));
