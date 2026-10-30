@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-30-0015">
+<meta name="lunaji-build" content="2026-10-30-0028">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -192,7 +192,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-30-0015";
+const BUILD = "2026-10-30-0028";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -755,7 +755,11 @@ function markLast(T, note){ const tk = T[T.length-1]; const p = tk.pieces[tk.pie
 function buildIs(c,o,r){
   const T = r.tokens, B = r.built, type = o.main ? o.type : "statement";
   if(type==="command"||type==="lets") r.nc.push("A command or let's built on \"is\" isn't written in Grammar.md.");
-  if(o.sub) r.nc.push("An if / when / because clause built on \"is\" isn't covered yet.");
+  if(o.sub){
+    if(o.sub!=="if") { /* reported once, by compose */ }
+    else if(c.subj) r.nc.push("An \"if it is / isn't…\" clause has no topic, so its X can't be said: §6.1a writes only Noa henana and Noa guenazena.");
+    else if(!c.past && !c.neg) r.nc.push("\"If it is…\" in the present isn't written in Grammar.md: there's no copula word for the if-particle to join. §6.1a writes only the negative (Noa henana) and the past (Noa guenazena).");
+  }
   r.qCount = qIn(c.subj)+qIn(c.pred);
   const qPred = isQ(c.pred) && !(c.pred.mods && c.pred.mods.pos);
   const qSubj = isQ(c.subj);
@@ -769,12 +773,13 @@ function buildIs(c,o,r){
   else addNP(r, c.pred, null, "is "+npEn(c.pred));
   if(c.past){
     if(LEX && !inLex("gu")) T.push({pieces:[P("[gu]","gap",N.missingFW("gu"))], gap:true});
-    else { const pcs = [P("gu","root",N.gu)]; if(c.neg) pcs.push(P("ena","end",N.guNeg)); pcs.push(P("ze","end",N.ze)); T.push({pieces:pcs}); }
+    else { const pcs = [P("gu","root",N.gu)]; if(c.neg) pcs.push(P("ena","end",N.guNeg)); pcs.push(P("ze","end",N.ze)); const gt = {pieces:pcs}; T.push(gt); r.verbTok = gt; }
     B.push(c.neg?"wasn't":"was");
-  } else if(c.neg){ T.push(FW("hena", N.henaFree)); B.push("not"); }
+  } else if(c.neg){ const ht = FW("hena", o.sub ? "hena — not, standing free: there's no verb in a present \"X is Y\" clause (§4.3)." : N.henaFree); T.push(ht); r.verbTok = ht; B.push("not"); }
   if(o.matrix && (qPred || qSubj)) r.question = true;
   else if(o.matrix && type==="question"){ r.question = true; T.push(FW("jĩ", N.jin)); }
   if(!c.past) r.notes.push("No word for \"is\" now: the copula is zero when it isn't past (§4.6).");
+  if(o.sub) r.notes.push(c.past ? "In the past the copula carries the if-particle: guenazena, if it wasn't (§6.1a)." : "Free henana: if it isn't. It survives only here, in a present \"X is Y\" clause (§6.1a).");
   if(c.subj && c.role==="drop" && c.subj.kind==="pron") r.notes.push(`"${c.subj.en}" is left out: a neutral sentence has no pronoun in it (§2.3).`);
 }
 
@@ -840,7 +845,7 @@ function compose(){
     if(t==="lets") out.nc.push("Let's with a second clause isn't written in Grammar.md.");
     if(!sub && t==="command") out.nc.push("A command joined with mishi or norõ isn't written in Grammar.md.");
     if(!sub && (t==="question" || A.qCount || (Bc&&Bc.qCount) || c1.evid || c2.evid || More.some(x=>x.qCount) || chain.some(m=>m.c.evid))) out.nc.push("A question, or la / po / ke, in two clauses joined by mishi or norõ isn't written in Grammar.md.");
-    if(sub && c2.kind!=="verb") out.nc.push("The if / when / because part needs a verb; other kinds aren't covered yet.");
+    if(sub && c2.kind!=="verb" && !(c2.kind==="is" && link==="if")) out.nc.push("This part needs a verb. An \"X is Y\" part is written only with if (§6.1a).");
     if(sub && Bc && Bc.qCount) out.nc.push("A question word in an if / when / because clause isn't covered.");
   }
   if(out.nc.length) return out;
@@ -1047,6 +1052,9 @@ function slot(label, inner, extra, opt){
 function renderClause(px, c, ctx){
   const h = [];
   const type = ctx.main ? S.type : "statement";
+  if(ctx.sub && S.link==="if"){
+    h.push(`<div class="seg">${["verb","is"].map(k=>`<button data-set="${px}.kind" data-v="${k}" class="${c.kind===k?"on":""}">${{verb:"Does",is:"X is / isn't Y"}[k]}</button>`).join("")}</div>`);
+  }
   if(ctx.main || !ctx.sub){
     h.push(`<div class="seg">${(ctx.main && !S.link ? ["verb","is","compare","word"] : ["verb","is","compare"]).map(k=>`<button data-set="${px}.kind" data-v="${k}" class="${c.kind===k?"on":""}">${{verb:"Does",is:"X is Y",compare:"Compare",word:"One word"}[k]}</button>`).join("")}</div>`);
   }
@@ -1104,7 +1112,11 @@ function renderClause(px, c, ctx){
   if(c.kind==="word"){
     h.push(slot("The word", picker(px+".word","noun","Tap to pick"), `<div class="opts small"><span class="ol">Or:</span><button data-setword="${px}|dã">yes (dã)</button><button data-setword="${px}|hena">no (hena)</button></div>`+nounDetails(px+".word"), {req:true, hint:"A bare noun is a whole sentence: a name to call someone, or the answer to a question-word question (§2.4a, §6.3)."}));
   }
-  if(c.kind==="is"){
+  if(c.kind==="is" && ctx.sub){
+    h.push(slot("…is what", picker(px+".pred","noun","Tap to pick"), nounDetails(px+".pred"), {req:true}));
+    h.push(slot("Options", `<div class="opts">${tog(px+".past","Past (was)")}${tog(px+".neg","Not")}</div>`, "", {hint:"If it isn't X: X henana. If it was / wasn't X: X guzena / guenazena (§6.1a)."}));
+  }
+  else if(c.kind==="is"){
     h.push(slot("What you're talking about", picker(px+".subj","noun","Optional"), subjRoles(px+".subj", true, false, true)+nounDetails(px+".subj"), {hint: isQ(c.subj) ? "A question word here takes ba, and there's no jĩ (§3.6)." : ""}));
     h.push(slot("…is what", picker(px+".pred","noun","Tap to pick"), nounDetails(px+".pred"), {req:true}));
     h.push(slot("Options", `<div class="opts">${tog(px+".past","Past (was)")}${tog(px+".neg","Not")}</div>`, "", {hint:"No word for \"is\" now; \"was\" is guze (§4.6)."}));
@@ -1156,7 +1168,7 @@ $("#slots").addEventListener("click", e=>{
   if(d.numon){ setP(d.numon, {n:2, ctr:"re"}); render(); return; }
   if(d.joinrm){ const j = getP(d.joinrm); j.items.splice(+d.i,1); if(!j.items.length) setP(d.joinrm, null); render(); return; }
   if(d.more){ UI.more[d.more] = !UI.more[d.more]; render(); return; }
-  if(d.link){ S.link = d.link; if(!S.c2) S.c2 = blankClause(); if(SUBS.includes(d.link)){ S.c2.kind = "verb"; S.more = []; } render(); return; }
+  if(d.link){ S.link = d.link; if(!S.c2) S.c2 = blankClause(); if(SUBS.includes(d.link)){ if(!(d.link==="if" && S.c2.kind==="is")) S.c2.kind = "verb"; S.more = []; } render(); return; }
   if(d.rmlink){ S.link = ""; S.c2 = null; S.more = []; render(); return; }
   if(d.addmore){ (S.more = S.more||[]).push({link:d.addmore, c:blankClause()}); render(); return; }
   if(d.rmmore){ S.more.splice(+d.rmmore,1); render(); return; }
