@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-29-2031">
+<meta name="lunaji-build" content="2026-10-29-2151">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -192,7 +192,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-29-2031";
+const BUILD = "2026-10-29-2151";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -261,21 +261,10 @@ const inLex = k => !!(LEX && LEX[k]);
 const glossOf = k => LEX && LEX[k] ? shortGloss(LEX[k].g) : (DEICTIC[k]||k);
 function verbBare(k){ const v = LEX && LEX[k]; return v && v.irr && v.irr.bare ? v.irr.bare : k; }
 
-/* Transitivity tag from the Forge (field name not yet confirmed — these are tried in order). */
+/* Transitivity tag from the Forge: LEX[verb].tr = "i" (no object), "t" (takes an object), "b" (either). */
 function getTrans(item){
   if(!item || item.kind!=="word" || !LEX || !LEX[item.lu]) return null;
-  const v = LEX[item.lu];
-  for(const key of ["tr","trans","transitive","transitivity","valency","val","obj","takesObject","takes_object"]){
-    if(!(key in v)) continue;
-    const x = v[key];
-    if(x===true) return "tr";
-    if(x===false) return "intr";
-    const s = String(x).toLowerCase();
-    if(/both|either|ambi/.test(s)) return "both";
-    if(/intr|^no|none|without/.test(s)) return "intr";
-    if(/tr|^yes|obj|with/.test(s)) return "tr";
-  }
-  return null;
+  return {i:"intr", t:"tr", b:"both"}[LEX[item.lu].tr] || null;
 }
 
 /* ---------- pronouns (§3.1, §3.5) ---------- */
@@ -531,7 +520,7 @@ const isQ = x => x && x.kind==="q";
 function qIn(item){ if(!item) return 0; let n = isQ(item)?1:0; if(item.mods && isQ(item.mods.pos)) n++; return n; }
 
 function buildClause(c, o){
-  const r = {tokens:[], built:[], notes:[], nc:[], qCount:0, hasTopic:false, question:false, verbTok:null};
+  const r = {tokens:[], built:[], notes:[], nc:[], warns:[], qCount:0, hasTopic:false, question:false, verbTok:null};
   if(c.kind==="is") buildIs(c,o,r);
   else if(c.kind==="compare") buildCompare(c,o,r);
   else buildVerb(c,o,r);
@@ -572,13 +561,14 @@ function buildVerb(c,o,r){
       const tr = getTrans(c.verb);
       if(tr==="intr") cp = "ni";
       else if(tr==="tr") cp = "di";
-      else if(tr==="both") r.nc.push("This verb can go either way. With no object, Grammar.md doesn't say whether the one made or let to act takes ni or di (§4.10).");
-      else r.nc.push("With no object, the one made or let to act takes ni if the verb can't take an object and di if it can (§4.10). This verb isn't tagged in the lexicon yet, so the page can't tell.");
+      else if(tr==="both") r.nc.push("This verb is tagged as going either way. With no object, Grammar.md doesn't say whether the one made or let to act takes ni or di (§4.10).");
+      else r.nc.push("With no object, the one made or let to act takes ni if the verb can't take an object and di if it can (§4.10). This verb has no tag in the lexicon, so the page can't tell.");
     }
     if(cp==="di" && c.place && c.rel==="to" && !isQ(c.place)) r.nc.push("Two di phrases (to a place, and the one made or let to act): their order isn't written in Grammar.md.");
   }
   const tr = getTrans(c.verb);
-  if(c.obj && tr==="intr") r.notes.push("Watch: this verb is tagged in the lexicon as taking no object.");
+  if(c.obj && tr==="intr" && !c.aux) r.warns.push(`${c.verb.en} is tagged in the lexicon as taking no object, but an object is filled in.`);
+  if(c.aux && c.obj && tr==="intr") r.warns.push(`${c.verb.en} is tagged in the lexicon as taking no object, but an object is filled in.`);
   if(r.nc.length) return;
 
   if(c.might){ T.push(FW("oyã", c.might==="cant"?N.oyaHena:N.oya)); if(c.might==="cant") T.push(FW("hena", N.oyaHena)); B.push(c.might==="cant"?"can't be":"might"); }
@@ -695,7 +685,7 @@ function clauseReady(c){
 
 /* ---------- compose the sentence ---------- */
 function compose(){
-  const out = {tokens:[], notes:[], nc:[], built:[], gaps:[], question:false, ready:false, answers:null};
+  const out = {tokens:[], notes:[], nc:[], warns:[], built:[], gaps:[], question:false, ready:false, answers:null};
   const t = S.type, c1 = S.c1, link = S.link, c2 = link ? S.c2 : null;
   const sub = !!c2 && ["if","when","because"].includes(link);
   if(!clauseReady(c1)){ out.wait = c1.kind==="is" ? "Pick what it is." : c1.kind==="compare" ? "Pick who, compared with whom, and the describing word." : "Pick a verb to start."; return out; }
@@ -704,6 +694,7 @@ function compose(){
   const A = buildClause(c1, {type:t, main:true, matrix: !c2 || sub});
   const Bc = c2 ? buildClause(c2, {type:"statement", main:false, matrix:false, sub: sub ? link : null}) : null;
   out.nc.push(...A.nc); if(Bc) out.nc.push(...Bc.nc);
+  out.warns.push(...A.warns); if(Bc) out.warns.push(...Bc.warns);
 
   if(c2){
     if(t==="lets") out.nc.push("Let's with a second clause isn't written in Grammar.md.");
@@ -780,7 +771,8 @@ function render(){
   const c = compose();
   const sEl = $("#sentence"), tip = $("#tip");
   tip.classList.remove("on"); pieceIndex = [];
-  $("#ncbox").innerHTML = c.nc.map(m=>`<div class="nc"><b>Not covered.</b> ${esc(m)}</div>`).join("");
+  $("#ncbox").innerHTML = c.nc.map(m=>`<div class="nc"><b>Not covered.</b> ${esc(m)}</div>`).join("")
+    + (c.ready ? c.warns.map(m=>`<div class="nc"><b>Check.</b> ${esc(m)}</div>`).join("") : "");
   $("#answers").innerHTML = "";
   if(!c.ready){
     sEl.innerHTML = `<span class="placeholder">${esc(!LEX ? "Load the lexicon to start." : c.nc.length ? "—" : (c.wait||""))}</span>`;
@@ -913,7 +905,9 @@ function renderClause(px, c, ctx){
     if(type==="command") h.push(slot("Who or what does it", `<div class="hint">A command has no subject (§4.5).</div>`, "", {off:true}));
     else if(type==="lets" && ctx.main) h.push(slot("Who or what does it", `<div class="pick"><div class="val"><span class="en">we (you and me)</span><span class="luv lu">luswazo</span></div></div>`, "", {off:true, hint:"Fixed for let's (§4.10)."}));
     else h.push(slot(c.aux?"Who makes or lets":"Who or what does it", picker(px+".subj","noun","Optional"), subjRoles(px+".subj", true, true, !ctx.sub)+nounDetails(px+".subj"), {hint: ctx.sub ? "No topic in this part, so the subject takes ba (§6.2)." : isQ(c.subj) ? "A question word as subject takes ba (§3.6)." : ""}));
-    h.push(slot("Object — what it's done to", picker(px+".obj","noun","Optional"), nounDetails(px+".obj")));
+    const trv = getTrans(c.verb), ven = c.verb ? esc(c.verb.en) : "";
+    const objHint = trv==="intr" ? `“${ven}” takes no object.` : trv==="tr" ? `“${ven}” takes an object.` : trv==="both" ? `“${ven}” works with or without an object.` : "";
+    h.push(slot("Object — what it's done to", picker(px+".obj","noun","Optional"), nounDetails(px+".obj"), {hint:objHint, off:trv==="intr"&&!c.obj}));
     h.push(slot("When", picker(px+".time","time","Optional"), nounDetails(px+".time")));
     const pl = c.place, deic = pl && pl.kind==="word" && DEICTIC[pl.lu];
     const popts = pl && !isQ(pl) ? `<div class="opts">${setb(px+".rel","at","at / in")}${setb(px+".rel","to","to")}${setb(px+".rel","from","from")}</div>` : "";
