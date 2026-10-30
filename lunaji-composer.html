@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lunaji Composer</title>
-<meta name="lunaji-build" content="2026-10-29-2259">
+<meta name="lunaji-build" content="2026-10-29-2313">
 <style>
 :root{
   --bg:#f6f3ee; --card:#fffdf9; --ink:#24211d; --muted:#6f685e; --line:#e3ddd2;
@@ -192,7 +192,7 @@ h2{font-size:15px;margin:22px 0 8px;color:var(--muted);font-weight:600;letter-sp
 "use strict";
 /* Lunaji Composer — reads the Forge's lexicon save; builds sentences only from rules written in Grammar.md.
    Grammar.md as of its twenty-third pass, 2026-10-29. */
-const BUILD = "2026-10-29-2259";
+const BUILD = "2026-10-29-2313";
 const LEX_URL = "lunaji-lexicon.txt";
 const CACHE_KEY = "lunaji-composer-lex";
 const STATE_KEY = "lunaji-composer-state-v2";
@@ -280,7 +280,7 @@ const PRONOUNS = [
 
 /* ---------- state ---------- */
 const blankClause = () => ({kind:"verb", verb:null, past:false, neg:false, can:false, want:false, ongoing:false,
-  aspect:"", manner:null, might:"", evid:"", aux:"", auxNeg:false, auxCan:false, auxWant:false, causee:null, frame:false,
+  aspect:"", manner:null, might:"", evid:"", aux:"", auxNeg:false, auxCan:false, auxWant:false, causee:null, frame:false, mightWide:false,
   subj:null, role:"topic", obj:null, time:null, place:null, rel:"at", pred:null, std:null, cmp:"more"});
 const blank = () => ({type:"statement", c1:blankClause(), link:"", c2:null});
 let S = blank();
@@ -323,7 +323,7 @@ const N = {
   ila: "ila — has done: completed. It stands in front of the verb, takes no endings, and drops its a before a vowel (§4.2, §1b.4).",
   zoka: "zoka — habitually. It stands in front of the verb, takes no endings, and drops its a before a vowel (§4.2, §1b.4).",
   oya: "oyã — might, maybe. It opens the clause, or stands right after a topic (§5.3).",
-  oyaHena: "oyã hena — can't be. oyã is not a verb, so it takes free hena (§5.3, §4.3).",
+  oyaHena: "oyã hena — can't be. oyã is not a verb, so it takes free hena. The pair goes where oyã goes: right after a topic, or else at the front of the clause (§5.3, §4.3).",
   tsoba: "tsobã — to make (someone do it). It follows the main verb and carries the past (§4.10, §4.1).",
   idovu: "idovu — to let. Built like tsobã: after the main verb, carrying the past (§4.10).",
   causeeNi: "The one made or let to act takes ni, because this verb never takes an object (§4.10).",
@@ -544,9 +544,9 @@ function buildVerb(c,o,r){
   if(cmd && c.past) r.nc.push("A command is the bare verb (§4.5), so it has no past form.");
   if(cmd && (c.aspect||c.can||c.want||c.ongoing||c.might||c.evid||c.aux)) r.nc.push("A command is the bare verb (§4.5). A command with can, want, an aspect, might, a source word or make/let isn't written in Grammar.md.");
   if(lets && (c.past||c.neg||c.can||c.want||c.ongoing||c.aspect||c.might||c.evid||c.aux||c.manner)) r.nc.push("Let's is luswazo + the bare verb (§4.10). Anything added to the verb isn't written in Grammar.md.");
+  if(r.qCount>1) r.nc.push("Two question words in one sentence isn't covered by Grammar.md.");
   if((cmd||lets) && r.qCount) r.nc.push("A question word in a command or a let's isn't covered by Grammar.md.");
   if(c.might==="cant" && c.neg) r.nc.push("oyã hena with a negative verb isn't written in Grammar.md.");
-  if(c.might==="cant" && subj && role==="topic") r.nc.push("oyã hena with a topic isn't written: §5.3 rules oyã after a topic, and oyã hena only at the front of the clause.");
   if(c.evid && !o.matrix) r.nc.push("la, po and ke go only in the main clause (§6.2).");
   if(o.sub && c.might) r.nc.push("oyã inside an if / when / because clause isn't written in Grammar.md.");
 
@@ -596,13 +596,22 @@ function buildVerb(c,o,r){
   });
   const hasFront = r.hasTopic || lets;
   const frameFirst = !!(c.frame && hasFront && frameToks.length);
-  if(frameFirst && o.main && o.hasSub) r.nc.push("A when / where frame before the topic, together with an if / when / because clause, isn't written in Grammar.md.");
-  if(c.might && o.main && o.hasSub) r.nc.push("oyã in a main clause that has an if / when / because clause isn't written in Grammar.md.");
   let lead;
-  if(!hasFront){ lead = [...mightToks, ...frameToks]; r.topicLen = 0; }
+  if(o.hasSub){
+    const wide = !!(c.might && c.mightWide);
+    if(wide && !r.hasTopic) r.nc.push("With no main-clause topic, anything before the "+o.hasSub+" part belongs to it (§6.1a), so oyã can't go there to doubt the whole if-then.");
+    const pre = r.hasTopic ? [...frameToks, ...topicToks, ...(wide ? mightToks : [])] : [];
+    lead = r.hasTopic ? [...pre, ...(wide ? [] : mightToks)] : [...mightToks, ...frameToks];
+    r.topicLen = pre.length;
+    r.notes.push(r.hasTopic
+      ? "With an if / when / because part, the neutral order is: when / where → topic → the "+o.hasSub+" part → oyã → the rest → verb (§6.1a)."
+      : "A time or place word stays in its own clause. With no main-clause topic, anything before the "+o.hasSub+" part would belong to it, so the main clause's when / where comes after it (§6.1a).");
+    if(c.might) r.notes.push(wide ? "oyã before the "+o.hasSub+" part doubts the whole if-then (§6.1a)." : "oyã after the "+o.hasSub+" part doubts the main clause only (§6.1a).");
+  }
+  else if(!hasFront){ lead = [...mightToks, ...frameToks]; r.topicLen = 0; }
   else if(frameFirst){ lead = [...frameToks, ...topicToks, ...mightToks]; r.topicLen = 0; r.notes.push("When / where stands before the topic as the frame (§5.2)."); }
   else { lead = [...topicToks, ...mightToks, ...frameToks]; r.topicLen = topicToks.length; }
-  if(c.might && r.hasTopic) r.notes.push("oyã stands right after the topic: the topic is outside what is doubted (§5.3).");
+  if(c.might && r.hasTopic && !o.hasSub) r.notes.push("oyã stands right after the topic: the topic is outside what is doubted (§5.3).");
   if(subj && role==="doer"){
     const before = T.length;
     addNP(r, subj, "ba", npEn(subj)+" (does it)");
@@ -656,11 +665,13 @@ function buildIs(c,o,r){
   if(o.sub) r.nc.push("An if / when / because clause built on \"is\" isn't covered yet.");
   r.qCount = qIn(c.subj)+qIn(c.pred);
   const qPred = isQ(c.pred) && !(c.pred.mods && c.pred.mods.pos);
-  if(qIn(c.subj) || (c.pred && c.pred.mods && isQ(c.pred.mods.pos))) r.nc.push("A question word in the first part of an \"X is Y\" sentence isn't written in Grammar.md. It stands bare in the second place (§3.6).");
-  if(qPred && c.neg) r.nc.push("A negative \"X is Y\" question with a question word isn't written in Grammar.md.");
-  if(c.subj && c.role==="doer") r.nc.push("§4.6 shows \"X is Y\" with X as the topic or left out, not with ba.");
+  const qSubj = isQ(c.subj);
+  if((c.pred && c.pred.mods && isQ(c.pred.mods.pos)) || (c.subj && c.subj.mods && isQ(c.subj.mods.pos))) r.nc.push("\"Whose\" in an \"X is Y\" sentence isn't written in Grammar.md.");
+  if(qPred && qSubj) r.nc.push("Two question words in one sentence isn't covered by Grammar.md.");
+  if(c.subj && c.role==="doer" && !qSubj) r.nc.push("§4.6 shows \"X is Y\" with X as the topic or left out, not with ba.");
   if(r.nc.length) return;
-  if(c.subj && (c.role!=="drop" || c.subj.kind!=="pron")){ addNP(r, c.subj, "topic", npEn(c.subj)+" (topic)"); r.hasTopic = true; r.topicLen = r.tokens.length; }
+  if(qSubj){ addNP(r, c.subj, "ba", c.subj.en); markLast(T, "In an \"X is Y\" question, a question word in the first place takes ba (§3.6)."); }
+  else if(c.subj && (c.role!=="drop" || c.subj.kind!=="pron")){ addNP(r, c.subj, "topic", npEn(c.subj)+" (topic)"); r.hasTopic = true; r.topicLen = r.tokens.length; }
   if(qPred){ r.tokens.push({pieces:[P(c.pred.lu,"root",(c.pred.lu==="mõzo"?N.mozo:N.emose).replace(/It stays.*$/,"")+" In an \"X is Y\" question it stands bare in the second place, with no jĩ (§3.6).")]}); B.push(c.pred.en); }
   else addNP(r, c.pred, null, "is "+npEn(c.pred));
   if(c.past){
@@ -668,7 +679,7 @@ function buildIs(c,o,r){
     else { const pcs = [P("gu","root",N.gu)]; if(c.neg) pcs.push(P("ena","end",N.guNeg)); pcs.push(P("ze","end",N.ze)); T.push({pieces:pcs}); }
     B.push(c.neg?"wasn't":"was");
   } else if(c.neg){ T.push(FW("hena", N.henaFree)); B.push("not"); }
-  if(o.matrix && qPred) r.question = true;
+  if(o.matrix && (qPred || qSubj)) r.question = true;
   else if(o.matrix && type==="question"){ r.question = true; T.push(FW("jĩ", N.jin)); }
   if(!c.past) r.notes.push("No word for \"is\" now: the copula is zero when it isn't past (§4.6).");
   if(c.subj && c.role==="drop" && c.subj.kind==="pron") r.notes.push(`"${c.subj.en}" is left out: a neutral sentence has no pronoun in it (§2.3).`);
@@ -708,7 +719,7 @@ function compose(){
   if(!clauseReady(c1)){ out.wait = c1.kind==="is" ? "Pick what it is." : c1.kind==="compare" ? "Pick who, compared with whom, and the describing word." : "Pick a verb to start."; return out; }
   if(c2 && !clauseReady(c2)){ out.wait = "Finish the second clause, or remove it."; return out; }
 
-  const A = buildClause(c1, {type:t, main:true, matrix: !c2 || sub, hasSub: sub});
+  const A = buildClause(c1, {type:t, main:true, matrix: !c2 || sub, hasSub: sub ? link : ""});
   const Bc = c2 ? buildClause(c2, {type:"statement", main:false, matrix:false, sub: sub ? link : null}) : null;
   out.nc.push(...A.nc); if(Bc) out.nc.push(...Bc.nc);
   out.warns.push(...A.warns); if(Bc) out.warns.push(...Bc.warns);
@@ -909,7 +920,7 @@ function renderClause(px, c, ctx){
         if(more){
           vo += `<div class="opts small"><span class="ol">Aspect:</span>${setb(px+".aspect","ila","has done (ila)",1)}${setb(px+".aspect","zoka","habitually (zoka)",1)}</div>`;
           vo += `<div class="opts small"><span class="ol">How:</span>${c.manner?`<span class="chip">${esc(c.manner.en)}<button data-clear="${px}.manner">×</button></span>`:`<button data-open="${px}.manner|desc">pick a describing word</button>`}</div>`;
-          if(!ctx.sub) vo += `<div class="opts small"><span class="ol">Certainty:</span>${setb(px+".might","oya","might (oyã)",1)}${setb(px+".might","cant","can't be (oyã hena)",1)}</div>`;
+          if(!ctx.sub) vo += `<div class="opts small"><span class="ol">Certainty:</span>${setb(px+".might","oya","might (oyã)",1)}${setb(px+".might","cant","can't be (oyã hena)",1)}${c.might && ctx.main && ["if","when","because"].includes(S.link) ? tog(px+".mightWide","before the "+S.link+" part") : ""}</div>`;
           vo += `<div class="opts small"><span class="ol">Make / let:</span>${setb(px+".aux","tsobã","make (tsobã)",1)}${setb(px+".aux","idovu","let (idovu)",1)}</div>`;
           if(c.aux) vo += `<div class="opts small"><span class="ol">On ${c.aux}:</span>${tog(px+".auxNeg","Not")}${tog(px+".auxCan","Can")}${tog(px+".auxWant","Want to")}</div>`;
           if(ctx.main && !S.link || ctx.main && ["if","when","because"].includes(S.link))
@@ -926,7 +937,7 @@ function renderClause(px, c, ctx){
     const trv = getTrans(c.verb), ven = c.verb ? esc(c.verb.en) : "";
     const objHint = trv==="intr" ? `“${ven}” takes no object.` : trv==="tr" ? `“${ven}” takes an object.` : trv==="both" ? `“${ven}” works with or without an object.` : "";
     h.push(slot("Object — what it's done to", picker(px+".obj","noun","Optional"), nounDetails(px+".obj"), {hint:objHint, off:trv==="intr"&&!c.obj}));
-    const canFrame = (c.time||c.place) && ((type==="lets" && ctx.main) || (c.subj && c.role==="topic" && !isQ(c.subj) && type!=="command" && !ctx.sub));
+    const canFrame = !(ctx.main && ["if","when","because"].includes(S.link)) && (c.time||c.place) && ((type==="lets" && ctx.main) || (c.subj && c.role==="topic" && !isQ(c.subj) && type!=="command" && !ctx.sub));
     const frameBtn = canFrame ? `<div class="opts small">${tog(px+".frame", type==="lets"&&ctx.main ? "Say when / where before luswazo" : "Say when / where before the topic")}</div>` : "";
     h.push(slot("When", picker(px+".time","time","Optional"), nounDetails(px+".time") + (c.time ? frameBtn : "")));
     const pl = c.place, deic = pl && pl.kind==="word" && DEICTIC[pl.lu];
@@ -934,7 +945,7 @@ function renderClause(px, c, ctx){
     h.push(slot("Where", picker(px+".place","place","Optional"), popts + (deic?"":nounDetails(px+".place")) + (!c.time ? frameBtn : "")));
   }
   if(c.kind==="is"){
-    h.push(slot("What you're talking about", picker(px+".subj","noun","Optional"), subjRoles(px+".subj", true, false, true)+nounDetails(px+".subj")));
+    h.push(slot("What you're talking about", picker(px+".subj","noun","Optional"), subjRoles(px+".subj", true, false, true)+nounDetails(px+".subj"), {hint: isQ(c.subj) ? "A question word here takes ba, and there's no jĩ (§3.6)." : ""}));
     h.push(slot("…is what", picker(px+".pred","noun","Tap to pick"), nounDetails(px+".pred"), {req:true}));
     h.push(slot("Options", `<div class="opts">${tog(px+".past","Past (was)")}${tog(px+".neg","Not")}</div>`, "", {hint:"No word for \"is\" now; \"was\" is guze (§4.6)."}));
   }
